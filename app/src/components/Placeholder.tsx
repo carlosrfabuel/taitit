@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
-
-const { colors, spacing, typography } = tokens;
+import { AppText, Screen } from '@/ui';
 
 // Temporary screen body used until each screen is built.
 export function Placeholder({
@@ -15,17 +14,14 @@ export function Placeholder({
   children?: ReactNode;
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{title}</Text>
-      {note ? <Text style={styles.note}>{note}</Text> : null}
+    <Screen>
+      <AppText variant="title">{title}</AppText>
+      {note ? <AppText variant="small">{note}</AppText> : null}
       {children ? <View style={styles.body}>{children}</View> : null}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.xl, gap: spacing.md },
-  title: { fontSize: typography.title, fontWeight: '800', color: colors.text },
-  note: { fontSize: typography.body, color: colors.muted },
-  body: { gap: spacing.md, marginTop: spacing.md },
+  body: { gap: tokens.spacing.md, marginTop: tokens.spacing.sm },
 });

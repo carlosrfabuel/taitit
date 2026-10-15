@@ -4,6 +4,7 @@ const NAV = [
   { to: '/models', label: 'Modelos' },
   { to: '/palettes', label: 'Paletas' },
   { to: '/orders', label: 'Pedidos' },
+  ...(import.meta.env.DEV ? [{ to: '/dev/ui-kit', label: 'UI kit (dev)' }] : []),
 ];
 
 export function AdminLayout() {

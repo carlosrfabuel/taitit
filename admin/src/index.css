@@ -9,6 +9,8 @@
   --color-ink: #1b1b1b;
   --color-muted: #6b6b6b;
   --color-line: #e4e4e0;
+  --color-danger: #c2263a;
+  --color-success: #2e9e6b;
 }
 
 body {

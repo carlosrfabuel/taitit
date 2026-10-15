@@ -1,5 +1,14 @@
 import { Tabs } from 'expo-router';
+import { ColorValue } from 'react-native';
 import { tokens } from '@taitit/shared';
+import { Icon, IconName } from '@/ui';
+
+const tab = (title: string, icon: IconName, iconActive: IconName) => ({
+  title,
+  tabBarIcon: ({ color, focused }: { color: ColorValue; focused: boolean }) => (
+    <Icon name={focused ? iconActive : icon} size={22} color={color} />
+  ),
+});
 
 export default function TabsLayout() {
   return (
@@ -10,16 +19,13 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: tokens.colors.background },
         tabBarActiveTintColor: tokens.colors.primary,
         tabBarInactiveTintColor: tokens.colors.muted,
-        // Icons arrive with the UI kit (Day 2); hide the empty placeholder until then.
-        tabBarIcon: () => null,
-        tabBarIconStyle: { display: 'none' },
-        tabBarLabelStyle: { fontSize: tokens.typography.small, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: tokens.typography.tiny, fontWeight: tokens.weight.medium },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Catálogo' }} />
-      <Tabs.Screen name="designs" options={{ title: 'Mis diseños' }} />
-      <Tabs.Screen name="orders" options={{ title: 'Mis pedidos' }} />
-      <Tabs.Screen name="account" options={{ title: 'Cuenta' }} />
+      <Tabs.Screen name="index" options={tab('Catálogo', 'glasses-outline', 'glasses')} />
+      <Tabs.Screen name="designs" options={tab('Mis diseños', 'heart-outline', 'heart')} />
+      <Tabs.Screen name="orders" options={tab('Mis pedidos', 'receipt-outline', 'receipt')} />
+      <Tabs.Screen name="account" options={tab('Cuenta', 'person-outline', 'person')} />
     </Tabs>
   );
 }
