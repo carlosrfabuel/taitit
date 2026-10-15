@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Redirect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { ORDER_STATUSES, tokens } from '@taitit/shared';
 import {
@@ -25,8 +26,14 @@ const SAMPLES = [
   { name: 'Azul', hex: '#2A6FDB' },
 ];
 
-// Development-only gallery of the UI kit. Reachable from Cuenta while __DEV__.
-export default function UiKitScreen() {
+// Development-only gallery of the UI kit. Expo Router bundles every route file, so production
+// builds redirect instead of showing it (e.g. if opened through a taitit://dev/ui-kit link).
+export default function UiKitRoute() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <UiKitScreen />;
+}
+
+function UiKitScreen() {
   const toast = useToast();
   const [chip, setChip] = useState('Todos');
   const [swatch, setSwatch] = useState(0);
