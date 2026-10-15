@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+
+# env and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.key
+*.jks
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# expo / react native
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+app/ios/
+app/android/
+
+# vite
+admin/dist/
+
+# supabase
+supabase/.branches/
+supabase/.temp/
+
+# tools output
+tools/zones/out/
+tools/zones/input/
+
+# misc
+.DS_Store
+*.log
+npm-debug.*
+.vscode/*
+!.vscode/extensions.json
+coverage/
+*.tsbuildinfo

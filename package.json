@@ -1,0 +1,30 @@
+{
+  "name": "taitit-configurador",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "app",
+    "admin",
+    "shared",
+    "tools/*"
+  ],
+  "scripts": {
+    "dev:app": "npm run start --workspace app",
+    "dev:admin": "npm run dev --workspace admin",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.0",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}

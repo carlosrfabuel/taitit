@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+/* Placeholder brand tokens, kept in sync with shared/src/tokens.ts. */
+@theme {
+  --color-brand: #111111;
+  --color-accent: #1f7a8c;
+  --color-bg: #f7f7f5;
+  --color-surface: #ffffff;
+  --color-ink: #1b1b1b;
+  --color-muted: #6b6b6b;
+  --color-line: #e4e4e0;
+}
+
+body {
+  @apply bg-bg text-ink antialiased;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}

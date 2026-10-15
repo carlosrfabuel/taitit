@@ -1,0 +1,1 @@
+-- Seed data (palettes, demo models) is added on Day 3.
