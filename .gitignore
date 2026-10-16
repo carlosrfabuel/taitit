@@ -41,3 +41,9 @@ npm-debug.*
 !.vscode/extensions.json
 coverage/
 *.tsbuildinfo
+
+# temporary SQL files from test runners
+supabase/tests/.tmp-*.sql
+
+# project notes stay local (not in the repository)
+docs/
