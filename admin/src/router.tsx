@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { AdminLayout } from './components/AdminLayout';
+import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ModelEditPage } from './pages/ModelEditPage';
@@ -14,11 +15,16 @@ export const router = createBrowserRouter([
   { path: '*', element: <NotFoundPage /> },
   {
     path: '/',
-    element: <AdminLayout />,
+    element: (
+      <RequireAdmin>
+        <AdminLayout />
+      </RequireAdmin>
+    ),
     errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <Navigate to="/models" replace /> },
       { path: 'models', element: <ModelsPage /> },
+      { path: 'models/new', element: <ModelEditPage /> },
       { path: 'models/:id', element: <ModelEditPage /> },
       { path: 'palettes', element: <PalettesPage /> },
       { path: 'orders', element: <OrdersPage /> },

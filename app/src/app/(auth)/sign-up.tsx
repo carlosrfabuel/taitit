@@ -18,6 +18,8 @@ export default function SignUpScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // An edited field drops its old error; the next submit validates everything again.
+  const clearError = (field: string) => setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
 
   const submit = async () => {
     if (loading) return; // keyboard "done" can fire while a request is running
@@ -67,7 +69,10 @@ export default function SignUpScreen() {
         <TextField
           label="Nombre"
           value={name}
-          onChangeText={setName}
+          onChangeText={(v) => {
+            setName(v);
+            clearError('name');
+          }}
           error={errors.name}
           autoComplete="name"
           textContentType="name"
@@ -75,7 +80,10 @@ export default function SignUpScreen() {
         <TextField
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => {
+            setEmail(v);
+            clearError('email');
+          }}
           error={errors.email}
           placeholder="tu@email.com"
           keyboardType="email-address"
@@ -86,7 +94,10 @@ export default function SignUpScreen() {
         <TextField
           label="Contraseña"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v) => {
+            setPassword(v);
+            clearError('password');
+          }}
           error={errors.password}
           helper="Mínimo 8 caracteres."
           revealable
@@ -97,7 +108,10 @@ export default function SignUpScreen() {
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: accepted }}
-          onPress={() => setAccepted((v) => !v)}
+          onPress={() => {
+            setAccepted((v) => !v);
+            clearError('accepted');
+          }}
           style={styles.check}
           hitSlop={6}
         >

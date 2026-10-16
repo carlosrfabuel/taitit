@@ -135,6 +135,17 @@ begin
   update public.models set name = 'HACKED' where id = m_pub;
   get diagnostics n = row_count;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer renamed a model'; end if;
+  -- The admin panel's login guard is only UI: the database itself must refuse customer model writes.
+  begin insert into public.models (name) values ('HACK CUSTOMER'); failed := failed || E'\n3 customer created a model';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  -- Inner block: always undone, so a broken policy is reported here instead of breaking later checks.
+  begin
+    delete from public.models where id = m_pub;
+    get diagnostics n = row_count;
+    raise exception 'undo:%', n;
+  exception when raise_exception then
+    if sqlerrm = 'undo:0' then passed := passed + 1; else failed := failed || E'\n3 customer deleted a model'; end if;
+  end;
 
   -- Storage: own folder only
   begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/test.png', a::text); passed := passed + 1;

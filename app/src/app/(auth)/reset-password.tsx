@@ -74,7 +74,10 @@ export default function ResetPasswordScreen() {
         <TextField
           label="Nueva contraseña"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v) => {
+            setPassword(v);
+            setError(null);
+          }}
           error={error}
           helper="Mínimo 8 caracteres."
           revealable

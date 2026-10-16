@@ -15,6 +15,9 @@ export default function SignInScreen() {
   const [errors, setErrors] = useState<{ email?: string | null; password?: string | null }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // An edited field drops its old error; the next submit validates everything again.
+  const clearError = (field: 'email' | 'password') =>
+    setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
 
   const submit = async () => {
     if (loading) return; // keyboard "done" can fire while a request is running
@@ -42,7 +45,10 @@ export default function SignInScreen() {
         <TextField
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => {
+            setEmail(v);
+            clearError('email');
+          }}
           error={errors.email}
           placeholder="tu@email.com"
           keyboardType="email-address"
@@ -54,7 +60,10 @@ export default function SignInScreen() {
         <TextField
           label="Contraseña"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v) => {
+            setPassword(v);
+            clearError('password');
+          }}
           error={errors.password}
           revealable
           autoCapitalize="none"

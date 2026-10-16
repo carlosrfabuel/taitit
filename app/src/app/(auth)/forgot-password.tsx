@@ -49,7 +49,10 @@ export default function ForgotPasswordScreen() {
         <TextField
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => {
+            setEmail(v);
+            setError(null);
+          }}
           error={error}
           placeholder="tu@email.com"
           keyboardType="email-address"
