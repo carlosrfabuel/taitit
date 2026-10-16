@@ -1,10 +1,18 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
-type Props = { open: boolean; title: string; onClose: () => void; children: ReactNode; footer?: ReactNode };
+type Props = {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  /** false while something is saving: Esc and the close button do nothing. */
+  dismissible?: boolean;
+};
 
 // Native <dialog>: focus trap, Esc to close and backdrop come from the browser.
-export function Modal({ open, title, onClose, children, footer }: Props) {
+export function Modal({ open, title, onClose, children, footer, dismissible = true }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -18,6 +26,8 @@ export function Modal({ open, title, onClose, children, footer }: Props) {
     <dialog
       ref={ref}
       onClose={onClose}
+      // Esc fires "cancel" before closing; cancelling it keeps the dialog open.
+      onCancel={(e) => !dismissible && e.preventDefault()}
       aria-labelledby="modal-title"
       className="m-auto w-full max-w-lg rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/45"
     >
@@ -28,6 +38,7 @@ export function Modal({ open, title, onClose, children, footer }: Props) {
         <button
           type="button"
           onClick={onClose}
+          disabled={!dismissible}
           aria-label="Cerrar"
           className="rounded p-1 text-muted hover:bg-bg"
         >

@@ -22,10 +22,10 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: tokens.typography.tiny, fontWeight: tokens.weight.medium },
       }}
     >
-      <Tabs.Screen name="index" options={tab('Catálogo', 'glasses-outline', 'glasses')} />
-      <Tabs.Screen name="designs" options={tab('Mis diseños', 'heart-outline', 'heart')} />
-      <Tabs.Screen name="orders" options={tab('Mis pedidos', 'receipt-outline', 'receipt')} />
-      <Tabs.Screen name="account" options={tab('Cuenta', 'person-outline', 'person')} />
+      <Tabs.Screen name="index" options={tab('Catalog', 'glasses-outline', 'glasses')} />
+      <Tabs.Screen name="designs" options={tab('My designs', 'heart-outline', 'heart')} />
+      <Tabs.Screen name="orders" options={tab('My orders', 'receipt-outline', 'receipt')} />
+      <Tabs.Screen name="account" options={tab('Account', 'person-outline', 'person')} />
     </Tabs>
   );
 }

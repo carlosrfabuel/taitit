@@ -5,8 +5,8 @@ import { Placeholder } from '@/components/Placeholder';
 export default function CustomizeScreen() {
   const { modelId } = useLocalSearchParams<{ modelId: string }>();
   return (
-    <Placeholder title="Personalizador" note={`Modelo: ${modelId}. Zonas, paletas y acabados (Días 11–13).`}>
-      <NavLink href="/order/summary" label="Continuar al resumen" />
+    <Placeholder title="Customizer" note={`Model: ${modelId}. Zones, palettes and finishes (Days 11–13).`}>
+      <NavLink href="/order/summary" label="Continue to summary" />
     </Placeholder>
   );
 }

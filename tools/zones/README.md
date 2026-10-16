@@ -48,6 +48,13 @@ For each model it produces, in `out/<model>/`:
 
    Re-running upload updates the same model, zones and files (matched by model name and zone label).
    New models are uploaded unpublished unless the config sets `"published": true`.
+   Before writing anything, upload checks that every layer has the base image size and that every
+   default color exists and is active; if not, it stops and nothing changes.
+   Files are stored under content-based names (`base-<hash>.jpg`), so the app never gets a stale cached
+   copy; files no longer used are removed at the end.
+   A published model stays published during a re-upload, unless its image size changes or a zone is
+   removed: then it is unpublished while uploading and published again at the end (if that fails, it
+   stays unpublished and the tool says so).
 
 ## Notes
 

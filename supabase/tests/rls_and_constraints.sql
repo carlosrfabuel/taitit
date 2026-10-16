@@ -13,6 +13,7 @@ declare
   o_a uuid; o_b uuid; d_b uuid;
   n integer; n2 integer; t1 timestamptz; t2 timestamptz; txt text;
   seq_before bigint; seq_after bigint;
+  m_new uuid; z_new uuid; arr text[];
   passed integer := 0;
   failed text := '';
 
@@ -32,13 +33,18 @@ begin
     (adm, 'test-admin@example.com', '{}', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = adm;
 
-  insert into public.models (name, category, base_path, published) values ('TEST PUB', 'Graduadas', 'test/base.jpg', true) returning id into m_pub;
+  -- TEST PUB is built complete (base image, zones with layers of the same size, default colors) and then
+  -- published, as the publishing rules require.
+  insert into public.models (name, category, base_path, base_width, base_height) values ('TEST PUB', 'Graduadas', 'test/base.jpg', 1600, 556) returning id into m_pub;
   insert into public.models (name, category, published) values ('TEST DRAFT', 'Sol', false) returning id into m_draft;
   insert into public.swatches (material, name, hex, ref, kind, finishes) values ('metal', 'T metal', '#111111', 'T-M', 'metal', '{gloss}') returning id into sw_metal;
   insert into public.swatches (material, name, hex, ref, kind) values ('acetate', 'T acet', '#222222', 'T-A', 'solid') returning id into sw_acet;
   insert into public.swatches (material, name, hex, ref, kind, active) values ('acetate', 'T off', '#333333', 'T-OFF', 'solid', false) returning id into sw_off;
-  insert into public.model_zones (model_id, name, material, default_swatch_id) values
-    (m_pub, 'Frente', 'metal', sw_metal), (m_pub, 'Aros', 'acetate', sw_acet), (m_draft, 'Frente', 'metal', null);
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height) values
+    (m_pub, 'Frente', 'metal', sw_metal, 'test/frente.png', 1600, 556),
+    (m_pub, 'Aros', 'acetate', sw_acet, 'test/aros.png', 1600, 556),
+    (m_draft, 'Frente', 'metal', null, null, null, null);
+  update public.models set published = true where id = m_pub;
 
   insert into public.designs (user_id, model_id, name) values (a, m_pub, 'Diseño A');
   insert into public.designs (user_id, model_id, name) values (b, m_pub, 'Diseño B') returning id into d_b;
@@ -49,8 +55,6 @@ begin
   insert into public.order_items (order_id, zone_name, material, swatch_name, hex, ref, kind) values
     (o_a, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal'),
     (o_b, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal');
-  -- Backdate so the status test can prove the trigger refreshes this timestamp.
-  update public.orders set status_updated_at = '2000-01-01' where id = o_a;
 
   -- 1. Sign-up trigger
   select count(*) into n from public.profiles where id in (a, b, adm) and email like 'test-%@example.com';
@@ -121,9 +125,6 @@ begin
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s orders (expected own 1)', n); end if;
   select count(*) into n from public.order_items;
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s order items (expected own 1)', n); end if;
-  update public.orders set status = 'delivered' where id = o_a;
-  get diagnostics n = row_count;
-  if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer changed an order status'; end if;
   begin insert into public.orders (user_id, model_name, idempotency_key) values (a, 'X', gen_random_uuid()); failed := failed || E'\n3 customer inserted an order directly';
   exception when insufficient_privilege then passed := passed + 1; end;
   begin update public.orders set notes = 'x' where id = o_a; failed := failed || E'\n3 customer edited order notes';
@@ -179,18 +180,19 @@ begin
   select count(*) into n from storage.objects where bucket_id = 'models' and name = 'test/catalog.png';
   if n = 1 then passed := passed + 1; else failed := failed || E'\n4 admin cannot read catalog files (needed to replace/delete them)'; end if;
 
-  select status_updated_at into t1 from public.orders where id = o_a;
-  update public.orders set status = 'in_production' where id = o_a;
-  get diagnostics n = row_count;
-  select status_updated_at into t2 from public.orders where id = o_a;
-  if n = 1 then passed := passed + 1; else failed := failed || E'\n4 admin cannot change order status'; end if;
-  if t1 = '2000-01-01' and t2 > t1 then passed := passed + 1; else failed := failed || E'\n4 status_updated_at not maintained'; end if;
+  -- Orders have no status and are read-only once created, for the admin too.
+  begin update public.orders set notes = 'x' where id = o_a; failed := failed || E'\n4 admin edited an order';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'orders' and column_name like 'status%')
+    then passed := passed + 1; else failed := failed || E'\n4 orders still have a status column'; end if;
   begin update public.profiles set role = 'customer' where id = a; failed := failed || E'\n4 admin changed a role through the API (should be manual only)';
   exception when insufficient_privilege then passed := passed + 1; end;
 
   insert into public.swatches (material, name, hex, ref, kind) values ('acetate', 'Admin nuevo', '#444444', 'T-NEW', 'solid');
   passed := passed + 1;
-  insert into public.model_zones (model_id, name, material) values (m_pub, 'Puente', 'metal'), (m_pub, 'Patillas', 'metal');
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height) values
+    (m_pub, 'Puente', 'metal', sw_metal, 'test/puente.png', 1600, 556),
+    (m_pub, 'Patillas', 'metal', sw_metal, 'test/patillas.png', 1600, 556);
   passed := passed + 1;
   begin insert into public.model_zones (model_id, name, material) values (m_pub, 'Quinta', 'acetate'); failed := failed || E'\n4 a 5th zone was accepted';
   exception when check_violation then passed := passed + 1; end;
@@ -198,10 +200,89 @@ begin
   exception when check_violation then passed := passed + 1; end;
 
   -- -------------------------------------------------------------------------
+  -- 4b. Publishing rules (as admin): only complete models can be published, and stay complete
+  -- -------------------------------------------------------------------------
+  arr := public.model_publish_problems(m_draft);
+  if arr @> array['no_base_image', 'zone_without_layer', 'zone_without_default_color'] then passed := passed + 1;
+  else failed := failed || format(E'\n4b draft problems are %s', arr); end if;
+  arr := public.model_publish_problems(m_pub);
+  if arr = '{}' then passed := passed + 1; else failed := failed || format(E'\n4b complete model has problems %s', arr); end if;
+
+  insert into public.models (name, base_path, base_width, base_height) values ('TEST NEW', 'test/new.jpg', 1600, 556) returning id into m_new;
+  begin update public.models set published = true where id = m_new; failed := failed || E'\n4b model without zones was published';
+  exception when check_violation then
+    if sqlerrm like '%no_zones%' then passed := passed + 1; else failed := failed || E'\n4b wrong error: ' || sqlerrm; end if;
+  end;
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height)
+    values (m_new, 'Frente', 'metal', sw_metal, 'test/new-frente.png', 800, 556) returning id into z_new;
+  begin update public.models set published = true where id = m_new; failed := failed || E'\n4b layer of another size was published';
+  exception when check_violation then
+    if sqlerrm like '%layer_size_mismatch%' then passed := passed + 1; else failed := failed || E'\n4b wrong error: ' || sqlerrm; end if;
+  end;
+  update public.model_zones set layer_width = 1600 where id = z_new;
+  update public.models set published = true where id = m_new;
+  passed := passed + 1; -- complete model publishes
+  begin update public.model_zones set layer_width = 100 where id = z_new; failed := failed || E'\n4b published model got a layer of another size';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.models set base_width = 2000 where id = m_new; failed := failed || E'\n4b published model got a base image of another size';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.model_zones set default_swatch_id = null where id = z_new; failed := failed || E'\n4b published zone lost its default color';
+  exception when check_violation then passed := passed + 1; end;
+  begin delete from public.model_zones where id = z_new; failed := failed || E'\n4b last zone of a published model was deleted';
+  exception when check_violation then passed := passed + 1; end;
+  update public.models set published = false where id = m_new;
+  delete from public.model_zones where id = z_new;
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n4b zone of an unpublished model could not be deleted'; end if;
+  -- Deleting a whole published model (zones cascade) must not be blocked by the zone rule.
+  insert into public.models (name, base_path, base_width, base_height) values ('TEST DEL', 'test/del.jpg', 1600, 556) returning id into m_new;
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height)
+    values (m_new, 'Frente', 'metal', sw_metal, 'test/del-frente.png', 1600, 556);
+  update public.models set published = true where id = m_new;
+  delete from public.models where id = m_new;
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n4b published model could not be deleted'; end if;
+
+  -- The problems list is for admins: customers get nothing for drafts, guests cannot call it.
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  if public.model_publish_problems(m_draft) is null then passed := passed + 1;
+  else failed := failed || E'\n4b customer read problems of a draft model'; end if;
+  perform set_config('role', 'anon', true);
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  begin arr := public.model_publish_problems(m_draft); failed := failed || E'\n4b guest called model_publish_problems';
+  exception when insufficient_privilege then passed := passed + 1; end;
+
+  -- -------------------------------------------------------------------------
   -- 5. Constraints (as owner)
   -- -------------------------------------------------------------------------
   perform set_config('role', 'postgres', true);
   perform set_config('request.jwt.claims', '', true);
+
+  -- 4c. Publishing rules, review fixes (as owner: one check needs to switch a trigger off)
+  -- A published model from before the rules (made here with the trigger off) can still be reordered
+  -- and renamed; only publishing again or changing its base image runs the check.
+  alter table public.models disable trigger models_publishable;
+  insert into public.models (name, published, base_path) values ('TEST LEGACY', true, 'test/legacy.jpg') returning id into m_new;
+  alter table public.models enable trigger models_publishable;
+  update public.models set sort_order = 99, name = 'TEST LEGACY 2' where id = m_new;
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n4c older published model cannot be reordered or renamed'; end if;
+  begin update public.models set base_path = 'test/legacy2.jpg' where id = m_new; failed := failed || E'\n4c older published model got a new base image without the check';
+  exception when check_violation then passed := passed + 1; end;
+  delete from public.models where id = m_new;
+  -- Default colors must be active.
+  begin update public.swatches set active = false where id = sw_metal; failed := failed || E'\n4c color used by a published model was deactivated';
+  exception when check_violation then passed := passed + 1; end;
+  begin delete from public.swatches where id = sw_acet; failed := failed || E'\n4c color used by a published model was deleted';
+  exception when check_violation then passed := passed + 1; end;
+  insert into public.models (name, base_path, base_width, base_height) values ('TEST INACTIVE', 'test/i.jpg', 1600, 556) returning id into m_new;
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height)
+    values (m_new, 'Aros', 'acetate', sw_off, 'test/i-aros.png', 1600, 556);
+  if private.publish_problems(m_new, 'test/i.jpg', 1600, 556) = array['default_color_inactive'] then passed := passed + 1;
+  else failed := failed || format(E'\n4c inactive default not reported: %s', private.publish_problems(m_new, 'test/i.jpg', 1600, 556)); end if;
+  begin update public.models set published = true where id = m_new; failed := failed || E'\n4c model with an inactive default color was published';
+  exception when check_violation then passed := passed + 1; end;
+  delete from public.models where id = m_new;
 
   begin insert into public.swatches (material, name, hex, ref, kind) values ('acetate', 'x', '#555555', 'T-TR', 'translucent'); failed := failed || E'\n5 translucent swatch without alpha accepted';
   exception when check_violation then passed := passed + 1; end;

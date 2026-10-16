@@ -64,7 +64,9 @@ export type Database = {
           default_finish: Database["public"]["Enums"]["finish"] | null
           default_swatch_id: string | null
           id: string
+          layer_height: number | null
           layer_path: string | null
+          layer_width: number | null
           material: Database["public"]["Enums"]["material"]
           model_id: string
           name: string
@@ -74,7 +76,9 @@ export type Database = {
           default_finish?: Database["public"]["Enums"]["finish"] | null
           default_swatch_id?: string | null
           id?: string
+          layer_height?: number | null
           layer_path?: string | null
+          layer_width?: number | null
           material: Database["public"]["Enums"]["material"]
           model_id: string
           name: string
@@ -84,7 +88,9 @@ export type Database = {
           default_finish?: Database["public"]["Enums"]["finish"] | null
           default_swatch_id?: string | null
           id?: string
+          layer_height?: number | null
           layer_path?: string | null
+          layer_width?: number | null
           material?: Database["public"]["Enums"]["material"]
           model_id?: string
           name?: string
@@ -109,7 +115,9 @@ export type Database = {
       }
       models: {
         Row: {
+          base_height: number | null
           base_path: string | null
+          base_width: number | null
           category: string
           created_at: string
           description: string | null
@@ -121,7 +129,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          base_height?: number | null
           base_path?: string | null
+          base_width?: number | null
           category?: string
           created_at?: string
           description?: string | null
@@ -133,7 +143,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          base_height?: number | null
           base_path?: string | null
+          base_width?: number | null
           category?: string
           created_at?: string
           description?: string | null
@@ -209,8 +221,6 @@ export type Database = {
           notes: string | null
           number: number
           shop_ref: string | null
-          status: Database["public"]["Enums"]["order_status"]
-          status_updated_at: string
           user_id: string | null
         }
         Insert: {
@@ -225,8 +235,6 @@ export type Database = {
           notes?: string | null
           number?: number
           shop_ref?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          status_updated_at?: string
           user_id?: string | null
         }
         Update: {
@@ -241,8 +249,6 @@ export type Database = {
           notes?: string | null
           number?: number
           shop_ref?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          status_updated_at?: string
           user_id?: string | null
         }
         Relationships: [
@@ -345,12 +351,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      model_publish_problems: {
+        Args: { p_model_id: string }
+        Returns: string[]
+      }
     }
     Enums: {
       finish: "gloss" | "matte"
       material: "metal" | "acetate"
-      order_status: "received" | "in_production" | "ready" | "delivered"
       swatch_kind: "metal" | "solid" | "translucent" | "havana"
       user_role: "customer" | "admin"
     }
@@ -482,7 +490,6 @@ export const Constants = {
     Enums: {
       finish: ["gloss", "matte"],
       material: ["metal", "acetate"],
-      order_status: ["received", "in_production", "ready", "delivered"],
       swatch_kind: ["metal", "solid", "translucent", "havana"],
       user_role: ["customer", "admin"],
     },

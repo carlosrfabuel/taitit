@@ -32,9 +32,9 @@ export default function ForgotPasswordScreen() {
       <Screen>
         <EmptyState
           icon="mail-unread-outline"
-          title="Revisa tu email"
-          message="Si existe una cuenta con ese email, te hemos enviado un enlace para crear una nueva contraseña. Ábrelo desde este móvil; si pides otro, usa solo el más reciente."
-          actionLabel="Volver a iniciar sesión"
+          title="Check your email"
+          message="If an account exists for that email, we have sent a link to set a new password. Open it on this phone; if you request another one, use only the latest."
+          actionLabel="Back to sign in"
           onAction={() => router.replace('/sign-in')}
         />
       </Screen>
@@ -43,8 +43,8 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen>
-      <AppText variant="title">Recuperar contraseña</AppText>
-      <AppText variant="small">Te enviaremos un enlace para crear una nueva contraseña.</AppText>
+      <AppText variant="title">Reset password</AppText>
+      <AppText variant="small">We will send you a link to set a new password.</AppText>
       <View style={styles.form}>
         <TextField
           label="Email"
@@ -54,7 +54,7 @@ export default function ForgotPasswordScreen() {
             setError(null);
           }}
           error={error}
-          placeholder="tu@email.com"
+          placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
@@ -65,7 +65,7 @@ export default function ForgotPasswordScreen() {
             {formError}
           </AppText>
         ) : null}
-        <Button title="Enviar enlace" onPress={submit} loading={loading} fullWidth />
+        <Button title="Send link" onPress={submit} loading={loading} fullWidth />
       </View>
     </Screen>
   );

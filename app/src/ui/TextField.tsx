@@ -41,7 +41,7 @@ export function TextField({ label, error, helper, revealable, secureTextEntry, s
         {revealable ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={hidden ? 'Mostrar contraseña' : 'Ocultar contraseña'}
+            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
             onPress={() => setHidden((h) => !h)}
             hitSlop={10}
           >

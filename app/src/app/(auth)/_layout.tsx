@@ -10,10 +10,10 @@ export default function AuthLayout() {
         contentStyle: { backgroundColor: tokens.colors.background },
       }}
     >
-      <Stack.Screen name="sign-in" options={{ title: 'Iniciar sesión' }} />
-      <Stack.Screen name="sign-up" options={{ title: 'Crear cuenta' }} />
-      <Stack.Screen name="forgot-password" options={{ title: 'Recuperar contraseña' }} />
-      <Stack.Screen name="reset-password" options={{ title: 'Nueva contraseña' }} />
+      <Stack.Screen name="sign-in" options={{ title: 'Sign in' }} />
+      <Stack.Screen name="sign-up" options={{ title: 'Create account' }} />
+      <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
+      <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
     </Stack>
   );
 }

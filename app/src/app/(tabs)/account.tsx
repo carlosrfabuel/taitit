@@ -12,7 +12,7 @@ export default function AccountScreen() {
 
   const devKit = __DEV__ ? (
     <Button
-      title="UI kit (solo desarrollo)"
+      title="UI kit (development only)"
       variant="ghost"
       icon="color-palette-outline"
       onPress={() => router.push('/dev/ui-kit')}
@@ -25,9 +25,9 @@ export default function AccountScreen() {
         <Card>
           <EmptyState
             icon="person-circle-outline"
-            title="No has iniciado sesión"
-            message="Inicia sesión para guardar tus diseños y hacer pedidos."
-            actionLabel="Iniciar sesión"
+            title="You are not signed in"
+            message="Sign in to save your designs and place orders."
+            actionLabel="Sign in"
             onAction={() => router.push('/sign-in')}
           />
         </Card>
@@ -40,14 +40,14 @@ export default function AccountScreen() {
     setSigningOut(true);
     await signOut();
     setSigningOut(false);
-    toast('Sesión cerrada');
+    toast('Signed out');
   };
 
   return (
     <Screen>
       <Card>
         <View style={styles.row}>
-          <AppText variant="tiny">NOMBRE</AppText>
+          <AppText variant="tiny">NAME</AppText>
           <AppText variant="subheading">{profile?.full_name || '—'}</AppText>
         </View>
         <View style={styles.row}>
@@ -56,7 +56,7 @@ export default function AccountScreen() {
         </View>
       </Card>
       <Button
-        title="Cerrar sesión"
+        title="Sign out"
         variant="secondary"
         icon="log-out-outline"
         onPress={onSignOut}

@@ -1,20 +1,8 @@
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
-import { ORDER_STATUS_LABEL, tokens, type OrderStatus } from '@taitit/shared';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>{children}</div>;
-}
-
-export function StatusBadge({ status }: { status: OrderStatus }) {
-  return (
-    <span
-      className="inline-block rounded-full px-3 py-0.5 text-xs font-semibold text-white"
-      style={{ backgroundColor: tokens.statusColors[status] }}
-    >
-      {ORDER_STATUS_LABEL[status]}
-    </span>
-  );
 }
 
 export function Spinner({ label = 'Cargando…' }: { label?: string }) {

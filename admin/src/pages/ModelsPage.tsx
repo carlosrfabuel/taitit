@@ -7,6 +7,7 @@ import { PageHeader } from '../components/PageHeader';
 import { Button, EmptyState, Spinner, Table, Tag, type Column } from '../components/ui';
 import { listModels, modelKeys, reorder, saveOrder, type ModelRow } from '../lib/models';
 import { dbMessage } from '../lib/errors';
+import { publicUrl } from '../lib/images';
 
 export function ModelsPage() {
   const navigate = useNavigate();
@@ -15,7 +16,8 @@ export function ModelsPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
 
   const move = useMutation({
-    mutationFn: ({ before, after }: { before: ModelRow[]; after: ModelRow[] }) => saveOrder(before, after),
+    mutationFn: ({ before, after }: { before: ModelRow[]; after: ModelRow[] }) =>
+      saveOrder('models', before, after),
     // Optimistic: the row moves at once; on failure the list goes back to what the database has.
     onMutate: async ({ after }) => {
       setOrderError(null);
@@ -64,6 +66,24 @@ export function ModelsPage() {
           </div>
         );
       },
+    },
+    {
+      key: 'photo',
+      header: 'Foto',
+      className: 'w-28',
+      render: (row) =>
+        row.base_path ? (
+          <img
+            src={publicUrl(row.base_path)}
+            alt=""
+            loading="lazy"
+            className="h-10 w-24 rounded bg-bg object-contain"
+          />
+        ) : (
+          <span className="flex h-10 w-24 items-center justify-center rounded bg-bg text-xs text-muted">
+            Sin foto
+          </span>
+        ),
     },
     {
       key: 'name',

@@ -1,8 +1,8 @@
 {
   "name": "PHILEAS",
-  "category": "Graduadas",
+  "category": "Optical",
   "sizeRef": "53-19-140",
-  "description": "Frente y varillas de titanio con aros interiores y terminales de acetato.",
+  "description": "Titanium front and temples with acetate inner rims and temple tips.",
   "published": false,
   "input": "../input/phileas.jpg",
   "crop": "auto",
@@ -10,7 +10,7 @@
   "zones": [
     {
       "id": "metal",
-      "label": "Frente y varillas",
+      "label": "Front & temples",
       "material": "metal",
       "defaultRef": "PH-M01",
       "defaultFinish": "matte",
@@ -18,13 +18,13 @@
     },
     {
       "id": "aros",
-      "label": "Aros",
+      "label": "Rims",
       "material": "acetate",
       "defaultRef": "PH-A01"
     },
     {
       "id": "terminales",
-      "label": "Terminales",
+      "label": "Temple tips",
       "material": "acetate",
       "defaultRef": "PH-A01"
     }

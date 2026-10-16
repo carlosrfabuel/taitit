@@ -2,22 +2,25 @@ import { useId, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
-import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
 import { PageHeader } from '../components/PageHeader';
 import { Button, Card, EmptyState, Input, Spinner, Textarea } from '../components/ui';
+import { BaseImageCard } from '../components/models/BaseImageCard';
+import { ZonesCard } from '../components/models/ZonesCard';
+import { DeleteModelButton } from '../components/models/DeleteModelButton';
 import {
   MODEL_LIMITS,
   createModel,
   getModel,
   listModels,
   modelKeys,
+  publishProblems,
   updateModel,
   validateModel,
   type FieldErrors,
   type ModelInput,
   type ModelRow,
 } from '../lib/models';
-import { dbMessage } from '../lib/errors';
+import { dbMessage, problemLabel, publishProblemsIn } from '../lib/errors';
 
 const backLink = (
   <Link to="/models" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-accent">
@@ -59,6 +62,7 @@ export function ModelEditPage() {
 function ModelForm({ model }: { model: ModelRow | null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const formId = useId();
   const categoriesId = useId();
   const [values, setValues] = useState<ModelInput>({
     name: model?.name ?? '',
@@ -76,7 +80,13 @@ function ModelForm({ model }: { model: ModelRow | null }) {
   const all = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
   const categories = [...new Set((all.data ?? []).map((m) => m.category).filter(Boolean))].sort();
 
-  const canPublish = !!model?.base_path;
+  // The database's own publishing check (refreshed with every model change).
+  const problems = useQuery({
+    queryKey: modelKeys.problems(model?.id ?? 'new'),
+    queryFn: () => publishProblems(model!.id),
+    enabled: !!model,
+  });
+  const canPublish = problems.data?.length === 0;
 
   const save = useMutation({
     mutationFn: async (input: ModelInput) => {
@@ -110,6 +120,10 @@ function ModelForm({ model }: { model: ModelRow | null }) {
     save.mutate(values);
   };
 
+  // Publishing refused by the database: list what is missing instead of a generic error.
+  const refused =
+    save.isError && values.published && !model?.published ? publishProblemsIn(save.error) : null;
+
   return (
     <>
       {backLink}
@@ -117,87 +131,102 @@ function ModelForm({ model }: { model: ModelRow | null }) {
         title={model ? model.name : 'Nuevo modelo'}
         note={model ? undefined : 'La imagen base y las zonas se añaden después de crear el modelo.'}
       />
-      <form onSubmit={submit} noValidate className="grid max-w-5xl gap-6 lg:grid-cols-[1fr_18rem]">
-        <Card className="flex flex-col gap-4">
-          <Input
-            label="Nombre"
-            value={values.name}
-            maxLength={MODEL_LIMITS.name}
-            error={errors.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="PHILEAS"
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label="Categoría"
-              value={values.category}
-              maxLength={MODEL_LIMITS.category}
-              error={errors.category}
-              hint="Se usa como filtro en el catálogo de la app."
-              list={categoriesId}
-              onChange={(e) => set('category', e.target.value)}
-              placeholder="Graduadas"
-            />
-            <Input
-              label="Talla"
-              value={values.size_ref}
-              maxLength={MODEL_LIMITS.sizeRef}
-              error={errors.size_ref}
-              onChange={(e) => set('size_ref', e.target.value)}
-              placeholder="53-19-140"
-            />
-          </div>
-          <datalist id={categoriesId}>
-            {categories.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
-          <Textarea
-            label="Descripción"
-            value={values.description}
-            maxLength={MODEL_LIMITS.description}
-            error={errors.description}
-            hint={`${values.description.length} / ${MODEL_LIMITS.description}`}
-            onChange={(e) => set('description', e.target.value)}
-          />
-        </Card>
+      <div className="grid max-w-6xl gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <form id={formId} onSubmit={submit} noValidate>
+            <Card className="flex flex-col gap-4">
+              <Input
+                label="Nombre"
+                value={values.name}
+                maxLength={MODEL_LIMITS.name}
+                error={errors.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder="PHILEAS"
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  label="Categoría"
+                  value={values.category}
+                  maxLength={MODEL_LIMITS.category}
+                  error={errors.category}
+                  hint="Filtro del catálogo de la app (en inglés)."
+                  list={categoriesId}
+                  onChange={(e) => set('category', e.target.value)}
+                  placeholder="Optical"
+                />
+                <Input
+                  label="Talla"
+                  value={values.size_ref}
+                  maxLength={MODEL_LIMITS.sizeRef}
+                  error={errors.size_ref}
+                  onChange={(e) => set('size_ref', e.target.value)}
+                  placeholder="53-19-140"
+                />
+              </div>
+              <datalist id={categoriesId}>
+                {categories.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+              <Textarea
+                label="Descripción"
+                value={values.description}
+                maxLength={MODEL_LIMITS.description}
+                error={errors.description}
+                hint={`${values.description.length} / ${MODEL_LIMITS.description}`}
+                onChange={(e) => set('description', e.target.value)}
+              />
+            </Card>
+          </form>
+          {model && <BaseImageCard model={model} />}
+          {model && <ZonesCard model={model} />}
+        </div>
 
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3">
             <label
-              className={`flex items-start gap-3 ${canPublish ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+              className={`flex items-start gap-3 ${canPublish || values.published ? 'cursor-pointer' : 'cursor-not-allowed'}`}
             >
               <input
                 type="checkbox"
                 className="mt-0.5 size-4 accent-brand"
                 checked={values.published}
+                // Unpublishing is always possible; publishing only when the database check passes.
                 disabled={!canPublish && !values.published}
                 onChange={(e) => set('published', e.target.checked)}
               />
               <span>
                 <span className="block text-sm font-bold text-ink">Publicado</span>
                 <span className="block text-sm text-muted">
-                  {canPublish
-                    ? 'Visible en el catálogo de la app.'
-                    : 'Para publicar, primero sube la imagen base del modelo.'}
+                  {!model
+                    ? 'Primero crea el modelo; después añade su imagen y sus zonas.'
+                    : canPublish
+                      ? 'Visible en el catálogo de la app.'
+                      : 'Se podrá publicar cuando esté completo.'}
                 </span>
               </span>
             </label>
-          </Card>
-          <Card className="flex flex-col gap-1 text-sm">
-            <p className="font-bold text-ink">Imagen y zonas</p>
-            <p className="text-muted">
-              Imagen base: {model?.base_path ? <span className="text-ink">subida</span> : 'sin subir'}
-            </p>
-            <p className="text-muted">
-              Zonas: {model?.zones ?? 0} / {MAX_ZONES_PER_MODEL}
-            </p>
+            {model && problems.data && problems.data.length > 0 && (
+              <div className="rounded-lg bg-bg p-3">
+                <p className="text-sm font-bold text-ink">Para publicar falta:</p>
+                <ul className="mt-1 list-disc pl-5 text-sm text-muted">
+                  {problems.data.map((p) => (
+                    <li key={p}>{problemLabel(p)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {model && problems.isError && (
+              <p className="text-sm text-danger">No se pudo comprobar si el modelo está completo.</p>
+            )}
           </Card>
           {save.isError && (
             <p role="alert" className="text-sm text-danger">
-              {(save.error as { code?: string }).code === 'not_found'
-                ? 'Este modelo ya no existe.'
-                : dbMessage(save.error)}
+              {refused
+                ? `No se puede publicar todavía: ${refused.map(problemLabel).join(' ')}`
+                : (save.error as { code?: string }).code === 'not_found'
+                  ? 'Este modelo ya no existe.'
+                  : dbMessage(save.error)}
             </p>
           )}
           {notice && !save.isPending && (
@@ -206,15 +235,20 @@ function ModelForm({ model }: { model: ModelRow | null }) {
             </p>
           )}
           <div className="flex gap-2">
-            <Button type="submit" loading={save.isPending} className="flex-1">
+            <Button type="submit" form={formId} loading={save.isPending} className="flex-1">
               {model ? 'Guardar' : 'Crear modelo'}
             </Button>
             <Button variant="secondary" onClick={() => navigate('/models')}>
               Cancelar
             </Button>
           </div>
+          {model && (
+            <div className="mt-4 border-t border-line pt-4">
+              <DeleteModelButton model={model} />
+            </div>
+          )}
         </div>
-      </form>
+      </div>
     </>
   );
 }

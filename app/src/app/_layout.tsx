@@ -31,10 +31,10 @@ function RootStack() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
-      <Stack.Screen name="auth/callback" options={{ title: 'Confirmar cuenta' }} />
-      <Stack.Screen name="customize/[modelId]" options={{ title: 'Personalizar' }} />
-      <Stack.Screen name="order/summary" options={{ title: 'Resumen del pedido' }} />
-      <Stack.Screen name="order/done" options={{ title: 'Pedido enviado', headerBackVisible: false }} />
+      <Stack.Screen name="auth/callback" options={{ title: 'Confirm account' }} />
+      <Stack.Screen name="customize/[modelId]" options={{ title: 'Customize' }} />
+      <Stack.Screen name="order/summary" options={{ title: 'Order summary' }} />
+      <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
       <Stack.Screen name="dev/ui-kit" options={{ title: 'UI kit' }} />
     </Stack>
   );

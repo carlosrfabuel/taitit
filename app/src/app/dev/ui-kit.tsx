@@ -1,29 +1,17 @@
 import { useState } from 'react';
 import { Redirect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { ORDER_STATUSES, tokens } from '@taitit/shared';
-import {
-  AppText,
-  Button,
-  Card,
-  Chip,
-  EmptyState,
-  Screen,
-  Skeleton,
-  StatusBadge,
-  Swatch,
-  TextField,
-  useToast,
-} from '@/ui';
+import { tokens } from '@taitit/shared';
+import { AppText, Button, Card, Chip, EmptyState, Screen, Skeleton, Swatch, TextField, useToast } from '@/ui';
 
 // Sample palette: solid, translucent and metal swatches (real colors come from the client's chart).
 const SAMPLES = [
-  { name: 'Negro', hex: '#1E1E22' },
-  { name: 'Verde neón', hex: '#4CFF5A' },
-  { name: 'Rosa translúcido', hex: '#E8434F', alpha: 0.55 },
-  { name: 'Cristal', hex: '#F4F1EA', alpha: 0.45 },
-  { name: 'Oro', hex: '#C9A45C' },
-  { name: 'Azul', hex: '#2A6FDB' },
+  { name: 'Black', hex: '#1E1E22' },
+  { name: 'Neon green', hex: '#4CFF5A' },
+  { name: 'Translucent pink', hex: '#E8434F', alpha: 0.55 },
+  { name: 'Crystal', hex: '#F4F1EA', alpha: 0.45 },
+  { name: 'Gold', hex: '#C9A45C' },
+  { name: 'Blue', hex: '#2A6FDB' },
 ];
 
 // Development-only gallery of the UI kit. Expo Router bundles every route file, so production
@@ -35,31 +23,31 @@ export default function UiKitRoute() {
 
 function UiKitScreen() {
   const toast = useToast();
-  const [chip, setChip] = useState('Todos');
+  const [chip, setChip] = useState('All');
   const [swatch, setSwatch] = useState(0);
   const [loading, setLoading] = useState(false);
 
   return (
     <Screen>
-      <Section title="Tipografía">
-        <AppText variant="title">Título</AppText>
-        <AppText variant="heading">Encabezado</AppText>
-        <AppText variant="subheading">Subencabezado</AppText>
-        <AppText>Texto normal del cuerpo.</AppText>
-        <AppText variant="small">Texto secundario pequeño.</AppText>
+      <Section title="Typography">
+        <AppText variant="title">Title</AppText>
+        <AppText variant="heading">Heading</AppText>
+        <AppText variant="subheading">Subheading</AppText>
+        <AppText>Regular body text.</AppText>
+        <AppText variant="small">Small secondary text.</AppText>
       </Section>
 
-      <Section title="Botones">
-        <Button title="Principal" icon="cart-outline" onPress={() => toast('Botón principal', 'success')} />
-        <Button title="Secundario" variant="secondary" onPress={() => toast('Botón secundario')} />
+      <Section title="Buttons">
+        <Button title="Primary" icon="cart-outline" onPress={() => toast('Primary button', 'success')} />
+        <Button title="Secondary" variant="secondary" onPress={() => toast('Secondary button')} />
         <Button
-          title="Eliminar"
+          title="Delete"
           variant="danger"
           icon="trash-outline"
-          onPress={() => toast('Error de ejemplo', 'error')}
+          onPress={() => toast('Sample error', 'error')}
         />
         <Button
-          title="Con carga"
+          title="Loading"
           loading={loading}
           onPress={() => {
             setLoading(true);
@@ -67,32 +55,32 @@ function UiKitScreen() {
           }}
         />
         <View style={styles.row}>
-          <Button title="Pequeño" size="sm" />
-          <Button title="Fantasma" size="sm" variant="ghost" />
-          <Button title="Desactivado" size="sm" disabled />
+          <Button title="Small" size="sm" />
+          <Button title="Ghost" size="sm" variant="ghost" />
+          <Button title="Disabled" size="sm" disabled />
         </View>
       </Section>
 
-      <Section title="Campos">
+      <Section title="Fields">
         <TextField
           label="Email"
-          placeholder="tu@email.com"
+          placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TextField label="Contraseña" placeholder="••••••••" revealable />
-        <TextField label="Con error" defaultValue="correo-no-valido" error="Introduce un email válido." />
+        <TextField label="Password" placeholder="••••••••" revealable />
+        <TextField label="With error" defaultValue="not-an-email" error="Enter a valid email address." />
       </Section>
 
-      <Section title="Filtros">
+      <Section title="Filters">
         <View style={styles.row}>
-          {['Todos', 'Graduadas', 'Sol'].map((c) => (
+          {['All', 'Optical', 'Sunglasses'].map((c) => (
             <Chip key={c} label={c} selected={chip === c} onPress={() => setChip(c)} />
           ))}
         </View>
       </Section>
 
-      <Section title="Muestras de color">
+      <Section title="Color swatches">
         <View style={styles.row}>
           {SAMPLES.map((s, i) => (
             <Swatch
@@ -105,34 +93,26 @@ function UiKitScreen() {
             />
           ))}
         </View>
-        <AppText variant="small">Seleccionado: {SAMPLES[swatch]?.name}</AppText>
+        <AppText variant="small">Selected: {SAMPLES[swatch]?.name}</AppText>
       </Section>
 
-      <Section title="Estados de pedido">
-        <View style={styles.row}>
-          {ORDER_STATUSES.map((s) => (
-            <StatusBadge key={s} status={s} />
-          ))}
-        </View>
-      </Section>
-
-      <Section title="Tarjeta y carga">
-        <Card onPress={() => toast('Tarjeta pulsada')} accessibilityLabel="Tarjeta de ejemplo">
+      <Section title="Card and loading">
+        <Card onPress={() => toast('Card pressed')} accessibilityLabel="Sample card">
           <AppText variant="subheading">PHILEAS</AppText>
-          <AppText variant="small">Titanio + acetato</AppText>
+          <AppText variant="small">Titanium + acetate</AppText>
         </Card>
         <Skeleton height={120} radius={tokens.radius.lg} />
         <Skeleton width="60%" />
       </Section>
 
-      <Section title="Vacío">
+      <Section title="Empty">
         <Card>
           <EmptyState
             icon="heart-outline"
-            title="Aún no tienes diseños"
-            message="Personaliza un modelo y guárdalo para verlo aquí."
-            actionLabel="Ir al catálogo"
-            onAction={() => toast('Acción')}
+            title="No designs yet"
+            message="Customize a model and save it to see it here."
+            actionLabel="Go to catalog"
+            onAction={() => toast('Action')}
           />
         </Card>
       </Section>

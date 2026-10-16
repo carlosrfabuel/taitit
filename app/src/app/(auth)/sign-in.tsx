@@ -21,7 +21,7 @@ export default function SignInScreen() {
 
   const submit = async () => {
     if (loading) return; // keyboard "done" can fire while a request is running
-    const next = { email: validateEmail(email), password: password ? null : 'Introduce tu contraseña.' };
+    const next = { email: validateEmail(email), password: password ? null : 'Enter your password.' };
     setErrors(next);
     setFormError(null);
     if (next.email || next.password) return;
@@ -32,14 +32,14 @@ export default function SignInScreen() {
       setFormError(error);
       return;
     }
-    toast('Sesión iniciada', 'success');
+    toast('Signed in', 'success');
     closeAuth();
   };
 
   return (
     <Screen>
-      <AppText variant="title">Bienvenido</AppText>
-      <AppText variant="small">Inicia sesión para guardar tus diseños y hacer pedidos.</AppText>
+      <AppText variant="title">Welcome</AppText>
+      <AppText variant="small">Sign in to save your designs and place orders.</AppText>
 
       <View style={styles.form}>
         <TextField
@@ -50,7 +50,7 @@ export default function SignInScreen() {
             clearError('email');
           }}
           error={errors.email}
-          placeholder="tu@email.com"
+          placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
@@ -58,7 +58,7 @@ export default function SignInScreen() {
           returnKeyType="next"
         />
         <TextField
-          label="Contraseña"
+          label="Password"
           value={password}
           onChangeText={(v) => {
             setPassword(v);
@@ -77,17 +77,18 @@ export default function SignInScreen() {
             {formError}
           </AppText>
         ) : null}
-        <Button title="Iniciar sesión" onPress={submit} loading={loading} fullWidth />
+        <Button title="Sign in" onPress={submit} loading={loading} fullWidth />
       </View>
 
       <View style={styles.links}>
-        <Button title="Crear cuenta" variant="secondary" onPress={() => router.push('/sign-up')} fullWidth />
         <Button
-          title="He olvidado mi contraseña"
-          variant="ghost"
-          onPress={() => router.push('/forgot-password')}
+          title="Create account"
+          variant="secondary"
+          onPress={() => router.push('/sign-up')}
+          fullWidth
         />
-        <Button title="Seguir como invitado" variant="ghost" onPress={closeAuth} />
+        <Button title="Forgot my password" variant="ghost" onPress={() => router.push('/forgot-password')} />
+        <Button title="Continue as guest" variant="ghost" onPress={closeAuth} />
       </View>
     </Screen>
   );

@@ -1,5 +1,5 @@
 import { Placeholder } from '@/components/Placeholder';
 
 export default function DesignsScreen() {
-  return <Placeholder title="Mis diseños" note="Diseños guardados (Día 14)." />;
+  return <Placeholder title="My designs" note="Saved designs (Day 14)." />;
 }

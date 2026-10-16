@@ -51,11 +51,3 @@ export const touch = { minSize: 44 } as const;
 
 /** Swatch sizes used by the customizer palette and lists. */
 export const swatch = { lg: 44, md: 32, sm: 22 } as const;
-
-/** Order status chip colors, keyed like OrderStatus. */
-export const statusColors = {
-  received: '#2350C8',
-  in_production: '#C9971C',
-  ready: '#2E9E6B',
-  delivered: '#6B6B6B',
-} as const;

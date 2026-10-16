@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
 import { Heart, Plus, Trash2 } from 'lucide-react';
-import { ORDER_STATUSES, type OrderStatus } from '@taitit/shared';
 import {
   Button,
   Card,
@@ -9,19 +8,18 @@ import {
   Modal,
   Select,
   Spinner,
-  StatusBadge,
   Swatch,
   Table,
   Textarea,
 } from '../components/ui';
 import { PageHeader } from '../components/PageHeader';
 
-type Row = { number: string; model: string; status: OrderStatus };
+type Row = { number: string; model: string; zones: number };
 
 const ROWS: Row[] = [
-  { number: '#1001', model: 'PHILEAS', status: 'received' },
-  { number: '#1002', model: 'KARL', status: 'in_production' },
-  { number: '#1003', model: 'LOULOU', status: 'ready' },
+  { number: '#1001', model: 'PHILEAS', zones: 3 },
+  { number: '#1002', model: 'KARL', zones: 2 },
+  { number: '#1003', model: 'LOULOU', zones: 4 },
 ];
 
 // Development-only gallery of the admin UI kit (route registered only in dev builds).
@@ -85,11 +83,6 @@ export function UiKitPage() {
           <Swatch hex="#F4F1EA" alpha={0.45} title="Cristal" />
           <Swatch hex="#C9A45C" title="Oro" />
         </div>
-        <div className="flex gap-2">
-          {ORDER_STATUSES.map((s) => (
-            <StatusBadge key={s} status={s} />
-          ))}
-        </div>
       </Section>
 
       <Section title="Tabla">
@@ -100,7 +93,7 @@ export function UiKitPage() {
           columns={[
             { key: 'n', header: 'Pedido', render: (r) => <span className="font-semibold">{r.number}</span> },
             { key: 'm', header: 'Modelo', render: (r) => r.model },
-            { key: 's', header: 'Estado', render: (r) => <StatusBadge status={r.status} /> },
+            { key: 'z', header: 'Zonas', render: (r) => r.zones },
           ]}
         />
       </Section>

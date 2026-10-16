@@ -29,22 +29,22 @@ export default function ResetPasswordScreen() {
   const linkError =
     error_description ??
     (!code
-      ? 'Abre el enlace del email desde este móvil o solicita uno nuevo.'
+      ? 'Open the link from the email on this phone, or request a new one.'
       : result?.code === code
         ? result.error
         : null);
   const exchanging = !!code && !error_description && result?.code !== code;
 
-  if (exchanging) return <Loader message="Comprobando enlace…" />;
+  if (exchanging) return <Loader message="Checking link…" />;
 
   if (linkError) {
     return (
       <Screen>
         <EmptyState
           icon="alert-circle-outline"
-          title="Enlace no válido"
+          title="Invalid link"
           message={linkError}
-          actionLabel="Solicitar otro enlace"
+          actionLabel="Request a new link"
           onAction={() => router.replace('/forgot-password')}
         />
       </Screen>
@@ -63,28 +63,28 @@ export default function ResetPasswordScreen() {
       setError(res.error);
       return;
     }
-    toast('Contraseña actualizada', 'success');
+    toast('Password updated', 'success');
     router.replace('/');
   };
 
   return (
     <Screen>
-      <AppText variant="title">Nueva contraseña</AppText>
+      <AppText variant="title">New password</AppText>
       <View style={styles.form}>
         <TextField
-          label="Nueva contraseña"
+          label="New password"
           value={password}
           onChangeText={(v) => {
             setPassword(v);
             setError(null);
           }}
           error={error}
-          helper="Mínimo 8 caracteres."
+          helper="At least 8 characters."
           revealable
           autoCapitalize="none"
           autoComplete="new-password"
         />
-        <Button title="Guardar contraseña" onPress={submit} loading={loading} fullWidth />
+        <Button title="Save password" onPress={submit} loading={loading} fullWidth />
       </View>
     </Screen>
   );

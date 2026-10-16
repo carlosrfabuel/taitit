@@ -1,7 +1,6 @@
 export type Material = 'metal' | 'acetate';
 export type Finish = 'gloss' | 'matte';
 export type SwatchKind = 'metal' | 'solid' | 'translucent' | 'havana';
-export type OrderStatus = 'received' | 'in_production' | 'ready' | 'delivered';
 
 export type Swatch = {
   id: string;
@@ -61,5 +60,4 @@ export type EnumsInSyncWithDatabase = [
   Assert<Same<Material, DbEnums['material']>>,
   Assert<Same<Finish, DbEnums['finish']>>,
   Assert<Same<SwatchKind, DbEnums['swatch_kind']>>,
-  Assert<Same<OrderStatus, DbEnums['order_status']>>,
 ];

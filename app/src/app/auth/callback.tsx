@@ -29,7 +29,7 @@ export default function AuthCallbackScreen() {
     started.current = code; // each code can be used once
     exchangeCode(code).then((res) => {
       if (!res.error) {
-        toast('Email confirmado. ¡Bienvenido!', 'success');
+        toast('Email confirmed. Welcome!', 'success');
         router.replace('/');
       } else if (res.errorCode && CONFIRMED_BUT_NOT_SIGNED_IN.has(res.errorCode)) {
         setResult({ code, state: { kind: 'confirmed' } });
@@ -43,21 +43,21 @@ export default function AuthCallbackScreen() {
   const state: State = error_description
     ? { kind: 'error', message: error_description }
     : !code
-      ? { kind: 'error', message: 'Enlace incompleto.' }
+      ? { kind: 'error', message: 'Incomplete link.' }
       : result?.code === code
         ? result.state
         : { kind: 'working' };
 
-  if (state.kind === 'working') return <Loader message="Confirmando tu cuenta…" />;
+  if (state.kind === 'working') return <Loader message="Confirming your account…" />;
 
   if (state.kind === 'confirmed') {
     return (
       <Screen>
         <EmptyState
           icon="checkmark-circle-outline"
-          title="Email confirmado"
-          message="Tu cuenta está confirmada. Inicia sesión con tu email y contraseña."
-          actionLabel="Iniciar sesión"
+          title="Email confirmed"
+          message="Your account is confirmed. Sign in with your email and password."
+          actionLabel="Sign in"
           onAction={() => router.replace('/sign-in')}
         />
       </Screen>
@@ -68,9 +68,9 @@ export default function AuthCallbackScreen() {
     <Screen>
       <EmptyState
         icon="alert-circle-outline"
-        title="No se pudo confirmar"
+        title="Could not confirm"
         message={state.message}
-        actionLabel="Ir a iniciar sesión"
+        actionLabel="Go to sign in"
         onAction={() => router.replace('/sign-in')}
       />
     </Screen>

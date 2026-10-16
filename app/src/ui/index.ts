@@ -9,7 +9,6 @@ export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { Loader, Skeleton } from './Loader';
 export { Screen } from './Screen';
-export { StatusBadge } from './StatusBadge';
 export { Swatch } from './Swatch';
 export { TextField } from './TextField';
 export { ToastProvider, useToast } from './Toast';

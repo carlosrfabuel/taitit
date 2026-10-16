@@ -1,22 +1,22 @@
 import { AuthError } from '@supabase/supabase-js';
 
-// Spanish copy for Supabase Auth errors (codes: https://supabase.com/docs/guides/auth/debugging/error-codes).
+// Messages for Supabase Auth errors (codes: https://supabase.com/docs/guides/auth/debugging/error-codes).
 const BY_CODE: Record<string, string> = {
-  invalid_credentials: 'Email o contraseña incorrectos.',
-  email_not_confirmed: 'Confirma tu email antes de iniciar sesión. Revisa tu bandeja de entrada.',
-  weak_password: 'La contraseña es demasiado débil. Usa al menos 8 caracteres.',
-  same_password: 'La nueva contraseña debe ser distinta de la actual.',
-  email_address_invalid: 'Este email no es válido.',
-  over_email_send_rate_limit: 'Demasiados emails enviados. Espera unos minutos e inténtalo de nuevo.',
-  over_request_rate_limit: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
-  signup_disabled: 'El registro está desactivado temporalmente.',
-  flow_state_expired: 'El enlace ha caducado. Solicita uno nuevo.',
-  flow_state_not_found: 'El enlace no es válido o ya se usó. Solicita uno nuevo.',
-  otp_expired: 'El enlace ha caducado. Solicita uno nuevo.',
+  invalid_credentials: 'Incorrect email or password.',
+  email_not_confirmed: 'Confirm your email before signing in. Check your inbox.',
+  weak_password: 'This password is too weak. Use at least 8 characters.',
+  same_password: 'The new password must be different from the current one.',
+  email_address_invalid: 'This email address is not valid.',
+  over_email_send_rate_limit: 'Too many emails sent. Wait a few minutes and try again.',
+  over_request_rate_limit: 'Too many attempts. Wait a few minutes and try again.',
+  signup_disabled: 'Sign-up is temporarily disabled.',
+  flow_state_expired: 'This link has expired. Request a new one.',
+  flow_state_not_found: 'This link is not valid or was already used. Request a new one.',
+  otp_expired: 'This link has expired. Request a new one.',
   // PKCE: the link only works on the device where it was requested (or it was already used).
   pkce_code_verifier_not_found:
-    'Abre el enlace en el mismo móvil desde el que lo solicitaste, o solicita uno nuevo.',
-  session_not_found: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+    'Open the link on the same phone you requested it from, or request a new one.',
+  session_not_found: 'Your session has expired. Please sign in again.',
 };
 
 export function authErrorMessage(error: unknown): string {
@@ -24,8 +24,8 @@ export function authErrorMessage(error: unknown): string {
     if (error.code && BY_CODE[error.code]) return BY_CODE[error.code];
     // status 0 = request never reached the server.
     if (error.status === 0 || error.name === 'AuthRetryableFetchError') {
-      return 'Sin conexión. Comprueba tu internet e inténtalo de nuevo.';
+      return 'No connection. Check your internet and try again.';
     }
   }
-  return 'Ha ocurrido un error. Inténtalo de nuevo.';
+  return 'Something went wrong. Please try again.';
 }

@@ -6,19 +6,19 @@ export const PASSWORD_MIN = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateEmail(email: string): string | null {
-  if (!email.trim()) return 'Introduce tu email.';
-  if (!EMAIL_RE.test(email.trim())) return 'Introduce un email válido.';
+  if (!email.trim()) return 'Enter your email.';
+  if (!EMAIL_RE.test(email.trim())) return 'Enter a valid email address.';
   return null;
 }
 
 export function validatePassword(password: string): string | null {
-  if (!password) return 'Introduce una contraseña.';
-  if (password.length < PASSWORD_MIN) return `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres.`;
+  if (!password) return 'Enter a password.';
+  if (password.length < PASSWORD_MIN) return `The password must be at least ${PASSWORD_MIN} characters.`;
   return null;
 }
 
 export function validateName(name: string): string | null {
-  if (!name.trim()) return 'Introduce tu nombre.';
-  if (name.trim().length > 120) return 'El nombre es demasiado largo.';
+  if (!name.trim()) return 'Enter your name.';
+  if (name.trim().length > 120) return 'This name is too long.';
   return null;
 }

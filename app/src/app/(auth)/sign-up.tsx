@@ -27,7 +27,7 @@ export default function SignUpScreen() {
       name: validateName(name),
       email: validateEmail(email),
       password: validatePassword(password),
-      accepted: accepted ? null : 'Debes aceptar la política de privacidad.',
+      accepted: accepted ? null : 'You must accept the privacy policy.',
     };
     setErrors(next);
     setFormError(null);
@@ -43,7 +43,7 @@ export default function SignUpScreen() {
       setSentTo(email.trim());
       return;
     }
-    toast('Cuenta creada', 'success');
+    toast('Account created', 'success');
     closeAuth();
   };
 
@@ -53,9 +53,9 @@ export default function SignUpScreen() {
       <Screen>
         <EmptyState
           icon="mail-unread-outline"
-          title="Revisa tu email"
-          message={`Si ${sentTo} no estaba registrado, te hemos enviado un enlace para confirmar la cuenta. Ábrelo desde este móvil; si pides otro, usa solo el más reciente.`}
-          actionLabel="Ir a iniciar sesión"
+          title="Check your email"
+          message={`If ${sentTo} was not registered yet, we have sent it a link to confirm the account. Open it on this phone; if you request another one, use only the latest.`}
+          actionLabel="Go to sign in"
           onAction={() => router.replace('/sign-in')}
         />
       </Screen>
@@ -64,10 +64,10 @@ export default function SignUpScreen() {
 
   return (
     <Screen>
-      <AppText variant="title">Crear cuenta</AppText>
+      <AppText variant="title">Create account</AppText>
       <View style={styles.form}>
         <TextField
-          label="Nombre"
+          label="Name"
           value={name}
           onChangeText={(v) => {
             setName(v);
@@ -85,21 +85,21 @@ export default function SignUpScreen() {
             clearError('email');
           }}
           error={errors.email}
-          placeholder="tu@email.com"
+          placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
           textContentType="emailAddress"
         />
         <TextField
-          label="Contraseña"
+          label="Password"
           value={password}
           onChangeText={(v) => {
             setPassword(v);
             clearError('password');
           }}
           error={errors.password}
-          helper="Mínimo 8 caracteres."
+          helper="At least 8 characters."
           revealable
           autoCapitalize="none"
           autoComplete="new-password"
@@ -122,7 +122,7 @@ export default function SignUpScreen() {
           />
           {/* Link to the real policy URL once the client publishes it (Milestone 5). */}
           <AppText variant="small" style={styles.checkText}>
-            Acepto la política de privacidad y las condiciones de uso.
+            I accept the privacy policy and the terms of use.
           </AppText>
         </Pressable>
         {errors.accepted ? (
@@ -135,7 +135,7 @@ export default function SignUpScreen() {
             {formError}
           </AppText>
         ) : null}
-        <Button title="Crear cuenta" onPress={submit} loading={loading} fullWidth />
+        <Button title="Create account" onPress={submit} loading={loading} fullWidth />
       </View>
     </Screen>
   );
