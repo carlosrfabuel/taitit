@@ -46,3 +46,20 @@ export type ZonePick = { swatchId: string; finish: Finish | null };
 
 /** Zone id -> chosen swatch and finish. */
 export type Selection = Record<string, ZonePick>;
+
+// ---------------------------------------------------------------------------
+// Compile-time guard: typecheck fails if these unions drift from the database enums
+// (regenerate shared/src/database.types.ts with `npm run db:types` after schema changes).
+// ---------------------------------------------------------------------------
+import type { Database } from './database.types';
+
+type DbEnums = Database['public']['Enums'];
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Assert<T extends true> = T;
+
+export type EnumsInSyncWithDatabase = [
+  Assert<Same<Material, DbEnums['material']>>,
+  Assert<Same<Finish, DbEnums['finish']>>,
+  Assert<Same<SwatchKind, DbEnums['swatch_kind']>>,
+  Assert<Same<OrderStatus, DbEnums['order_status']>>,
+];

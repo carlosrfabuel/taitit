@@ -14,7 +14,10 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:db": "node supabase/tests/run.mjs",
+    "db:types": "npx --yes supabase@2.121.0 gen types typescript --linked --schema public > shared/src/database.types.ts",
+    "test:http": "node supabase/tests/http_auth.mjs"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

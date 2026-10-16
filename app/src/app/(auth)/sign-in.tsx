@@ -1,11 +1,90 @@
-import { NavLink } from '@/components/NavLink';
-import { Placeholder } from '@/components/Placeholder';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { tokens } from '@taitit/shared';
+import { useAuth } from '@/auth/AuthProvider';
+import { closeAuth } from '@/auth/navigation';
+import { validateEmail } from '@/auth/validation';
+import { AppText, Button, Screen, TextField, useToast } from '@/ui';
 
 export default function SignInScreen() {
+  const { signIn } = useAuth();
+  const toast = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ email?: string | null; password?: string | null }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (loading) return; // keyboard "done" can fire while a request is running
+    const next = { email: validateEmail(email), password: password ? null : 'Introduce tu contraseña.' };
+    setErrors(next);
+    setFormError(null);
+    if (next.email || next.password) return;
+    setLoading(true);
+    const { error } = await signIn(email, password);
+    setLoading(false);
+    if (error) {
+      setFormError(error);
+      return;
+    }
+    toast('Sesión iniciada', 'success');
+    closeAuth();
+  };
+
   return (
-    <Placeholder title="Iniciar sesión" note="Email, Google y Apple (Día 4).">
-      <NavLink href="/sign-up" label="Crear cuenta" />
-      <NavLink href="/forgot-password" label="He olvidado mi contraseña" />
-    </Placeholder>
+    <Screen>
+      <AppText variant="title">Bienvenido</AppText>
+      <AppText variant="small">Inicia sesión para guardar tus diseños y hacer pedidos.</AppText>
+
+      <View style={styles.form}>
+        <TextField
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          error={errors.email}
+          placeholder="tu@email.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="next"
+        />
+        <TextField
+          label="Contraseña"
+          value={password}
+          onChangeText={setPassword}
+          error={errors.password}
+          revealable
+          autoCapitalize="none"
+          autoComplete="current-password"
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+        />
+        {formError ? (
+          <AppText variant="small" color={tokens.colors.danger} accessibilityLiveRegion="polite">
+            {formError}
+          </AppText>
+        ) : null}
+        <Button title="Iniciar sesión" onPress={submit} loading={loading} fullWidth />
+      </View>
+
+      <View style={styles.links}>
+        <Button title="Crear cuenta" variant="secondary" onPress={() => router.push('/sign-up')} fullWidth />
+        <Button
+          title="He olvidado mi contraseña"
+          variant="ghost"
+          onPress={() => router.push('/forgot-password')}
+        />
+        <Button title="Seguir como invitado" variant="ghost" onPress={closeAuth} />
+      </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
+  links: { gap: tokens.spacing.sm, marginTop: tokens.spacing.md },
+});

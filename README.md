@@ -35,7 +35,15 @@ npm run dev:admin      # admin panel on http://localhost:5173
 npm run typecheck      # all workspaces
 npm run lint           # all workspaces
 npm run format         # Prettier
+npm run test:db        # database security + constraint tests (linked Supabase project)
+npm run db:types       # regenerate shared/src/database.types.ts after schema changes
 ```
+
+## Database
+
+- Schema, RLS and storage rules: `supabase/migrations/`. Apply with `npx supabase db push` (add `--include-seed` on a fresh project for the placeholder palettes).
+- Tests: `supabase/tests/rls_and_constraints.sql` acts as guest, two customers and an admin, and always rolls back, so it leaves no data behind.
+- Make a user admin (manual by design): `update public.profiles set role = 'admin' where email = '...';` in the Supabase SQL editor.
 
 ## Notes
 
