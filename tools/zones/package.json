@@ -5,11 +5,13 @@
   "type": "module",
   "description": "Internal tool: turns a product photo into a base image + zone layers.",
   "scripts": {
+    "zones": "node src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@taitit/shared": "*",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "@supabase/supabase-js": "^2.118.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

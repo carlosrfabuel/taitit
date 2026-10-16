@@ -1,0 +1,72 @@
+{
+  "name": "PHILEAS",
+  "category": "Graduadas",
+  "sizeRef": "53-19-140",
+  "description": "Frente y varillas de titanio con aros interiores y terminales de acetato.",
+  "published": false,
+  "input": "../input/phileas.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Frente y varillas",
+      "material": "metal",
+      "defaultRef": "PH-M01",
+      "defaultFinish": "matte",
+      "contrast": 0.9
+    },
+    {
+      "id": "aros",
+      "label": "Aros",
+      "material": "acetate",
+      "defaultRef": "PH-A01"
+    },
+    {
+      "id": "terminales",
+      "label": "Terminales",
+      "material": "acetate",
+      "defaultRef": "PH-A01"
+    }
+  ],
+  "groups": [
+    {
+      "name": "black metal",
+      "colors": ["#252A26", "#3F3E41", "#656265"],
+      "tolerance": 40,
+      "zone": "metal"
+    },
+    {
+      "name": "green acetate",
+      "colors": ["#78DB63", "#31B227", "#4CFF5A", "#0A780A"],
+      "tolerance": 70,
+      "split": {
+        "largest": 2,
+        "zone": "aros",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "green highlights",
+      "colors": ["#88F078", "#A8F09C", "#C0F5B4"],
+      "tolerance": 45,
+      "minSaturation": 45,
+      "attach": true
+    },
+    {
+      "name": "pale halo",
+      "colors": ["#E6FADC", "#DCF5D2"],
+      "tolerance": 22,
+      "minSaturation": 22,
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [668, 179, 750, 240],
+      "from": "aros",
+      "to": "terminales",
+      "note": "far temple tip seen through the right lens touches the rim"
+    }
+  ]
+}
