@@ -3,6 +3,7 @@ import { Redirect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { AppText, Button, Card, Chip, EmptyState, Screen, Skeleton, Swatch, TextField, useToast } from '@/ui';
+import { RecolorDemo } from '@/render/RecolorDemo';
 
 // Sample palette: solid, translucent and metal swatches (real colors come from the client's chart).
 const SAMPLES = [
@@ -29,6 +30,10 @@ function UiKitScreen() {
 
   return (
     <Screen>
+      <Section title="Recolor (renderer)">
+        <RecolorDemo />
+      </Section>
+
       <Section title="Typography">
         <AppText variant="title">Title</AppText>
         <AppText variant="heading">Heading</AppText>

@@ -7,6 +7,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { ToastProvider } from '@/ui';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 
 // Keep the splash screen until the stored session is read, so signed-in users never see a signed-out flash.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -44,12 +46,14 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <StatusBar style="dark" />
-            <RootStack />
-          </AuthProvider>
-        </ToastProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AuthProvider>
+              <StatusBar style="dark" />
+              <RootStack />
+            </AuthProvider>
+          </ToastProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

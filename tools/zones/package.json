@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Internal tool: turns a product photo into a base image + zone layers.",
   "scripts": {
-    "zones": "node src/cli.ts",
+    "zones": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

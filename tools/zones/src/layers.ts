@@ -1,3 +1,5 @@
+// Same gloss as the app and admin renderers (direct file import: Node runs this TypeScript as is).
+import { glossAt } from '@taitit/shared/src/render.ts';
 import { hexToRgb, type ZoneConfig } from './config.ts';
 import { blurChannel, luminance, type Raster } from './image.ts';
 import { NONE, type Segmentation } from './segment.ts';
@@ -114,7 +116,7 @@ export function composite(layers: Layers, picks: { hex: string; alpha?: number; 
     const opacity = pick.alpha ?? 1;
     for (let y = 0; y < height; y++) {
       // Gloss: brighter band near the top third, like a studio light reflection.
-      const glossBoost = pick.gloss ? 0.35 * Math.max(0, 1 - Math.abs(y / height - 0.2) / 0.12) : 0;
+      const glossBoost = pick.gloss ? glossAt(y / height) : 0;
       for (let x = 0; x < width; x++) {
         const i = y * width + x;
         const a = (layer.data[i * 4 + 3]! / 255) * opacity;

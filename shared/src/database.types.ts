@@ -126,6 +126,8 @@ export type Database = {
           published: boolean
           size_ref: string | null
           sort_order: number
+          thumb_key: string | null
+          thumb_path: string | null
           updated_at: string
         }
         Insert: {
@@ -140,6 +142,8 @@ export type Database = {
           published?: boolean
           size_ref?: string | null
           sort_order?: number
+          thumb_key?: string | null
+          thumb_path?: string | null
           updated_at?: string
         }
         Update: {
@@ -154,6 +158,8 @@ export type Database = {
           published?: boolean
           size_ref?: string | null
           sort_order?: number
+          thumb_key?: string | null
+          thumb_path?: string | null
           updated_at?: string
         }
         Relationships: []

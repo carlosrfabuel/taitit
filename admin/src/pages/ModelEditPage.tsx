@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader';
 import { Button, Card, EmptyState, Input, Spinner, Textarea } from '../components/ui';
 import { BaseImageCard } from '../components/models/BaseImageCard';
 import { ZonesCard } from '../components/models/ZonesCard';
+import { PreviewCard } from '../components/models/PreviewCard';
 import { DeleteModelButton } from '../components/models/DeleteModelButton';
 import {
   MODEL_LIMITS,
@@ -178,6 +179,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
               />
             </Card>
           </form>
+          {model && <PreviewCard model={model} />}
           {model && <BaseImageCard model={model} />}
           {model && <ZonesCard model={model} />}
         </div>

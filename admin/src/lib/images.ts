@@ -60,6 +60,18 @@ export async function checkBaseImage(file: File): Promise<{ size: Size } | { err
   return { size: { width: info.width, height: info.height } };
 }
 
+/** Checks a tortoiseshell texture (the "textures" bucket allows 5 MB). */
+export async function checkTexture(file: File): Promise<{ size: Size } | { error: string }> {
+  if (!(IMAGE_RULES.baseTypes as readonly string[]).includes(file.type))
+    return { error: 'Formato no válido: usa JPG, PNG o WebP.' };
+  if (file.size > 5 * 1024 * 1024) return { error: `La textura pesa ${mb(file.size)}; el máximo es 5.0 MB.` };
+  const info = await inspect(file);
+  if (!info) return { error: 'No se pudo leer la imagen. ¿Está dañada?' };
+  if (Math.min(info.width, info.height) < 256)
+    return { error: `La textura mide ${info.width} × ${info.height} px; el mínimo es 256 px por lado.` };
+  return { size: { width: info.width, height: info.height } };
+}
+
 /** Checks a zone layer against the base image; returns its size or a Spanish error. */
 export async function checkLayer(file: File, base: Size | null): Promise<{ size: Size } | { error: string }> {
   if (!base) return { error: 'Sube primero la imagen base del modelo.' };
@@ -77,7 +89,10 @@ export async function checkLayer(file: File, base: Size | null): Promise<{ size:
   return { size: { width: info.width, height: info.height } };
 }
 
-export const publicUrl = (path: string) => supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+type Bucket = 'models' | 'textures';
+
+export const publicUrl = (path: string, bucket: Bucket = BUCKET) =>
+  supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 
 const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
@@ -85,10 +100,15 @@ const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', '
  * Uploads under a new name every time: public files are cached by the CDN, so reusing a name
  * could keep showing the old image. The previous file is removed after the database points to the new one.
  */
-export async function uploadImage(modelId: string, kind: 'base' | 'zone', file: File): Promise<string> {
-  const path = `${modelId}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXT[file.type] ?? 'png'}`;
+export async function uploadImage(
+  folder: string,
+  kind: 'base' | 'zone' | 'texture',
+  file: File,
+  bucket: Bucket = BUCKET,
+): Promise<string> {
+  const path = `${folder}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXT[file.type] ?? 'png'}`;
   const { error } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(path, file, { contentType: file.type, upsert: false });
   if (error) throw error;
   return path;
@@ -98,11 +118,11 @@ export async function uploadImage(modelId: string, kind: 'base' | 'zone', file: 
  * Best effort, never throws: a file left behind is only wasted space, never shown, and a cleanup
  * failure must not hide the error that matters (e.g. the database refusing a change).
  */
-export async function removeImages(paths: (string | null | undefined)[]) {
+export async function removeImages(paths: (string | null | undefined)[], bucket: Bucket = BUCKET) {
   const list = paths.filter((p): p is string => !!p);
   if (!list.length) return;
   try {
-    await supabase.storage.from(BUCKET).remove(list);
+    await supabase.storage.from(bucket).remove(list);
   } catch {
     // ignored on purpose (see above)
   }

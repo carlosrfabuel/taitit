@@ -1,3 +1,5 @@
+// Before the client: PKCE needs SHA-256 (see webCryptoDigest.ts).
+import './webCryptoDigest';
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 import type { Database } from '@taitit/shared';

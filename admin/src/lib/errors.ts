@@ -23,6 +23,7 @@ export const PUBLISH_PROBLEM_LABEL: Record<string, string> = {
   zone_without_layer: 'Hay zonas sin capa.',
   layer_size_mismatch: 'Alguna capa no mide lo mismo que la imagen base.',
   zone_without_default_color: 'Hay zonas sin color por defecto.',
+  default_color_inactive: 'Hay zonas con un color por defecto desactivado.',
 };
 
 export const problemLabel = (code: string) => PUBLISH_PROBLEM_LABEL[code] ?? code;
@@ -39,6 +40,8 @@ export function dbMessage(error: ErrorLike): string {
   const problems = publishProblemsIn(error);
   if (problems)
     return `El modelo publicado no puede quedar incompleto: ${problems.map(problemLabel).join(' ')} Despublícalo primero o corrígelo.`;
+  if (error?.code === '23505' && message.includes('swatches_ref_key'))
+    return 'Ya existe un color con esa referencia.';
   if (error?.code === '23505' && message.includes('model_zones_unique_name'))
     return 'Ya hay una zona con ese nombre en este modelo.';
   if (error?.code === '23505') return 'Ya existe un modelo con ese nombre.';

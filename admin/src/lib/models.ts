@@ -13,6 +13,8 @@ export type ModelRow = {
   base_path: string | null;
   base_width: number | null;
   base_height: number | null;
+  thumb_path: string | null;
+  thumb_key: string | null;
   published: boolean;
   sort_order: number;
   zones: number;
@@ -34,7 +36,7 @@ export const modelKeys = {
 };
 
 const COLUMNS =
-  'id, name, category, size_ref, description, base_path, base_width, base_height, published, sort_order, model_zones(count)';
+  'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, published, sort_order, model_zones(count)';
 
 type Raw = Omit<ModelRow, 'zones'> & { model_zones: { count: number }[] };
 const toRow = ({ model_zones, ...m }: Raw): ModelRow => ({ ...m, zones: model_zones[0]?.count ?? 0 });
@@ -128,10 +130,18 @@ export async function publishProblems(id: string): Promise<string[]> {
 
 /** Deletes the model (zones cascade, customers' saved designs too; orders keep their snapshot) and its files. */
 export async function deleteModel(model: ModelRow, layerPaths: (string | null)[]): Promise<void> {
-  const { data, error } = await supabase.from('models').delete().eq('id', model.id).select('id');
+  // The paths stored now: the screen may be behind (e.g. a thumbnail the preview just replaced).
+  const { data, error } = await supabase
+    .from('models')
+    .delete()
+    .eq('id', model.id)
+    .select('base_path, thumb_path');
   if (error) throw error;
   if (!data.length) throw { code: 'not_found', message: 'Model not found' };
-  await removeImages([model.base_path, ...layerPaths]);
+  // Everything the panel uploaded lives under "<model id>/"; tools/zones files are referenced by path.
+  const folder = await supabase.storage.from('models').list(model.id, { limit: 1000 });
+  const inFolder = (folder.data ?? []).map((f) => `${model.id}/${f.name}`);
+  await removeImages([data[0]!.base_path, data[0]!.thumb_path, ...layerPaths, ...inFolder]);
 }
 
 type Sortable = { id: string; sort_order: number };
@@ -147,7 +157,7 @@ export function reorder<T extends Sortable>(rows: T[], index: number, direction:
 
 /** Saves the sort_order of every row that changed. */
 export async function saveOrder(
-  table: 'models' | 'model_zones',
+  table: 'models' | 'model_zones' | 'swatches',
   before: Sortable[],
   after: Sortable[],
 ): Promise<void> {
