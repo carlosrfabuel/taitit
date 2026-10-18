@@ -14,6 +14,18 @@ export default function CustomizeScreen() {
   const model = catalog.data?.find((m) => m.id === modelId);
 
   if (catalog.isPending) return <Loader message="Loading model…" />;
+  if (catalog.isError && !catalog.data)
+    return (
+      <Screen>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load this model"
+          message="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void catalog.refetch()}
+        />
+      </Screen>
+    );
   if (!model)
     return (
       <Screen>

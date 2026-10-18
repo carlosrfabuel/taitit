@@ -73,7 +73,11 @@ export function buildRenderPlan(input: {
 }): RenderPlan {
   const byId = new Map(input.swatches.map((s) => [s.id, s]));
   const layers: RenderLayer[] = [];
-  for (const zone of [...input.zones].sort((a, b) => a.sortOrder - b.sortOrder)) {
+  // Ties broken by id: every renderer (and the key) must see the same order whatever the query returned.
+  const ordered = [...input.zones].sort(
+    (a, b) => a.sortOrder - b.sortOrder || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+  for (const zone of ordered) {
     const pick = input.picks?.[zone.id];
     const swatch = byId.get((pick ? pick.swatchId : zone.defaultSwatchId) ?? '');
     if (!zone.layerUrl || !swatch) continue;
@@ -100,11 +104,14 @@ export const THUMB_WIDTH = 800;
  * key of the current data and only shows the thumbnail when they match.
  */
 export function renderKey(plan: RenderPlan): string {
+  // Paths without scheme and host: the admin and the app may reach the same files through different
+  // addresses (local dev, a custom domain) and must still agree.
+  const rel = (url: string | null) => (url ? url.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]+/i, '') : null);
   const text = JSON.stringify([
-    plan.baseUrl,
+    rel(plan.baseUrl),
     plan.width,
     plan.height,
-    plan.layers.map((l) => [l.layerUrl, l.hex.toUpperCase(), l.textureUrl, l.opacity, l.gloss]),
+    plan.layers.map((l) => [rel(l.layerUrl), l.hex.toUpperCase(), rel(l.textureUrl), l.opacity, l.gloss]),
   ]);
   // Two 32-bit FNV-1a-style hashes (different seeds, odd multipliers): short, stable on every JS
   // engine, plenty for a cache key. The multipliers must be odd, or bits are lost at every step.
@@ -115,5 +122,5 @@ export function renderKey(plan: RenderPlan): string {
     a = Math.imul(a ^ c, 0x01000193);
     b = Math.imul(b ^ c, 0x5bd1e995);
   }
-  return `v2-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
+  return `v3-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
 }

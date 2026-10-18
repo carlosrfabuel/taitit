@@ -112,6 +112,8 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
 
   const pickTexture = async (file: File) => {
     const id = ++pick.current;
+    // Picking a file means "use a texture": it cancels an earlier "Quitar", so a bad file blocks saving.
+    setTexture((t) => (t === 'remove' ? null : t));
     const checked = await checkTexture(file);
     if (id !== pick.current) return;
     if ('error' in checked) {
@@ -129,7 +131,8 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
     const ref = values.ref.trim().toLowerCase();
     if (!next.ref && swatches.some((s) => s.id !== swatch?.id && s.ref.toLowerCase() === ref))
       next.ref = 'Ya existe un color con esa referencia.';
-    if (errors.texture) next.texture = errors.texture;
+    // A texture error only counts while the color is tortoiseshell and that texture is being added.
+    if (kind === 'havana' && texture !== 'remove' && errors.texture) next.texture = errors.texture;
     setErrors(next);
     if (Object.values(next).some(Boolean)) return;
     save.mutate();
@@ -290,6 +293,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
               onChange={(e) => {
                 const k = e.target.value as SwatchKind;
                 set('kind', k);
+                setErrors((x) => ({ ...x, texture: undefined }));
                 if (k === 'translucent' && values.alpha == null) set('alpha', 0.55);
               }}
             />
@@ -336,7 +340,10 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
                   <button
                     type="button"
                     className="text-sm font-semibold text-danger"
-                    onClick={() => setTexture('remove')}
+                    onClick={() => {
+                      setTexture('remove');
+                      setErrors((x) => ({ ...x, texture: undefined }));
+                    }}
                   >
                     Quitar
                   </button>

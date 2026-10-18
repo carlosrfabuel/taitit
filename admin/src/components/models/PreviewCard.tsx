@@ -1,34 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { RotateCcw } from 'lucide-react';
-import { buildRenderPlan, renderKey, type Finish, type RenderPick } from '@taitit/shared';
+import { buildRenderPlan, type Finish, type RenderPick } from '@taitit/shared';
 import { Button, Card, Select, Spinner } from '../ui';
 import { publicUrl } from '../../lib/images';
 import { modelKeys, type ModelRow } from '../../lib/models';
 import { listZones } from '../../lib/zones';
 import { listSwatches, swatchKeys, toRenderSwatch } from '../../lib/swatches';
 import { drawPlan } from '../../lib/render';
-import { saveThumbnail } from '../../lib/thumbnails';
 import { FINISH_LABEL } from '../../lib/labels';
 
 /**
  * Live recolor of the model with the same recipe as the app. Starts with each zone's default color;
- * the pickers below try other colors here only (nothing is saved).
+ * the pickers below try other colors here only (nothing is saved). The catalog thumbnail is kept
+ * current separately (ThumbnailRefresher).
  */
 export function PreviewCard({ model }: { model: ModelRow }) {
   const zones = useQuery({ queryKey: modelKeys.zones(model.id), queryFn: () => listZones(model.id) });
   const swatches = useQuery({ queryKey: swatchKeys.all, queryFn: listSwatches });
   const [picks, setPicks] = useState<Record<string, RenderPick>>({});
   const [state, setState] = useState<'idle' | 'drawing' | 'error'>('idle');
+  const [degraded, setDegraded] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const run = useRef(0);
 
   const size =
     model.base_width && model.base_height ? { width: model.base_width, height: model.base_height } : null;
 
-  const { id: modelId, base_path, base_width, base_height, thumb_key } = model;
-  const queryClient = useQueryClient();
-  const savingThumb = useRef(false);
+  const { base_path, base_width, base_height } = model;
   useEffect(() => {
     if (!base_path || !base_width || !base_height || !zones.data || !swatches.data || !canvas.current) return;
     const plan = buildRenderPlan({
@@ -47,24 +46,15 @@ export function PreviewCard({ model }: { model: ModelRow }) {
     });
     const id = ++run.current; // only the latest render may update the state
     setState('drawing');
-    const target = canvas.current;
-    drawPlan(target, plan).then(
-      () => {
+    drawPlan(canvas.current, plan).then(
+      (r) => {
         if (id !== run.current) return;
         setState('idle');
-        // The default colors are also the catalog thumbnail: refresh it when what it shows changed.
-        const key = renderKey(plan);
-        if (Object.keys(picks).length === 0 && key !== thumb_key && !savingThumb.current) {
-          savingThumb.current = true;
-          saveThumbnail({ id: modelId }, target, key)
-            .then(() => queryClient.invalidateQueries({ queryKey: modelKeys.all }))
-            .catch(() => {}) // best effort: the app renders live while there is no current thumbnail
-            .finally(() => (savingThumb.current = false));
-        }
+        setDegraded(r.degraded);
       },
       () => id === run.current && setState('error'),
     );
-  }, [base_path, base_width, base_height, zones.data, swatches.data, picks, thumb_key, modelId, queryClient]);
+  }, [base_path, base_width, base_height, zones.data, swatches.data, picks]);
 
   const zoneRows = zones.data ?? [];
   const all = swatches.data ?? [];
@@ -103,6 +93,11 @@ export function PreviewCard({ model }: { model: ModelRow }) {
             </div>
           )}
         </div>
+      )}
+      {degraded && state === 'idle' && (
+        <p role="status" className="text-sm text-muted">
+          No se pudo cargar una textura de carey: se muestra su color HEX en su lugar.
+        </p>
       )}
       {state === 'error' && (
         <p role="alert" className="text-sm text-danger">

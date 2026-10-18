@@ -7,7 +7,9 @@ export const IMAGE_RULES = {
   maxBytes: 10 * 1024 * 1024,
   baseTypes: ['image/jpeg', 'image/png', 'image/webp'],
   minBaseWidth: 1000, // sharp on phone screens
-  maxSide: 4096, // keeps the recolor fast on phones
+  // Phones show the photo at ~1000 px and decode every layer at full size: more is only memory.
+  // (tools/zones exports 1600 px.)
+  maxSide: 2048,
 } as const;
 
 export type Size = { width: number; height: number };

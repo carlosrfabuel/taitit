@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../auth/context';
+import { ThumbnailRefresher } from './ThumbnailRefresher';
 
 const NAV = [
   { to: '/models', label: 'Modelos' },
@@ -44,6 +45,7 @@ export function AdminLayout() {
           </button>
         </div>
       </aside>
+      <ThumbnailRefresher />
       <main className="min-w-0 flex-1 p-8">
         <Outlet />
       </main>

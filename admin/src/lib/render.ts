@@ -4,10 +4,24 @@ import { GLOSS_STOPS, type RenderPlan } from '@taitit/shared';
 // app's Skia renderer and the tools/zones preview: fill → multiply shading → screen gloss → clip to
 // the layer shape → draw with the swatch opacity.
 
+// Small caches (most recently used kept): full-size images and canvases are large, and browsing many
+// models must not keep all of them in memory.
+const MAX_CACHED = 16;
+function remember<T>(cache: Map<string, T>, key: string, value: T) {
+  cache.delete(key);
+  cache.set(key, value);
+  while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!);
+}
+function recall<T>(cache: Map<string, T>, key: string) {
+  const v = cache.get(key);
+  if (v !== undefined) remember(cache, key, v); // mark as recently used
+  return v;
+}
+
 const images = new Map<string, Promise<HTMLImageElement>>();
 
 export function loadImage(url: string): Promise<HTMLImageElement> {
-  let p = images.get(url);
+  let p = recall(images, url);
   if (!p) {
     p = new Promise((resolve, reject) => {
       const img = new Image();
@@ -16,8 +30,10 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
       img.onerror = () => reject(new Error(`Could not load ${url}`));
       img.src = url;
     });
-    p.catch(() => images.delete(url)); // a failed load can be retried later
-    images.set(url, p);
+    // A failed load can be retried later (only this entry: a newer one may have replaced it).
+    const mine = p;
+    p.catch(() => images.get(url) === mine && images.delete(url));
+    remember(images, url, p);
   }
   return p;
 }
@@ -34,7 +50,7 @@ const canvas = (w: number, h: number) => {
 const shades = new Map<string, Promise<HTMLCanvasElement>>();
 function opaqueShade(url: string, w: number, h: number) {
   const key = `${url}@${w}x${h}`;
-  let p = shades.get(key);
+  let p = recall(shades, key);
   if (!p) {
     p = loadImage(url).then((img) => {
       const c = canvas(w, h);
@@ -45,14 +61,19 @@ function opaqueShade(url: string, w: number, h: number) {
       ctx.putImageData(data, 0, 0);
       return c;
     });
-    p.catch(() => shades.delete(key));
-    shades.set(key, p);
+    const mine = p;
+    p.catch(() => shades.get(key) === mine && shades.delete(key));
+    remember(shades, key, p);
   }
   return p;
 }
 
-/** Draws the plan into `target` at the plan's full resolution (scale it with CSS). */
-export async function drawPlan(target: HTMLCanvasElement, plan: RenderPlan): Promise<void> {
+/**
+ * Draws the plan into `target` at the plan's full resolution (scale it with CSS). `degraded` is true
+ * when a texture could not be loaded and its plain color was used instead: fine for a preview, but
+ * such a render must not be saved as the catalog thumbnail.
+ */
+export async function drawPlan(target: HTMLCanvasElement, plan: RenderPlan): Promise<{ degraded: boolean }> {
   const { width: w, height: h } = plan;
   // Load everything first so a slow image never leaves a half-drawn preview.
   const base = await loadImage(plan.baseUrl);
@@ -107,4 +128,5 @@ export async function drawPlan(target: HTMLCanvasElement, plan: RenderPlan): Pro
   target.width = w;
   target.height = h;
   target.getContext('2d')!.drawImage(out, 0, 0);
+  return { degraded: layers.some((l) => l.textureUrl && !l.texture) };
 }

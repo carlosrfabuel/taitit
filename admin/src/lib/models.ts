@@ -33,6 +33,8 @@ export const modelKeys = {
   one: (id: string) => ['models', id] as const,
   problems: (id: string) => ['models', id, 'problems'] as const,
   zones: (id: string) => ['models', id, 'zones'] as const,
+  /** All zones of all models (under ['models'], so every model change refreshes it). */
+  allZones: ['models', 'all-zones'] as const,
 };
 
 const COLUMNS =

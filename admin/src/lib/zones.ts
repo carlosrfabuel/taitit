@@ -88,3 +88,10 @@ export async function deleteZone(zone: ZoneRow): Promise<void> {
   if (!data.length) throw { code: 'not_found', message: 'Zone not found' };
   await removeImages([zone.layer_path]);
 }
+
+/** Every zone of every model (the thumbnail refresher checks all models at once). */
+export async function listAllZones(): Promise<ZoneRow[]> {
+  const { data, error } = await supabase.from('model_zones').select(COLUMNS).order('sort_order');
+  if (error) throw error;
+  return data;
+}

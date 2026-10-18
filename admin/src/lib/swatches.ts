@@ -72,7 +72,8 @@ export function validateSwatch(input: SwatchInput): SwatchErrors {
   if (!HEX.test(normalizeHex(input.hex))) e.hex = 'Formato no válido. Ejemplo: #1E1E22';
   if (!ref) e.ref = 'Introduce la referencia interna.';
   else if (ref.length > SWATCH_LIMITS.ref) e.ref = `Máximo ${SWATCH_LIMITS.ref} caracteres.`;
-  if (input.kind === 'translucent' && (input.alpha == null || !(input.alpha > 0 && input.alpha <= 1)))
+  // 5–100 %, as the form says; stored with 2 decimals (numeric(3,2)).
+  if (input.kind === 'translucent' && (input.alpha == null || !(input.alpha >= 0.05 && input.alpha <= 1)))
     e.alpha = 'Indica una opacidad entre 5 % y 100 %.';
   if (input.material === 'metal' && input.finishes.length === 0) e.finishes = 'Elige al menos un acabado.';
   return e;
@@ -85,7 +86,7 @@ const toColumns = (input: SwatchInput) => ({
   hex: normalizeHex(input.hex),
   ref: input.ref.trim(),
   kind: input.material === 'metal' ? ('metal' as const) : input.kind,
-  alpha: input.kind === 'translucent' ? input.alpha : null,
+  alpha: input.kind === 'translucent' && input.alpha != null ? Math.round(input.alpha * 100) / 100 : null,
   // Finishes are a metal choice (gloss / matte); acetate colors have none.
   finishes: input.material === 'metal' ? input.finishes : [],
   active: input.active,

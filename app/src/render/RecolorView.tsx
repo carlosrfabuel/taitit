@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import {
   Canvas,
@@ -9,11 +9,11 @@ import {
   LinearGradient,
   Paint,
   Rect,
-  useImage,
+  Skia,
   vec,
   type SkImage,
 } from '@shopify/react-native-skia';
-import { GLOSS_STOPS, type RenderLayer, type RenderPlan } from '@taitit/shared';
+import { GLOSS_STOPS, tokens, type RenderLayer, type RenderPlan } from '@taitit/shared';
 
 // Skia implementation of the shared recolor recipe (shared/src/render.ts). The admin preview and
 // the tools/zones preview use the same steps: fill → multiply shading → screen gloss → clip to the
@@ -23,6 +23,73 @@ import { GLOSS_STOPS, type RenderLayer, type RenderPlan } from '@taitit/shared';
 const OPAQUE = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];
 
 type Size = { width: number; height: number };
+type Loaded = { base: SkImage; layers: SkImage[]; textures: (SkImage | null)[] };
+
+async function loadImage(url: string): Promise<SkImage> {
+  const image = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(url));
+  if (!image) throw new Error(`Could not decode ${url}`);
+  return image;
+}
+
+// Decoded images shared by every RecolorView (catalog cards, customizer): picking a color only loads
+// what is new. Small and most-recently-used, because full-size images are large in memory.
+const MAX_CACHED = 12;
+const cache = new Map<string, Promise<SkImage>>();
+function cachedImage(url: string): Promise<SkImage> {
+  let p = cache.get(url);
+  if (p) {
+    cache.delete(url); // mark as recently used
+  } else {
+    p = loadImage(url);
+    const mine = p;
+    p.catch(() => cache.get(url) === mine && cache.delete(url)); // failed loads are retried later
+  }
+  cache.set(url, p);
+  while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!);
+  return p;
+}
+
+type Shown = { key: string; plan: RenderPlan; loaded: Loaded };
+
+/**
+ * Every image of the plan, loaded together: nothing new is drawn until all are ready (no
+ * half-recolored frame), and meanwhile the previous complete picture stays (no flicker). A texture
+ * that fails falls back to its plain color, like the admin preview; a failed base or layer image is
+ * retried once, then reported (a wrong picture is worse than none).
+ */
+function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean } {
+  const key = JSON.stringify([plan.baseUrl, plan.layers.map((l) => [l.layerUrl, l.textureUrl])]);
+  const planJson = JSON.stringify(plan);
+  const [shown, setShown] = useState<Shown | null>(null);
+  const [failure, setFailure] = useState<{ key: string; attempts: number } | null>(null);
+  const attempts = failure?.key === key ? failure.attempts : 0;
+  useEffect(() => {
+    let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const p = JSON.parse(planJson) as RenderPlan;
+    Promise.all([
+      cachedImage(p.baseUrl),
+      Promise.all(p.layers.map((l) => cachedImage(l.layerUrl))),
+      Promise.all(p.layers.map((l) => (l.textureUrl ? cachedImage(l.textureUrl).catch(() => null) : null))),
+    ]).then(
+      // Images and the plan they were loaded for stay together (same layers, same order).
+      ([base, layers, textures]) =>
+        !cancelled && setShown({ key, plan: p, loaded: { base, layers, textures } }),
+      () => {
+        if (cancelled) return;
+        if (attempts === 0)
+          retry = setTimeout(() => setFailure({ key, attempts: 1 }), 3000); // one retry
+        else setFailure({ key, attempts: 2 });
+      },
+    );
+    return () => {
+      cancelled = true;
+      clearTimeout(retry);
+    };
+    // Re-runs on any plan change: color-only changes resolve at once from the image cache.
+  }, [key, planJson, attempts]);
+  return { shown, failed: attempts >= 2 && shown?.key !== key };
+}
 
 function Zone({
   layer,
@@ -76,25 +143,34 @@ function Zone({
   );
 }
 
-/** Loads one zone's images; renders nothing until they are ready (no half-recolored frame). */
-function ZoneLoader({ layer, size }: { layer: RenderLayer; size: Size }) {
-  const image = useImage(layer.layerUrl);
-  const texture = useImage(layer.textureUrl ?? undefined);
-  if (!image || (layer.textureUrl && !texture)) return null;
-  return <Zone layer={layer} image={image} texture={texture} size={size} />;
-}
-
 /** The model photo recolored per the plan, scaled to `width` (height keeps the photo's proportions). */
 export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: number; style?: ViewStyle }) {
-  const base = useImage(plan.baseUrl);
   const size = { width, height: (width * plan.height) / plan.width };
+  const { shown, failed } = usePlanImages(plan);
+  const loaded = shown?.loaded;
+  // The plan the loaded images belong to; while newer images load, this previous picture stays.
+  const drawn = shown?.plan ?? plan;
   return (
-    <View style={[size, style]}>
-      {base && (
+    <View
+      style={[
+        size,
+        !loaded && { backgroundColor: tokens.colors.border, borderRadius: tokens.radius.md },
+        style,
+      ]}
+      accessibilityRole="image"
+      accessibilityLabel={failed ? 'Image could not be loaded' : undefined}
+    >
+      {loaded && (
         <Canvas style={size}>
-          <Image image={base} x={0} y={0} width={size.width} height={size.height} fit="fill" />
-          {plan.layers.map((l) => (
-            <ZoneLoader key={l.zoneId} layer={l} size={size} />
+          <Image image={loaded.base} x={0} y={0} width={size.width} height={size.height} fit="fill" />
+          {drawn.layers.map((l, i) => (
+            <Zone
+              key={l.zoneId}
+              layer={l}
+              image={loaded.layers[i]!}
+              texture={loaded.textures[i] ?? null}
+              size={size}
+            />
           ))}
         </Canvas>
       )}
