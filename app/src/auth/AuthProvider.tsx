@@ -6,6 +6,8 @@ import { AppState } from 'react-native';
 import type { Database } from '@taitit/shared';
 import { supabase } from '@/lib/supabase';
 import { authErrorMessage } from './messages';
+import type { BusinessKey } from './business';
+import { forgetSignUpBusiness, pendingSignUpBusiness, rememberSignUpBusiness } from './pendingBusiness';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -141,11 +143,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: { data: { full_name: name.trim(), ...business }, emailRedirectTo: callbackUrl() },
       });
       if (error) return { error: authErrorMessage(error), needsConfirmation: false };
+      // Also kept on the phone: a repeated sign-up of an unconfirmed email may not pass them on.
+      await rememberSignUpBusiness(email, business);
       return { error: null, needsConfirmation: !data.session };
     },
     [],
   );
   const reloadProfile = useCallback(() => setProfileRefresh((n) => n + 1), []);
+
+  // Business details typed at sign-up but missing from the account (repeated sign-up, see
+  // pendingBusiness.ts): saved into the empty fields after sign-in, then forgotten on this phone.
+  const email = session?.user.email;
+  useEffect(() => {
+    if (!profile || !email || !userId) return;
+    let cancelled = false;
+    void (async () => {
+      const pending = await pendingSignUpBusiness(email);
+      if (!pending || cancelled) return;
+      const missing: Partial<Record<BusinessKey, string>> = Object.fromEntries(
+        Object.entries(pending).filter(([key, value]) => value && !profile[key as BusinessKey]?.trim()),
+      );
+      if (Object.keys(missing).length) {
+        const { error } = await supabase.from('profiles').update(missing).eq('id', userId);
+        if (error || cancelled) return; // kept: tried again on the next profile load
+        setProfileRefresh((n) => n + 1);
+      }
+      await forgetSignUpBusiness(email);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, email, userId]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();

@@ -47,6 +47,18 @@ begin
   if n = 1 then passed := passed + 1; else failed := failed || E'\n1 sign-up business details not copied (trim, limits, blanks)'; end if;
   select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
   if n = 1 then passed := passed + 1; else failed := failed || E'\n1 details without a tax ID counted as complete'; end if;
+  -- Repeated sign-up of an unconfirmed account: new sign-up data reaches the profile; once the email
+  -- is confirmed, sign-up data changes no longer touch it.
+  update auth.users set raw_user_meta_data = raw_user_meta_data || jsonb_build_object('business_name', 'Optica Luna', 'tax_id', 'B11111111', 'province', '')
+  where id = 'eeeeeeee-0000-4000-8000-000000000005';
+  select count(*) into n from public.profiles where id = 'eeeeeeee-0000-4000-8000-000000000005'
+    and business_name = 'Optica Luna' and tax_id = 'B11111111' and phone = '600 000 000' and province is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 repeated sign-up (unconfirmed): new details not copied, or old ones lost'; end if;
+  update auth.users set email_confirmed_at = now() where id = 'eeeeeeee-0000-4000-8000-000000000005';
+  update auth.users set raw_user_meta_data = raw_user_meta_data || '{"business_name":"Changed later"}'::jsonb
+  where id = 'eeeeeeee-0000-4000-8000-000000000005';
+  select count(*) into n from public.profiles where id = 'eeeeeeee-0000-4000-8000-000000000005' and business_name = 'Optica Luna';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 confirmed account: sign-up data change overwrote the profile'; end if;
   -- White space of any kind is not a value (a tab, a no-break space).
   update public.profiles set tax_id = E'\t', business_name = 'Optica Sol' where id = 'eeeeeeee-0000-4000-8000-000000000005';
   select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
