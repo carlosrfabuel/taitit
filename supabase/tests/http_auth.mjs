@@ -77,6 +77,8 @@ async function main() {
       userInsert(users.admin, true),
       userInsert(users.unconfirmed, false),
       `update public.profiles set role = 'admin' where id = '${users.admin.id}';`,
+      // Account approval: A is approved by TAITIT (B stays pending).
+      `update public.profiles set status = 'approved' where id = '${users.a.id}';`,
       // Built complete, then published (the publishing rules reject incomplete models).
       `insert into public.models (id, name, base_path, base_width, base_height) values ('${modelId}', 'HTTP TEST ${run}', 'test/base.jpg', 1600, 556);`,
       `insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height)

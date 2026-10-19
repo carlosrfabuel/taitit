@@ -284,7 +284,10 @@ export type Database = {
           full_name: string | null
           id: string
           push_token: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["account_status"]
           updated_at: string
         }
         Insert: {
@@ -293,7 +296,10 @@ export type Database = {
           full_name?: string | null
           id: string
           push_token?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
         Update: {
@@ -302,10 +308,21 @@ export type Database = {
           full_name?: string | null
           id?: string
           push_token?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["account_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       swatches: {
         Row: {
@@ -374,8 +391,16 @@ export type Database = {
         Args: { p_model_id: string }
         Returns: string[]
       }
+      set_account_status: {
+        Args: {
+          p_status: Database["public"]["Enums"]["account_status"]
+          p_user: string
+        }
+        Returns: Database["public"]["Enums"]["account_status"]
+      }
     }
     Enums: {
+      account_status: "pending" | "approved" | "rejected"
       finish: "gloss" | "matte"
       material: "metal" | "acetate"
       swatch_kind: "metal" | "solid" | "translucent" | "havana"
@@ -507,6 +532,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["pending", "approved", "rejected"],
       finish: ["gloss", "matte"],
       material: ["metal", "acetate"],
       swatch_kind: ["metal", "solid", "translucent", "havana"],

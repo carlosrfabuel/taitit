@@ -43,7 +43,7 @@ export default function SignUpScreen() {
       setSentTo(email.trim());
       return;
     }
-    toast('Account created', 'success');
+    toast('Account created. TAITIT will review it before you can order.', 'success');
     closeAuth();
   };
 
@@ -54,7 +54,7 @@ export default function SignUpScreen() {
         <EmptyState
           icon="mail-unread-outline"
           title="Check your email"
-          message={`If ${sentTo} was not registered yet, we have sent it a link to confirm the account. Open it on this phone; if you request another one, use only the latest.`}
+          message={`If ${sentTo} was not registered yet, we have sent it a link to confirm the account. Open it on this phone; if you request another one, use only the latest. TAITIT then reviews new accounts before they can order.`}
           actionLabel="Go to sign in"
           onAction={() => router.replace('/sign-in')}
         />

@@ -2,11 +2,16 @@ import { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import type { Database } from '@taitit/shared';
 import { supabase } from '@/lib/supabase';
 import { authErrorMessage } from './messages';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+/** Orders need an account approved by TAITIT (admins can always order). The server checks the same rule. */
+export const canOrder = (profile: Profile | null) =>
+  profile?.role === 'admin' || profile?.status === 'approved';
 
 type Result = { error: string | null };
 
@@ -70,6 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const userId = session?.user.id;
+  // Reloaded when the app comes back to the foreground: an approval by TAITIT shows without a restart.
+  const [profileRefresh, setProfileRefresh] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener(
+      'change',
+      (state) => state === 'active' && setProfileRefresh((n) => n + 1),
+    );
+    return () => sub.remove();
+  }, []);
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -91,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearTimeout(retry);
     };
-  }, [userId]);
+  }, [userId, profileRefresh]);
   const profile = loadedProfile && loadedProfile.userId === userId ? loadedProfile.profile : null;
 
   const signIn = useCallback(async (email: string, password: string): Promise<Result> => {

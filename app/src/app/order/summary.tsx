@@ -11,7 +11,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
-import { useAuth } from '@/auth/AuthProvider';
+import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import { parseSelection } from '@/designs/designs';
 import {
@@ -119,6 +119,9 @@ function Summary({
   // Refreshing the catalog after "colors changed": confirm waits until both are back.
   const refreshing = swatchesQuery.isFetching || catalogQuery.isFetching;
   const swatches = swatchesQuery.data ?? [];
+  // Accounts wait for approval by TAITIT before they can order (the server checks it too).
+  const { profile } = useAuth();
+  const approved = canOrder(profile);
 
   const { lines, replaced, missing } = orderLines(model, swatches, selection);
   const picks = Object.fromEntries(lines.map((l) => [l.zoneId, { swatchId: l.swatchId, finish: l.finish }]));
@@ -180,6 +183,15 @@ function Summary({
           <AppText variant="title">{model.name}</AppText>
           {model.sizeRef ? <AppText variant="small">{model.sizeRef}</AppText> : null}
         </View>
+        {profile && !approved ? (
+          <Card style={styles.notice}>
+            <AppText variant="small">
+              {profile.status === 'rejected'
+                ? 'Your account has not been approved for orders. Please contact TAITIT.'
+                : 'Your account is waiting for approval by TAITIT. You can send this order once it is approved.'}
+            </AppText>
+          </Card>
+        ) : null}
         {replaced.length > 0 ? (
           <Card style={styles.notice}>
             <AppText variant="small">
@@ -249,7 +261,7 @@ function Summary({
           title="Confirm order"
           fullWidth
           loading={busy}
-          disabled={missing.length > 0 || lines.length === 0 || refreshing}
+          disabled={missing.length > 0 || lines.length === 0 || refreshing || !approved}
           onPress={confirm}
         />
       </View>

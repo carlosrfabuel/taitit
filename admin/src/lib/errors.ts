@@ -42,6 +42,8 @@ export function dbMessage(error: ErrorLike): string {
     return `El modelo publicado no puede quedar incompleto: ${problems.map(problemLabel).join(' ')} Despublícalo primero o corrígelo.`;
   if (error?.code === '23505' && message.includes('swatches_ref_key'))
     return 'Ya existe un color con esa referencia.';
+  if (message.includes('own_account')) return 'No puedes cambiar el estado de tu propia cuenta.';
+  if (message.includes('account_not_found')) return 'Esta cuenta ya no existe.';
   if (error?.code === '23505' && message.includes('model_zones_unique_name'))
     return 'Ya hay una zona con ese nombre en este modelo.';
   if (error?.code === '23505') return 'Ya existe un modelo con ese nombre.';

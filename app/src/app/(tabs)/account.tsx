@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
-import { useAuth } from '@/auth/AuthProvider';
+import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { AppText, Button, Card, EmptyState, Screen, useToast } from '@/ui';
 
 export default function AccountScreen() {
@@ -61,6 +61,20 @@ export default function AccountScreen() {
         <View style={styles.row}>
           <AppText variant="tiny">EMAIL</AppText>
           <AppText>{session.user.email}</AppText>
+        </View>
+        <View style={styles.row}>
+          <AppText variant="tiny">ACCOUNT</AppText>
+          <AppText color={canOrder(profile) ? tokens.colors.success : tokens.colors.muted}>
+            {profile?.role === 'admin'
+              ? 'Administrator'
+              : profile?.status === 'approved'
+                ? 'Approved: you can place orders'
+                : profile?.status === 'rejected'
+                  ? 'Not approved. Please contact TAITIT.'
+                  : profile
+                    ? 'Waiting for approval by TAITIT. You can browse and save designs meanwhile.'
+                    : '—'}
+          </AppText>
         </View>
       </Card>
       <Button

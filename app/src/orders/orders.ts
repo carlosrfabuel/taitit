@@ -195,6 +195,8 @@ export async function placeOrder(input: {
 /** What to tell the customer when placing an order fails. */
 export function orderErrorMessage(error: unknown): string {
   const message = (error as { message?: string } | null)?.message ?? '';
+  if (message.includes('account_not_approved'))
+    return 'Your account is waiting for approval by TAITIT. You can order once it is approved.';
   if (message.includes('order_colors_changed'))
     return 'Some colors changed in the meantime. Review your design and try again.';
   if (message.includes('order_model_unavailable')) return 'This model is no longer available.';

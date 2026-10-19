@@ -32,6 +32,10 @@ begin
     (b, 'test-b@example.com', '{"full_name":"Cliente B"}', 'authenticated', 'authenticated'),
     (adm, 'test-admin@example.com', '{}', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = adm;
+  -- Account approval: new accounts start pending; A is approved by TAITIT, B stays pending.
+  select count(*) into n from public.profiles where id in (a, b) and status = 'pending';
+  if n = 2 then passed := passed + 1; else failed := failed || E'\n1 new accounts do not start pending'; end if;
+  update public.profiles set status = 'approved' where id = a;
 
   -- TEST PUB is built complete (base image, zones with layers of the same size, default colors) and then
   -- published, as the publishing rules require.
@@ -103,6 +107,10 @@ begin
   get diagnostics n = row_count;
   if n = 1 then passed := passed + 1; else failed := failed || E'\n3 customer cannot update own name'; end if;
   begin update public.profiles set role = 'admin' where id = a; failed := failed || E'\n3 CRITICAL customer changed own role';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin update public.profiles set status = 'approved' where id = a; failed := failed || E'\n3 CRITICAL customer changed own approval status';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform public.set_account_status(b, 'approved'); failed := failed || E'\n3 CRITICAL customer approved an account';
   exception when insufficient_privilege then passed := passed + 1; end;
   update public.profiles set full_name = 'x' where id = b;
   get diagnostics n = row_count;
@@ -187,6 +195,13 @@ begin
 
   -- Customer B cannot read A's order image
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  -- B is pending approval: may not upload order images (nor order: create_order checks the same rule).
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', b::text || '/11111111-2222-4333-8444-555555555555.jpg', b::text); failed := failed || E'\n3 pending account uploaded an order image';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform public.create_order(gen_random_uuid(), m_pub, '{}'::jsonb); failed := failed || E'\n3 pending account placed an order';
+  exception when insufficient_privilege then
+    if sqlerrm = 'account_not_approved' then passed := passed + 1; else failed := failed || E'\n3 pending order refused for the wrong reason: ' || sqlerrm; end if;
+  end;
   select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/11111111-2222-4333-8444-555555555555.jpg';
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer B can see customer A''s order image'; end if;
 
@@ -194,6 +209,16 @@ begin
   -- 4. Admin
   -- -------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+
+  -- Admin approves B (and can undo it); never their own account.
+  if public.set_account_status(b, 'approved') = 'approved' then passed := passed + 1; else failed := failed || E'\n4 admin approval returned a wrong status'; end if;
+  select count(*) into n from public.profiles where id = b and status = 'approved' and reviewed_by = adm and reviewed_at is not null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n4 approval not recorded (status, reviewer, date)'; end if;
+  perform public.set_account_status(b, 'rejected');
+  select count(*) into n from public.profiles where id = b and status = 'rejected';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n4 admin cannot reject an account'; end if;
+  begin perform public.set_account_status(adm, 'rejected'); failed := failed || E'\n4 admin changed their own account status';
+  exception when check_violation then passed := passed + 1; end;
 
   select count(*) into n from public.profiles where id in (a, b, adm);
   if n = 3 then passed := passed + 1; else failed := failed || format(E'\n4 admin sees %s of 3 test profiles', n); end if;

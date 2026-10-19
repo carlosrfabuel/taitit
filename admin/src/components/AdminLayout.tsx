@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router';
 import { LogOut } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { customerKeys, listCustomers } from '../lib/customers';
 import { useAuth } from '../auth/context';
 import { ThumbnailRefresher } from './ThumbnailRefresher';
 
@@ -7,11 +9,15 @@ const NAV = [
   { to: '/models', label: 'Modelos' },
   { to: '/palettes', label: 'Paletas' },
   { to: '/orders', label: 'Pedidos' },
+  { to: '/customers', label: 'Clientes' },
   ...(import.meta.env.DEV ? [{ to: '/dev/ui-kit', label: 'UI kit (dev)' }] : []),
 ];
 
 export function AdminLayout() {
   const { email, signOut } = useAuth();
+  // Accounts waiting for approval, shown next to Clientes (refreshed every minute).
+  const customers = useQuery({ queryKey: customerKeys.all, queryFn: listCustomers, refetchInterval: 60_000 });
+  const pending = (customers.data ?? []).filter((c) => c.status === 'pending').length;
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4">
@@ -28,6 +34,14 @@ export function AdminLayout() {
               }
             >
               {n.label}
+              {n.to === '/customers' && pending > 0 && (
+                <span
+                  className="ml-2 rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold text-white"
+                  aria-label={`${pending} pendientes`}
+                >
+                  {pending}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
