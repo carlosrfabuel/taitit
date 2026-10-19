@@ -6,10 +6,12 @@ import {
   Fill,
   Group,
   Image,
+  ImageFormat,
   LinearGradient,
   Paint,
   Rect,
   Skia,
+  drawAsImage,
   vec,
   type SkImage,
 } from '@shopify/react-native-skia';
@@ -150,6 +152,48 @@ function Zone({
   );
 }
 
+/** The whole picture: base photo, then each zone. Shared by the screen view and the order image. */
+function Scene({ plan, loaded, size }: { plan: RenderPlan; loaded: Loaded; size: Size }) {
+  return (
+    <>
+      <Image image={loaded.base} x={0} y={0} width={size.width} height={size.height} fit="fill" />
+      {plan.layers.map((l, i) => (
+        <Zone
+          key={l.zoneId}
+          layer={l}
+          image={loaded.layers[i]!}
+          texture={loaded.textures[i] ?? null}
+          size={size}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * The design drawn off-screen at `width` px and encoded as JPEG (the order image). Stricter than the
+ * screen view: every image must load, tortoiseshell textures included, because an order must show
+ * exactly what was chosen. Throws otherwise.
+ */
+export async function renderPlanToJpeg(plan: RenderPlan, width: number, quality = 90): Promise<Uint8Array> {
+  const size = { width, height: Math.round((width * plan.height) / plan.width) };
+  const [base, layers, textures] = await Promise.all([
+    cachedImage(plan.baseUrl),
+    Promise.all(plan.layers.map((l) => cachedImage(l.layerUrl))),
+    Promise.all(plan.layers.map((l) => (l.textureUrl ? cachedImage(l.textureUrl) : null))),
+  ]);
+  const image = await drawAsImage(
+    <>
+      {/* JPEG has no transparency: a white page behind the photo. */}
+      <Fill color="#FFFFFF" />
+      <Scene plan={plan} loaded={{ base, layers, textures }} size={size} />
+    </>,
+    size,
+  );
+  if (!image) throw new Error('snapshot_failed');
+  return image.encodeToBytes(ImageFormat.JPEG, quality);
+}
+
 /** The model photo recolored per the plan, scaled to `width` (height keeps the photo's proportions). */
 export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: number; style?: ViewStyle }) {
   const size = { width, height: (width * plan.height) / plan.width };
@@ -180,16 +224,7 @@ export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: n
       )}
       {loaded && (
         <Canvas style={size}>
-          <Image image={loaded.base} x={0} y={0} width={size.width} height={size.height} fit="fill" />
-          {drawn.layers.map((l, i) => (
-            <Zone
-              key={l.zoneId}
-              layer={l}
-              image={loaded.layers[i]!}
-              texture={loaded.textures[i] ?? null}
-              size={size}
-            />
-          ))}
+          <Scene plan={drawn} loaded={loaded} size={size} />
         </Canvas>
       )}
     </View>

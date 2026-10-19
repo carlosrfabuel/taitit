@@ -176,16 +176,18 @@ begin
   end;
 
   -- Storage: own folder only
-  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/test.png', a::text); passed := passed + 1;
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/11111111-2222-4333-8444-555555555555.jpg', a::text); passed := passed + 1;
   exception when others then failed := failed || E'\n3 customer cannot upload to own order folder: ' || sqlerrm; end;
-  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', b::text || '/test.png', a::text); failed := failed || E'\n3 customer uploaded into another user''s folder';
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', b::text || '/11111111-2222-4333-8444-555555555555.jpg', a::text); failed := failed || E'\n3 customer uploaded into another user''s folder';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/test.png', a::text); failed := failed || E'\n3 order image with a free-form name accepted';
   exception when insufficient_privilege then passed := passed + 1; end;
   begin insert into storage.objects (bucket_id, name, owner_id) values ('models', 'hack.png', a::text); failed := failed || E'\n3 customer uploaded a catalog image';
   exception when insufficient_privilege then passed := passed + 1; end;
 
   -- Customer B cannot read A's order image
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
-  select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/test.png';
+  select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/11111111-2222-4333-8444-555555555555.jpg';
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer B can see customer A''s order image'; end if;
 
   -- -------------------------------------------------------------------------
@@ -199,7 +201,7 @@ begin
   if n = 2 then passed := passed + 1; else failed := failed || E'\n4 admin does not see unpublished models'; end if;
   select count(*) into n from public.orders where id in (o_a, o_b);
   if n = 2 then passed := passed + 1; else failed := failed || E'\n4 admin does not see all orders'; end if;
-  select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/test.png';
+  select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/11111111-2222-4333-8444-555555555555.jpg';
   if n = 1 then passed := passed + 1; else failed := failed || E'\n4 admin cannot see order images'; end if;
   select count(*) into n from public.designs where id = d_b;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n4 admin can read private designs'; end if;

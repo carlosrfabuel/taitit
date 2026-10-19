@@ -139,17 +139,26 @@ async function main() {
     designA.error?.message,
   );
 
-  const fileA = `${users.a.id}/test-${run}.png`;
-  const upA = await a.storage
-    .from('orders')
-    .upload(fileA, new Uint8Array([137, 80, 78, 71]), { contentType: 'image/png' });
+  // Order images: <user id>/<order attempt key>.jpg only (Day 16 rule).
+  const fileA = `${users.a.id}/${randomUUID()}.jpg`;
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+  const upA = await a.storage.from('orders').upload(fileA, jpeg, { contentType: 'image/jpeg' });
   check(!upA.error, 'A uploads an order image to own folder', upA.error?.message);
   if (!upA.error) uploaded.orders.push(fileA);
-  const upOther = await a.storage
-    .from('orders')
-    .upload(`${users.b.id}/hack-${run}.png`, new Uint8Array([1]), { contentType: 'image/png' });
+  const upAgain = await a.storage.from('orders').upload(fileA, jpeg, { contentType: 'image/jpeg' });
+  check(
+    !!upAgain.error,
+    'the same order image name cannot be uploaded twice',
+    upAgain.error?.message ?? 'UPLOADED',
+  );
+  const otherName = `${users.a.id}/hack-${run}.png`;
+  const upName = await a.storage.from('orders').upload(otherName, jpeg, { contentType: 'image/png' });
+  check(!!upName.error, 'order images with any other name are refused', upName.error?.message ?? 'UPLOADED');
+  if (!upName.error) uploaded.orders.push(otherName);
+  const otherFolder = `${users.b.id}/${randomUUID()}.jpg`;
+  const upOther = await a.storage.from('orders').upload(otherFolder, jpeg, { contentType: 'image/jpeg' });
   check(!!upOther.error, "A cannot upload into B's folder", upOther.error?.message ?? 'UPLOADED');
-  if (!upOther.error) uploaded.orders.push(`${users.b.id}/hack-${run}.png`);
+  if (!upOther.error) uploaded.orders.push(otherFolder);
   const upCatalog = await a.storage
     .from('models')
     .upload(`hack-${run}.png`, new Uint8Array([1]), { contentType: 'image/png' });

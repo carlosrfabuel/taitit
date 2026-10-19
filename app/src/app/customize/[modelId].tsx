@@ -363,7 +363,14 @@ function Customizer({
         />
         <Button
           title="Order"
-          onPress={() => requireAuth(() => router.push('/order/summary'))}
+          onPress={() =>
+            requireAuth(() =>
+              router.push({
+                pathname: '/order/summary',
+                params: { modelId: model.id, sel: JSON.stringify(selection) },
+              }),
+            )
+          }
           style={styles.footerButton}
         />
       </View>
