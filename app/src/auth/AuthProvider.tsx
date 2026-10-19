@@ -24,7 +24,10 @@ type AuthContextValue = {
   profileFailed: boolean;
   /** True until the stored session has been read on startup. */
   initializing: boolean;
-  signIn: (email: string, password: string) => Promise<Result>;
+  /** errorCode: the Supabase error code (e.g. email_not_confirmed), for screens that react to it. */
+  signIn: (email: string, password: string) => Promise<Result & { errorCode: string | null }>;
+  /** Sends the sign-up confirmation email again. */
+  resendConfirmation: (email: string) => Promise<Result>;
   /** needsConfirmation: the account exists but the email link must be opened first. */
   signUp: (
     name: string,
@@ -61,8 +64,11 @@ export function useRequireAuth() {
   );
 }
 
-// Deep links back into the app from emails (Expo Go: exp://…/--/auth/callback, builds: taitit://auth/callback).
-const callbackUrl = () => Linking.createURL('auth/callback');
+// Password-reset links open the app (Expo Go: exp://…/--/reset-password, builds: taitit://reset-password).
+// Sign-up confirmation links land on a public web page (they may be opened on a computer); the app
+// notices the confirmation itself (WaitingForConfirmation). Override with EXPO_PUBLIC_EMAIL_CONFIRMED_URL.
+const confirmedUrl = () =>
+  process.env.EXPO_PUBLIC_EMAIL_CONFIRMED_URL || 'https://taitit-admin.vercel.app/confirmed';
 const resetUrl = () => Linking.createURL('reset-password');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -129,8 +135,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profile = current?.profile ?? null;
   const profileFailed = !!current?.failed;
 
-  const signIn = useCallback(async (email: string, password: string): Promise<Result> => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    return { error: error ? authErrorMessage(error) : null, errorCode: error?.code ?? null };
+  }, []);
+
+  const resendConfirmation = useCallback(async (email: string): Promise<Result> => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: confirmedUrl() },
+    });
     return { error: error ? authErrorMessage(error) : null };
   }, []);
 
@@ -140,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: name.trim(), ...business }, emailRedirectTo: callbackUrl() },
+        options: { data: { full_name: name.trim(), ...business }, emailRedirectTo: confirmedUrl() },
       });
       if (error) return { error: authErrorMessage(error), needsConfirmation: false };
       // Also kept on the phone: a repeated sign-up of an unconfirmed email may not pass them on.
@@ -204,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       sendPasswordReset,
+      resendConfirmation,
       updatePassword,
       exchangeCode,
       reloadProfile,
@@ -217,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       sendPasswordReset,
+      resendConfirmation,
       updatePassword,
       exchangeCode,
       reloadProfile,

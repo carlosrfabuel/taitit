@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
-import { closeAuth } from '@/auth/navigation';
+import { useCloseAuth } from '@/auth/navigation';
+import { WaitingForConfirmation } from '@/auth/WaitingForConfirmation';
 import { validateEmail } from '@/auth/validation';
 import { AppText, Button, Screen, TextField, useToast } from '@/ui';
 
@@ -15,6 +16,8 @@ export default function SignInScreen() {
   const [errors, setErrors] = useState<{ email?: string | null; password?: string | null }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const closeAuth = useCloseAuth();
   // An edited field drops its old error; the next submit validates everything again.
   const clearError = (field: 'email' | 'password') =>
     setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
@@ -26,8 +29,12 @@ export default function SignInScreen() {
     setFormError(null);
     if (next.email || next.password) return;
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error, errorCode } = await signIn(email, password);
     setLoading(false);
+    if (errorCode === 'email_not_confirmed') {
+      setUnconfirmed(true);
+      return;
+    }
     if (error) {
       setFormError(error);
       return;
@@ -35,6 +42,22 @@ export default function SignInScreen() {
     toast('Signed in', 'success');
     closeAuth();
   };
+
+  if (unconfirmed)
+    return (
+      <Screen>
+        <WaitingForConfirmation
+          email={email}
+          password={password}
+          justSent={false}
+          onContinue={() => {
+            toast('Signed in', 'success');
+            closeAuth();
+          }}
+          onSignIn={() => setUnconfirmed(false)}
+        />
+      </Screen>
+    );
 
   return (
     <Screen>

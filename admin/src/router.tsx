@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { AdminLayout } from './components/AdminLayout';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
+import { ConfirmedPage } from './pages/ConfirmedPage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ModelEditPage } from './pages/ModelEditPage';
 import { PalettesPage } from './pages/PalettesPage';
@@ -13,6 +14,8 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  // Public: where the app's sign-up confirmation email lands (no admin login).
+  { path: '/confirmed', element: <ConfirmedPage /> },
   { path: '*', element: <NotFoundPage /> },
   {
     path: '/',

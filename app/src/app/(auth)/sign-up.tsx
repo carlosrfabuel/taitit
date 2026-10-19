@@ -12,8 +12,9 @@ import {
   type BusinessKey,
 } from '@/auth/business';
 import { BusinessFields } from '@/auth/BusinessFields';
-import { AppText, Button, EmptyState, Icon, Screen, TextField, useToast } from '@/ui';
-import { closeAuth } from '@/auth/navigation';
+import { AppText, Button, Icon, Screen, TextField, useToast } from '@/ui';
+import { useCloseAuth } from '@/auth/navigation';
+import { WaitingForConfirmation } from '@/auth/WaitingForConfirmation';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -28,6 +29,7 @@ export default function SignUpScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const closeAuth = useCloseAuth();
   // An edited field drops its old error; the next submit validates everything again.
   const clearError = (field: string) => setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
 
@@ -59,15 +61,17 @@ export default function SignUpScreen() {
   };
 
   if (sentTo) {
-    // Neutral wording: Supabase doesn't reveal whether the email was already registered.
     return (
       <Screen>
-        <EmptyState
-          icon="mail-unread-outline"
-          title="Check your email"
-          message={`If ${sentTo} was not registered yet, we have sent it a link to confirm the account. Open it on this phone; if you request another one, use only the latest. TAITIT then reviews new accounts before they can order.`}
-          actionLabel="Go to sign in"
-          onAction={() => router.replace('/sign-in')}
+        <WaitingForConfirmation
+          email={sentTo}
+          password={password}
+          justSent
+          onContinue={() => {
+            toast('Welcome to TAITIT', 'success');
+            closeAuth();
+          }}
+          onSignIn={() => router.dismissTo('/sign-in')}
         />
       </Screen>
     );
