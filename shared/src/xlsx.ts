@@ -1,8 +1,8 @@
 import { strToU8, zipSync } from 'fflate';
 
 // Minimal .xlsx writer (Office Open XML spreadsheet): one sheet, a bold header row, column widths,
-// text and numbers. Small on purpose, so the same code runs in the admin panel (browser) and in a
-// Supabase function (Deno) for the order email. Opens in Excel, LibreOffice and Google Sheets.
+// text and numbers. Small on purpose: the admin panel uses it, and the order email function will
+// too (in Deno, `fflate` then needs an npm: import mapping). Read back with openpyxl in the tests.
 
 export type Cell = string | number | null | undefined;
 
@@ -28,8 +28,9 @@ export const columnName = (index: number): string => {
   return name;
 };
 
+// Styles (cellXfs): 0 normal, 1 bold header, 2 wrapped text (cells with line breaks, e.g. notes).
 const cellXml = (value: Cell, ref: string, header: boolean) => {
-  const style = header ? ' s="1"' : '';
+  const style = header ? ' s="1"' : typeof value === 'string' && value.includes('\n') ? ' s="2"' : '';
   if (value === null || value === undefined || value === '') return '';
   if (typeof value === 'number' && Number.isFinite(value)) return `<c r="${ref}"${style}><v>${value}</v></c>`;
   // Inline strings: no shared-string table to keep in sync. xml:space keeps leading spaces and line breaks.
@@ -41,10 +42,13 @@ const cellXml = (value: Cell, ref: string, header: boolean) => {
  * value (capped), so the sheet is readable when opened.
  */
 export function buildXlsx(rows: Cell[][], sheetName = 'Sheet1'): Uint8Array {
-  const width = Math.max(0, ...rows.map((r) => r.length));
-  const widths = Array.from({ length: width }, (_, c) =>
-    Math.min(60, Math.max(8, ...rows.map((r) => String(r[c] ?? '').split('\n')[0]!.length + 2))),
-  );
+  // Loops, not Math.max(...rows): spreading a large sheet into one call overflows the stack.
+  let width = 0;
+  for (const r of rows) width = Math.max(width, r.length);
+  const widths = Array.from({ length: width }, () => 8);
+  for (const r of rows)
+    for (let c = 0; c < r.length; c++)
+      widths[c] = Math.min(60, Math.max(widths[c]!, String(r[c] ?? '').split('\n')[0]!.length + 2));
   const sheetRows = rows
     .map(
       (row, r) =>
@@ -52,7 +56,14 @@ export function buildXlsx(rows: Cell[][], sheetName = 'Sheet1'): Uint8Array {
     )
     .join('');
   // Excel limits sheet names to 31 characters, without : \ / ? * [ ]
-  const name = clean(sheetName.replace(/[:\\/?*[\]]/g, ' ').slice(0, 31)) || 'Sheet1';
+  // Excel: at most 31 characters (cut by whole characters, not UTF-16 units), none of : \ / ? * [ ],
+  // no leading or trailing apostrophe, and not the reserved name History.
+  const safe = Array.from(sheetName.replace(/[:\\/?*[\]]/g, ' '))
+    .slice(0, 31)
+    .join('')
+    .replace(/^'+|'+$/g, '')
+    .trim();
+  const name = clean(!safe || safe.toLowerCase() === 'history' ? 'Sheet1' : safe);
 
   const files: Record<string, string> = {
     '[Content_Types].xml':
@@ -87,7 +98,7 @@ export function buildXlsx(rows: Cell[][], sheetName = 'Sheet1'): Uint8Array {
       '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
       '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+      '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
       '</styleSheet>',
     'xl/worksheets/sheet1.xml':

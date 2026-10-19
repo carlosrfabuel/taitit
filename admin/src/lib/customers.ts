@@ -20,7 +20,7 @@ export type CustomerRow = {
   province: string | null;
 };
 
-export const customerKeys = { all: ['customers'] as const };
+export const customerKeys = { all: ['customers'] as const, pending: ['customers', 'pending'] as const };
 
 export const STATUS_LABEL: Record<AccountStatus, string> = {
   pending: 'Pendiente',
@@ -28,17 +28,36 @@ export const STATUS_LABEL: Record<AccountStatus, string> = {
   rejected: 'Rechazado',
 };
 
-/** Customer accounts (admins are not listed), newest first. */
+const PAGE = 1000; // the most rows the API returns per request
+
+/** Every customer account (admins are not listed), newest first, fetched in pages. */
 export async function listCustomers(): Promise<CustomerRow[]> {
-  const { data, error } = await supabase
+  const all: CustomerRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(
+        'id, email, full_name, status, created_at, reviewed_at, business_name, legal_name, tax_id, phone, address, postal_code, city, province',
+      )
+      .eq('role', 'customer')
+      .order('created_at', { ascending: false })
+      .order('id')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    all.push(...data);
+    if (data.length < PAGE) return all;
+  }
+}
+
+/** How many accounts wait for approval (a count only: nothing is downloaded). */
+export async function countPending(): Promise<number> {
+  const { count, error } = await supabase
     .from('profiles')
-    .select(
-      'id, email, full_name, status, created_at, reviewed_at, business_name, legal_name, tax_id, phone, address, postal_code, city, province',
-    )
+    .select('id', { count: 'exact', head: true })
     .eq('role', 'customer')
-    .order('created_at', { ascending: false });
+    .eq('status', 'pending');
   if (error) throw error;
-  return data;
+  return count ?? 0;
 }
 
 /** Approve, reject or move back to pending (database function: admins only, never their own account). */

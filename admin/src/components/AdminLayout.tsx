@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router';
 import { LogOut } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { customerKeys, listCustomers } from '../lib/customers';
+import { countPending, customerKeys } from '../lib/customers';
 import { useAuth } from '../auth/context';
 import { ThumbnailRefresher } from './ThumbnailRefresher';
 
@@ -16,8 +16,12 @@ const NAV = [
 export function AdminLayout() {
   const { email, signOut } = useAuth();
   // Accounts waiting for approval, shown next to Clientes (refreshed every minute).
-  const customers = useQuery({ queryKey: customerKeys.all, queryFn: listCustomers, refetchInterval: 60_000 });
-  const pending = (customers.data ?? []).filter((c) => c.status === 'pending').length;
+  const pendingQuery = useQuery({
+    queryKey: customerKeys.pending,
+    queryFn: countPending,
+    refetchInterval: 60_000,
+  });
+  const pending = pendingQuery.data ?? 0;
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4 print:hidden">

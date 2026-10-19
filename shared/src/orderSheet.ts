@@ -1,5 +1,5 @@
-import type { Finish, Material, SwatchKind } from './types';
-// Explicit .ts: the file also runs as-is in Node and in Supabase functions (Deno).
+// Explicit .ts extensions: the file also runs unbundled (Node in the tests, Deno for the email).
+import type { Finish, Material, SwatchKind } from './types.ts';
 import { buildXlsx, type Cell } from './xlsx.ts';
 
 // The order as a spreadsheet for TAITIT's accounting (client decision 2026-10-19): one row per

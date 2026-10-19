@@ -18,6 +18,8 @@ type Result = { error: string | null };
 type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
+  /** The profile could not be loaded (no connection); reloadProfile() tries again. */
+  profileFailed: boolean;
   /** True until the stored session has been read on startup. */
   initializing: boolean;
   signIn: (email: string, password: string) => Promise<Result>;
@@ -64,9 +66,11 @@ const resetUrl = () => Linking.createURL('reset-password');
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   // Tagged with the user it belongs to, so a stale profile never shows after sign-out or a user switch.
-  const [loadedProfile, setLoadedProfile] = useState<{ userId: string; profile: Profile | null } | null>(
-    null,
-  );
+  const [loadedProfile, setLoadedProfile] = useState<{
+    userId: string;
+    profile: Profile | null;
+    failed: boolean;
+  } | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
@@ -105,7 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then(({ data, error }) => {
           if (cancelled) return;
           if (error && attempt < 4) retry = setTimeout(() => load(attempt + 1), 2000 * 2 ** attempt);
-          else setLoadedProfile({ userId, profile: data });
+          else if (error)
+            // Still failing: keep the profile already shown (a refresh on a bad connection must not
+            // wipe it); with none yet, report the failure so screens can offer to retry.
+            setLoadedProfile((prev) =>
+              prev && prev.userId === userId && prev.profile ? prev : { userId, profile: null, failed: true },
+            );
+          else setLoadedProfile({ userId, profile: data, failed: false });
         });
     load(0);
     return () => {
@@ -113,7 +123,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(retry);
     };
   }, [userId, profileRefresh]);
-  const profile = loadedProfile && loadedProfile.userId === userId ? loadedProfile.profile : null;
+  const current = loadedProfile && loadedProfile.userId === userId ? loadedProfile : null;
+  const profile = current?.profile ?? null;
+  const profileFailed = !!current?.failed;
 
   const signIn = useCallback(async (email: string, password: string): Promise<Result> => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
@@ -158,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       profile,
+      profileFailed,
       initializing,
       signIn,
       signUp,
@@ -170,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       session,
       profile,
+      profileFailed,
       initializing,
       signIn,
       signUp,

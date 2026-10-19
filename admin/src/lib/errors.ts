@@ -65,6 +65,14 @@ export function dbMessage(error: ErrorLike): string {
   return 'No se pudo guardar. Inténtalo de nuevo.';
 }
 
+/** Spanish message for an error while loading or downloading (not saving). */
+export function readMessage(error: ErrorLike): string {
+  if (isNetworkError(error)) return 'No se pudo conectar. Revisa tu conexión.';
+  if (/not found|object not found/i.test(error?.message ?? ''))
+    return 'Ya no existe: puede que se haya eliminado.';
+  return 'No se pudo cargar. Inténtalo de nuevo.';
+}
+
 function isNetworkError(error: ErrorLike) {
   const text = `${error?.name ?? ''} ${error?.message ?? ''}`;
   return /fetch|network|AuthRetryableFetchError/i.test(text);

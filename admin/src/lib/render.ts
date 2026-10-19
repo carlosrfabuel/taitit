@@ -69,13 +69,11 @@ function opaqueShade(url: string, w: number, h: number) {
 }
 
 /**
- * Draws the plan into `target` at the plan's full resolution (scale it with CSS). `degraded` is true
- * when a texture could not be loaded and its plain color was used instead: fine for a preview, but
- * such a render must not be saved as the catalog thumbnail.
- */
-/**
- * Renders the plan into `target`. `isCurrent` is checked before the canvas is touched: a render
- * that finishes after a newer one started (e.g. a slow texture) must not overwrite it.
+ * Draws the plan into `target` at the plan's full resolution (scale it with CSS). `isCurrent` is
+ * checked before the canvas is touched: a render that finishes after a newer one started (e.g. a slow
+ * texture) must not overwrite it. `degraded` is true when a texture could not be loaded and its
+ * plain color was used instead: fine for a preview, but such a render must not be saved as the
+ * catalog thumbnail.
  */
 export async function drawPlan(
   target: HTMLCanvasElement,
@@ -116,7 +114,12 @@ export async function drawPlan(
     z.drawImage(l.shade, 0, 0);
     if (l.gloss) {
       // screen with gray g: x + (1 − x)·g, the recipe's gloss.
-      const grad = z.createLinearGradient(0, GLOSS_STOPS[0]![0] * h, 0, GLOSS_STOPS[2]![0] * h);
+      const grad = z.createLinearGradient(
+        0,
+        GLOSS_STOPS[0]![0] * h,
+        0,
+        GLOSS_STOPS[GLOSS_STOPS.length - 1]![0] * h,
+      );
       GLOSS_STOPS.forEach(([, amount], i) => {
         const v = Math.round(amount * 255);
         grad.addColorStop(i / (GLOSS_STOPS.length - 1), `rgb(${v},${v},${v})`);

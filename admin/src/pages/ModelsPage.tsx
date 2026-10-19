@@ -132,7 +132,7 @@ export function ModelsPage() {
       />
       {models.isPending ? (
         <Spinner />
-      ) : models.isError ? (
+      ) : models.isError && !models.data ? (
         <EmptyState
           title="No se pudieron cargar los modelos"
           message={dbMessage(models.error)}

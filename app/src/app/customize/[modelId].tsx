@@ -28,10 +28,13 @@ import {
 const { spacing, colors } = tokens;
 const PAGE = spacing.xl;
 
-const saveError = (e: unknown) =>
-  e instanceof Error && e.message === 'design_missing'
-    ? 'This design no longer exists. Save it as a new design.'
-    : "Couldn't save. Check your connection and try again.";
+const saveError = (e: unknown) => {
+  const message = (e as { message?: string } | null)?.message ?? '';
+  if (message === 'design_missing') return 'This design no longer exists. Save it as a new design.';
+  if (message.includes('design_model_unavailable'))
+    return 'This model is no longer available, so the design cannot be saved.';
+  return "Couldn't save. Check your connection and try again.";
+};
 
 // Customizer: the model photo recolored live, one zone at a time, with finish, undo / reset, a
 // before/after view of the original combination, and saving as a design.

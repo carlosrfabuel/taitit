@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   KeyboardAvoidingView,
@@ -8,7 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
@@ -34,8 +34,8 @@ import { AppText, Button, Card, EmptyState, Loader, Screen, Swatch, TextField, u
 const { spacing, colors } = tokens;
 const PAGE = spacing.xl;
 
-// Order summary: everything that will be ordered, part by part, plus notes and the shop / customer
-// reference. Opened from the customizer with the model and the chosen colors in the link
+// Order summary: everything that will be ordered, part by part, who orders it (the optician's
+// details, copied into the order) and free-text notes. Opened from the customizer with the model and the chosen colors in the link
 // (/order/summary?modelId=…&sel=…), so it survives a reload. Confirm uploads the order image, then
 // creates the order (database function create_order) and opens the confirmation.
 export default function OrderSummaryScreen() {
@@ -119,8 +119,10 @@ function Summary({
   const refreshing = swatchesQuery.isFetching || catalogQuery.isFetching;
   const swatches = swatchesQuery.data ?? [];
   // Accounts wait for approval by TAITIT before they can order (the server checks it too).
-  const { profile } = useAuth();
+  const { profile, profileFailed, reloadProfile } = useAuth();
   const approved = canOrder(profile);
+  // Fresh account status and details each time the summary is shown (approval may have happened).
+  useFocusEffect(useCallback(() => reloadProfile(), [reloadProfile]));
   const hasBusiness = businessComplete(profile);
 
   const { lines, replaced, missing } = orderLines(model, swatches, selection);
@@ -136,7 +138,7 @@ function Summary({
 
   const confirm = async () => {
     if (sending.current) return;
-    const input = validateOrderInput({ notes, shopRef: '' });
+    const input = validateOrderInput({ notes });
     if ('errors' in input) return setErrors(input.errors);
     sending.current = true;
     setBusy(true);
@@ -154,7 +156,6 @@ function Summary({
         modelId: model.id,
         selection: linesToSelection(lines),
         notes: input.notes,
-        shopRef: input.shopRef,
       });
       await orderPlaced(content);
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
@@ -164,7 +165,10 @@ function Summary({
       router.replace({ pathname: '/order/done', params: { id: order.id, number: String(order.number) } });
     } catch (e) {
       toast(orderErrorMessage(e), 'error');
-      if ((e as { message?: string } | null)?.message?.includes('order_colors_changed')) {
+      const message = (e as { message?: string } | null)?.message ?? '';
+      // Refused because of the account (approval changed, details missing): show its current state.
+      if (/account_not_approved|business_details_missing|row-level security/.test(message)) reloadProfile();
+      if (message.includes('order_colors_changed')) {
         // Show the current catalog (the summary then flags what changed); confirm waits for it.
         void swatchesQuery.refetch();
         void catalogQuery.refetch();
@@ -183,6 +187,18 @@ function Summary({
           <AppText variant="title">{model.name}</AppText>
           {model.sizeRef ? <AppText variant="small">{model.sizeRef}</AppText> : null}
         </View>
+        {profileFailed && !profile ? (
+          <Card style={styles.notice}>
+            <AppText variant="small">{"Couldn't load your account. Check your connection."}</AppText>
+            <Button
+              title="Try again"
+              variant="ghost"
+              size="sm"
+              onPress={reloadProfile}
+              style={styles.editBusiness}
+            />
+          </Card>
+        ) : null}
         {profile && !approved ? (
           <Card style={styles.notice}>
             <AppText variant="small">
@@ -190,6 +206,14 @@ function Summary({
                 ? 'Your account has not been approved for orders. Please contact TAITIT.'
                 : 'Your account is waiting for approval by TAITIT. You can send this order once it is approved.'}
             </AppText>
+            <Button
+              title="Check again"
+              variant="ghost"
+              size="sm"
+              icon="refresh-outline"
+              onPress={reloadProfile}
+              style={styles.editBusiness}
+            />
           </Card>
         ) : null}
         {replaced.length > 0 ? (
@@ -216,7 +240,7 @@ function Summary({
               </AppText>
             </>
           ) : null}
-          {!hasBusiness ? (
+          {profile && !hasBusiness ? (
             <AppText variant="small" color={tokens.colors.danger}>
               Add your business details (name, tax ID, phone and address) to send orders.
             </AppText>

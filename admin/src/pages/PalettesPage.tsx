@@ -159,7 +159,7 @@ export function PalettesPage() {
       </div>
       {swatches.isPending ? (
         <Spinner />
-      ) : swatches.isError ? (
+      ) : swatches.isError && !swatches.data ? (
         <EmptyState
           title="No se pudieron cargar los colores"
           message={dbMessage(swatches.error)}

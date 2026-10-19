@@ -47,6 +47,13 @@ begin
   if n = 1 then passed := passed + 1; else failed := failed || E'\n1 sign-up business details not copied (trim, limits, blanks)'; end if;
   select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
   if n = 1 then passed := passed + 1; else failed := failed || E'\n1 details without a tax ID counted as complete'; end if;
+  -- White space of any kind is not a value (a tab, a no-break space).
+  update public.profiles set tax_id = E'\t', business_name = 'Optica Sol' where id = 'eeeeeeee-0000-4000-8000-000000000005';
+  select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 a tab-only tax ID counted as filled in'; end if;
+  update public.profiles set tax_id = U&'\00A0\00A0' where id = 'eeeeeeee-0000-4000-8000-000000000005';
+  select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 a no-break-space tax ID counted as filled in'; end if;
   update public.profiles set status = 'approved' where id = a;
 
   -- TEST PUB is built complete (base image, zones with layers of the same size, default colors) and then

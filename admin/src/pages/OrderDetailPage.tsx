@@ -14,7 +14,7 @@ import {
   type OrderItemRow,
 } from '../lib/orders';
 import { textureUrl } from '../lib/swatches';
-import { dbMessage } from '../lib/errors';
+import { readMessage } from '../lib/errors';
 import { FINISH_LABEL, KIND_LABEL, MATERIAL_LABEL } from '../lib/labels';
 
 // One order, exactly as it was sent: image, part sheet, notes, and the optician's details at that
@@ -41,11 +41,11 @@ export function OrderDetailPage() {
   );
 
   if (order.isPending) return <Spinner />;
-  if (order.isError)
+  if (order.isError && !order.data)
     return (
       <EmptyState
         title="No se pudo cargar el pedido"
-        message={dbMessage(order.error)}
+        message={readMessage(order.error)}
         action={<Button onClick={() => void order.refetch()}>Reintentar</Button>}
       />
     );
@@ -98,7 +98,7 @@ export function OrderDetailPage() {
       if (what === 'image') await downloadOrderImage(o);
       else downloadOrderSheet(o);
     } catch (e) {
-      setDownloadError(`No se pudo descargar. ${dbMessage(e as never)}`);
+      setDownloadError(`No se pudo descargar. ${readMessage(e as { message?: string })}`);
     }
   };
 
@@ -144,7 +144,7 @@ export function OrderDetailPage() {
         }
       />
       {downloadError && (
-        <p role="alert" className="mb-3 text-sm text-danger">
+        <p role="alert" className="mb-3 text-sm text-danger print:hidden">
           {downloadError}
         </p>
       )}

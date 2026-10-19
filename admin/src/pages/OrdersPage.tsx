@@ -11,7 +11,7 @@ import {
   ORDERS_LIMIT,
   type OrderRow,
 } from '../lib/orders';
-import { dbMessage } from '../lib/errors';
+import { readMessage } from '../lib/errors';
 
 // Orders sent from the app, newest first. No status (client decision): an order is a fixed copy of
 // what the optician sent.
@@ -61,10 +61,10 @@ export function OrdersPage() {
       />
       {orders.isPending ? (
         <Spinner />
-      ) : orders.isError ? (
+      ) : orders.isError && !orders.data ? (
         <EmptyState
           title="No se pudieron cargar los pedidos"
-          message={dbMessage(orders.error)}
+          message={readMessage(orders.error)}
           action={<Button onClick={() => void orders.refetch()}>Reintentar</Button>}
         />
       ) : (

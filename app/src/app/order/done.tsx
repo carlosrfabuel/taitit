@@ -48,6 +48,14 @@ export default function OrderDoneScreen() {
         </View>
       }
     >
+      {order.isError && !order.data ? (
+        <View style={styles.retry}>
+          <AppText variant="small" align="center">
+            {"Your order was received, but its details couldn't be loaded here."}
+          </AppText>
+          <Button title="Try again" variant="ghost" size="sm" onPress={() => void order.refetch()} />
+        </View>
+      ) : null}
       <View style={styles.center}>
         <View style={styles.icon}>
           <Icon name="checkmark-circle" size={64} color={colors.success} />
@@ -75,4 +83,5 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xxl },
   icon: { marginBottom: spacing.sm },
   actions: { gap: spacing.sm },
+  retry: { alignItems: 'center', gap: spacing.xs, marginBottom: spacing.md },
 });

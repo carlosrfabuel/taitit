@@ -11,7 +11,7 @@ import {
   type AccountStatus,
   type CustomerRow,
 } from '../lib/customers';
-import { dbMessage } from '../lib/errors';
+import { dbMessage, readMessage } from '../lib/errors';
 
 const TABS: AccountStatus[] = ['pending', 'approved', 'rejected'];
 
@@ -148,10 +148,10 @@ export function CustomersPage() {
       )}
       {customers.isPending ? (
         <Spinner />
-      ) : customers.isError ? (
+      ) : customers.isError && !customers.data ? (
         <EmptyState
           title="No se pudieron cargar los clientes"
-          message={dbMessage(customers.error)}
+          message={readMessage(customers.error)}
           action={<Button onClick={() => void customers.refetch()}>Reintentar</Button>}
         />
       ) : (

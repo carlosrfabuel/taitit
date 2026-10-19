@@ -11,7 +11,7 @@ import { AppText, Button, EmptyState, Loader, Screen, useToast } from '@/ui';
 // Edit the optician's business details. They are copied into each new order; orders already sent
 // keep the details they were sent with.
 export default function BusinessScreen() {
-  const { session, profile, reloadProfile } = useAuth();
+  const { session, profile, profileFailed, reloadProfile } = useAuth();
   if (!session)
     return (
       <Screen>
@@ -21,6 +21,18 @@ export default function BusinessScreen() {
           message="Your business details belong to your account."
           actionLabel="Sign in"
           onAction={() => router.replace('/sign-in')}
+        />
+      </Screen>
+    );
+  if (!profile && profileFailed)
+    return (
+      <Screen>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load your details"
+          message="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={reloadProfile}
         />
       </Screen>
     );

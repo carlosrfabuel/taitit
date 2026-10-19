@@ -4,9 +4,8 @@ import { currentPick } from '@/customize/customizer';
 import { restorePicks, type Selection } from '@/designs/designs';
 import { supabase } from '@/lib/supabase';
 
-/** Limits (database: orders.notes ≤ 1000, orders.shop_ref ≤ 60 characters). */
+/** Limit (database: orders.notes ≤ 1000 characters). */
 export const NOTES_MAX = 1000;
-export const SHOP_REF_MAX = 60;
 
 /** Width of the order image (the full photo width of today's models; enough for print and email). */
 export const ORDER_IMAGE_WIDTH = 1600;
@@ -72,15 +71,10 @@ const length = (s: string) => Array.from(s).length;
 /** Trimmed notes and shop reference, or field errors. Both are optional. */
 export function validateOrderInput(input: {
   notes: string;
-  shopRef: string;
-}): { notes: string | null; shopRef: string | null } | { errors: { notes?: string; shopRef?: string } } {
+}): { notes: string | null } | { errors: { notes?: string } } {
   const notes = input.notes.trim();
-  const shopRef = input.shopRef.trim();
-  const errors: { notes?: string; shopRef?: string } = {};
-  if (length(notes) > NOTES_MAX) errors.notes = `Use at most ${NOTES_MAX} characters.`;
-  if (length(shopRef) > SHOP_REF_MAX) errors.shopRef = `Use at most ${SHOP_REF_MAX} characters.`;
-  if (errors.notes || errors.shopRef) return { errors };
-  return { notes: notes || null, shopRef: shopRef || null };
+  if (length(notes) > NOTES_MAX) return { errors: { notes: `Use at most ${NOTES_MAX} characters.` } };
+  return { notes: notes || null };
 }
 
 /** Storage path of an order image: one per order attempt, named after its idempotency key. */
@@ -178,14 +172,12 @@ export async function placeOrder(input: {
   modelId: string;
   selection: OrderSelection;
   notes: string | null;
-  shopRef: string | null;
 }): Promise<{ id: string; number: number; created: boolean }> {
   const { data, error } = await supabase.rpc('create_order', {
     p_key: input.key,
     p_model_id: input.modelId,
     p_selection: input.selection,
     ...(input.notes ? { p_notes: input.notes } : {}),
-    ...(input.shopRef ? { p_shop_ref: input.shopRef } : {}),
   });
   if (error) throw error;
   const result = data as { id: string; number: number; created: boolean };
@@ -198,7 +190,7 @@ export function orderErrorMessage(error: unknown): string {
   if (message.includes('business_details_missing'))
     return 'Add your business details (name, tax ID, phone and address) before ordering.';
   if (message.includes('account_not_approved'))
-    return 'Your account is waiting for approval by TAITIT. You can order once it is approved.';
+    return 'Your account is not approved for orders yet. TAITIT reviews new accounts; please contact them if this takes long.';
   if (message.includes('order_colors_changed'))
     return 'Some colors changed in the meantime. Review your design and try again.';
   if (message.includes('order_model_unavailable')) return 'This model is no longer available.';

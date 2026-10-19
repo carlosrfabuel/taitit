@@ -61,7 +61,7 @@ export const BUSINESS_FIELDS: Field[] = [
     label: 'Postal code',
     max: 12,
     required: true,
-    input: { keyboardType: 'number-pad', autoComplete: 'postal-code', textContentType: 'postalCode' },
+    input: { autoCapitalize: 'characters', autoComplete: 'postal-code', textContentType: 'postalCode' },
   },
   { key: 'city', label: 'City', max: 80, required: true, input: { textContentType: 'addressCity' } },
   {
