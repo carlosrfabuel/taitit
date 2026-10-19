@@ -12,3 +12,4 @@ export { Screen } from './Screen';
 export { Swatch } from './Swatch';
 export { TextField } from './TextField';
 export { ToastProvider, useToast } from './Toast';
+export { Sheet } from './Sheet';

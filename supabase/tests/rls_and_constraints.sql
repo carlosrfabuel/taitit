@@ -120,6 +120,33 @@ begin
   delete from public.designs where id = d_b;
   get diagnostics n = row_count;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer deleted another user''s design'; end if;
+  -- Day 14 rules: English default name, trimmed names, size cap on the stored selection.
+  insert into public.designs (model_id) values (m_pub) returning name into txt;
+  if txt = 'My design' then passed := passed + 1; else failed := failed || format(E'\n3 default design name is %s', txt); end if;
+  begin insert into public.designs (model_id, name) values (m_pub, '  padded '); failed := failed || E'\n3 untrimmed design name accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin insert into public.designs (model_id, name) values (m_pub, ' '); failed := failed || E'\n3 blank design name accepted';
+  exception when check_violation then passed := passed + 1; end;
+  insert into public.designs (model_id, selection)
+    values (m_pub, jsonb_build_object('v', 1, 'zones', jsonb_build_object(gen_random_uuid()::text, jsonb_build_object('swatchId', gen_random_uuid()::text, 'finish', 'gloss'),
+      gen_random_uuid()::text, jsonb_build_object('swatchId', gen_random_uuid()::text, 'finish', null),
+      gen_random_uuid()::text, jsonb_build_object('swatchId', gen_random_uuid()::text, 'finish', 'matte'),
+      gen_random_uuid()::text, jsonb_build_object('swatchId', gen_random_uuid()::text, 'finish', null))));
+  passed := passed + 1; -- a real 4-zone selection fits
+  begin insert into public.designs (model_id, selection) values (m_pub, jsonb_build_object('junk', repeat('x', 5000)));
+    failed := failed || E'\n3 oversized design selection accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin insert into public.designs (model_id, name) values (m_pub, E'\t'); failed := failed || E'\n3 tab-only design name accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin insert into public.designs (model_id) values (m_draft); failed := failed || E'\n3 design created for an unpublished model';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.designs set model_id = m_draft where user_id = a; failed := failed || E'\n3 customer moved a design to another model';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin update public.designs set created_at = now() - interval '1 year' where user_id = a; failed := failed || E'\n3 customer rewrote a design date';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  update public.designs set name = 'Renamed', selection = '{"v":1,"zones":{}}' where user_id = a and name = 'Nuevo';
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 customer cannot rename / recolor own design'; end if;
 
   select count(*) into n from public.orders;
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s orders (expected own 1)', n); end if;
