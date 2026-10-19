@@ -29,3 +29,11 @@ export function authErrorMessage(error: unknown): string {
   }
   return 'Something went wrong. Please try again.';
 }
+
+/**
+ * Message for an error that arrives in an email link (?error_code=…&error_description=…). The
+ * description is never shown: anyone can craft a link, so only known codes map to our own text.
+ */
+export function linkErrorMessage(errorCode: string | undefined): string {
+  return (errorCode && BY_CODE[errorCode]) || 'This link is not valid or has expired. Request a new one.';
+}

@@ -1,5 +1,7 @@
 import { PageHeader } from '../components/PageHeader';
 
 export function OrdersPage() {
-  return <PageHeader title="Pedidos" note="Lista de pedidos recibidos con su ficha (Día 19)." />;
+  return (
+    <PageHeader title="Pedidos" note="Próximamente: aquí aparecerán los pedidos recibidos, con su ficha." />
+  );
 }

@@ -48,6 +48,8 @@ export function dbMessage(error: ErrorLike): string {
   if (message.includes('at most 4 customizable zones')) return 'Un modelo puede tener como máximo 4 zonas.';
   if (message.includes('Default swatch material must match'))
     return 'El color por defecto debe ser del mismo material que la zona.';
+  if (message.includes('swatch_material_in_use'))
+    return 'Este color es el color por defecto de alguna zona: no se puede cambiar su material.';
   if (error?.code === '23514' && message.includes('models_published_needs_image'))
     return 'Para publicar, el modelo necesita la imagen base.';
   if (error?.code === '23514') return 'Algún campo no es válido o es demasiado largo.';

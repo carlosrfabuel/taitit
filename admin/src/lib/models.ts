@@ -97,9 +97,15 @@ export async function createModel(input: ModelInput): Promise<string> {
   return data.id;
 }
 
-export async function updateModel(id: string, input: ModelInput): Promise<void> {
+/**
+ * Saves the form. `published` is only written when the admin changed it in this form: otherwise a
+ * form opened before the model was published elsewhere (another tab, tools/zones) would unpublish it.
+ */
+export async function updateModel(id: string, input: ModelInput, publishedChanged: boolean): Promise<void> {
+  const { published, ...rest } = toColumns(input);
+  const columns = publishedChanged ? { ...rest, published } : rest;
   // .select() so a row hidden by RLS (or deleted meanwhile) is reported instead of silently skipped.
-  const { data, error } = await supabase.from('models').update(toColumns(input)).eq('id', id).select('id');
+  const { data, error } = await supabase.from('models').update(columns).eq('id', id).select('id');
   if (error) throw error;
   if (!data.length) throw { code: 'not_found', message: 'Model not found' };
 }

@@ -340,6 +340,13 @@ begin
     passed := passed + 1;
   else failed := failed || E'\n5 a new table is automatically exposed to the API roles'; end if;
 
+  -- A color used as a zone default keeps its material (zone rule: same material).
+  begin update public.swatches set material = 'acetate', kind = 'solid', finishes = '{}' where id = sw_metal;
+    failed := failed || E'\n5 material of a color in use changed';
+  exception when check_violation then passed := passed + 1; end;
+  update public.swatches set name = 'T metal renamed' where id = sw_metal;
+  passed := passed + 1; -- other edits of a color in use still work
+
   -- -------------------------------------------------------------------------
   -- 6. Account deletion (default rule)
   -- -------------------------------------------------------------------------

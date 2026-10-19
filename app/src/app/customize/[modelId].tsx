@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
 import { AppText, Button, Chip, EmptyState, Loader, Screen, Swatch, useToast } from '@/ui';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth, useRequireAuth } from '@/auth/AuthProvider';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { restorePicks, selectionKey, storedFor, toSelection, type Design } from '@/designs/designs';
@@ -127,6 +128,9 @@ function Customizer({
   const { width } = useWindowDimensions();
   const { session } = useAuth();
   const toast = useToast();
+  const insets = useSafeAreaInsets();
+  // Ordering needs an account (guests are sent to sign in, then come back here).
+  const requireAuth = useRequireAuth();
   const { create, update } = useDesignMutations();
   // A saved design opens as saved; colors or finishes no longer offered are replaced (listed in the notice).
   const [restored] = useState(() =>
@@ -347,7 +351,7 @@ function Customizer({
           Colors may vary slightly depending on your screen.
         </AppText>
       </ScrollView>
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
         <Button
           title={!saved ? 'Save design' : unsaved ? 'Save changes' : 'Saved'}
           icon={saved && !unsaved ? 'checkmark' : 'heart-outline'}
@@ -357,7 +361,11 @@ function Customizer({
           onPress={onSave}
           style={styles.footerButton}
         />
-        <Button title="Order" onPress={() => router.push('/order/summary')} style={styles.footerButton} />
+        <Button
+          title="Order"
+          onPress={() => requireAuth(() => router.push('/order/summary'))}
+          style={styles.footerButton}
+        />
       </View>
       <NameSheet
         visible={naming}

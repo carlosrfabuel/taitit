@@ -10,7 +10,6 @@
     "@taitit/shared": "*",
     "@tanstack/react-query": "^5.104.3",
     "aes-js": "^3.1.2",
-    "eslint-config-expo": "~57.0.2",
     "expo": "~57.0.30",
     "expo-constants": "~57.0.22",
     "expo-crypto": "~57.0.4",

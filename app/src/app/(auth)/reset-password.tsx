@@ -3,12 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
+import { linkErrorMessage } from '@/auth/messages';
 import { validatePassword } from '@/auth/validation';
 import { AppText, Button, EmptyState, Loader, Screen, TextField, useToast } from '@/ui';
 
 // Opened from the password-reset email link: ?code=… is exchanged for a session first.
 export default function ResetPasswordScreen() {
-  const { code, error_description } = useLocalSearchParams<{ code?: string; error_description?: string }>();
+  const { code, error_description, error_code } = useLocalSearchParams<{
+    code?: string;
+    error_description?: string;
+    error_code?: string;
+  }>();
   const { exchangeCode, updatePassword } = useAuth();
   const toast = useToast();
   // Result per code: each code can be used once, and a newer link must still be handled.
@@ -27,7 +32,7 @@ export default function ResetPasswordScreen() {
   // A code from the email link is required: without one, a signed-in user could change the
   // password without proving they own the email (e.g. someone holding an unlocked phone).
   const linkError =
-    error_description ??
+    (error_description ? linkErrorMessage(error_code) : null) ??
     (!code
       ? 'Open the link from the email on this phone, or request a new one.'
       : result?.code === code

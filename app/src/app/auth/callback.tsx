@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/AuthProvider';
+import { linkErrorMessage } from '@/auth/messages';
 import { EmptyState, Loader, Screen, useToast } from '@/ui';
 
 // Supabase confirms the email before redirecting here with ?code=…, so if only the code exchange
@@ -16,7 +17,11 @@ type State = { kind: 'working' } | { kind: 'confirmed' } | { kind: 'error'; mess
 
 // Target of the sign-up confirmation email link: exchanges ?code=… for a session.
 export default function AuthCallbackScreen() {
-  const { code, error_description } = useLocalSearchParams<{ code?: string; error_description?: string }>();
+  const { code, error_description, error_code } = useLocalSearchParams<{
+    code?: string;
+    error_description?: string;
+    error_code?: string;
+  }>();
   const { exchangeCode } = useAuth();
   const toast = useToast();
   // Outcome remembered per code: a newer link opened while this screen is showing must be handled
@@ -41,7 +46,7 @@ export default function AuthCallbackScreen() {
 
   // Redirect errors (e.g. expired link) arrive as error_description; then the email is NOT confirmed.
   const state: State = error_description
-    ? { kind: 'error', message: error_description }
+    ? { kind: 'error', message: linkErrorMessage(error_code) }
     : !code
       ? { kind: 'error', message: 'Incomplete link.' }
       : result?.code === code

@@ -5,7 +5,7 @@ import { Placeholder } from '@/components/Placeholder';
 
 export default function OrderDoneScreen() {
   return (
-    <Placeholder title="Order received!" note="Order number and WhatsApp sharing (Day 17).">
+    <Placeholder title="Order received!" note="Coming soon: order number and sharing via WhatsApp.">
       {/* Clear customize/summary/done from history so "back" can't reopen a sent order. */}
       <Pressable style={styles.button} onPress={() => router.dismissTo('/')}>
         <Text style={styles.text}>Back to catalog</Text>

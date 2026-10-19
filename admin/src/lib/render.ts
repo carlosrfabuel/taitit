@@ -73,7 +73,15 @@ function opaqueShade(url: string, w: number, h: number) {
  * when a texture could not be loaded and its plain color was used instead: fine for a preview, but
  * such a render must not be saved as the catalog thumbnail.
  */
-export async function drawPlan(target: HTMLCanvasElement, plan: RenderPlan): Promise<{ degraded: boolean }> {
+/**
+ * Renders the plan into `target`. `isCurrent` is checked before the canvas is touched: a render
+ * that finishes after a newer one started (e.g. a slow texture) must not overwrite it.
+ */
+export async function drawPlan(
+  target: HTMLCanvasElement,
+  plan: RenderPlan,
+  isCurrent: () => boolean = () => true,
+): Promise<{ degraded: boolean }> {
   const { width: w, height: h } = plan;
   // Load everything first so a slow image never leaves a half-drawn preview.
   const base = await loadImage(plan.baseUrl);
@@ -124,9 +132,11 @@ export async function drawPlan(target: HTMLCanvasElement, plan: RenderPlan): Pro
     ctx.globalAlpha = 1;
   }
 
+  const degraded = layers.some((l) => l.textureUrl && !l.texture);
+  if (!isCurrent()) return { degraded };
   // Swap in one step: the visible canvas never shows a partial render.
   target.width = w;
   target.height = h;
   target.getContext('2d')!.drawImage(out, 0, 0);
-  return { degraded: layers.some((l) => l.textureUrl && !l.texture) };
+  return { degraded };
 }

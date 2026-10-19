@@ -46,7 +46,7 @@ export function PreviewCard({ model }: { model: ModelRow }) {
     });
     const id = ++run.current; // only the latest render may update the state
     setState('drawing');
-    drawPlan(canvas.current, plan).then(
+    drawPlan(canvas.current, plan, () => id === run.current).then(
       (r) => {
         if (id !== run.current) return;
         setState('idle');
@@ -109,10 +109,18 @@ export function PreviewCard({ model }: { model: ModelRow }) {
         <div className="grid gap-3 sm:grid-cols-2">
           {zoneRows.map((z) => {
             const pick = picks[z.id];
-            const swatchId = pick?.swatchId ?? z.default_swatch_id ?? '';
+            // A pick of "no color" (null) is kept as such, not replaced by the default.
+            const swatchId = (pick ? pick.swatchId : z.default_swatch_id) ?? '';
             const swatch = all.find((s) => s.id === swatchId);
             const options = all.filter((s) => s.material === z.material && (s.active || s.id === swatchId));
-            const finish = pick?.finish ?? z.default_finish;
+            const finish = pick ? pick.finish : z.default_finish;
+            // What the preview draws: gloss only when chosen and offered; anything else looks matte.
+            const shownFinish =
+              finish && swatch?.finishes.includes(finish)
+                ? finish
+                : swatch?.finishes.includes('matte')
+                  ? 'matte'
+                  : '';
             return (
               <div key={z.id} className="flex flex-col gap-2">
                 <Select
@@ -129,10 +137,16 @@ export function PreviewCard({ model }: { model: ModelRow }) {
                 {swatch && swatch.finishes.length > 0 && (
                   <Select
                     label={`Acabado: ${z.name}`}
-                    value={finish && swatch.finishes.includes(finish) ? finish : swatch.finishes[0]!}
-                    options={swatch.finishes.map((f) => ({ value: f, label: FINISH_LABEL[f] }))}
+                    value={shownFinish}
+                    options={[
+                      ...(shownFinish ? [] : [{ value: '', label: '— Sin acabado —' }]),
+                      ...swatch.finishes.map((f) => ({ value: f, label: FINISH_LABEL[f] })),
+                    ]}
                     onChange={(e) =>
-                      setPicks((p) => ({ ...p, [z.id]: { swatchId, finish: e.target.value as Finish } }))
+                      setPicks((p) => ({
+                        ...p,
+                        [z.id]: { swatchId, finish: (e.target.value || null) as Finish | null },
+                      }))
                     }
                   />
                 )}

@@ -53,13 +53,27 @@ export async function upload(dir: string, manifest: Manifest) {
   }
   const refs = manifest.zones.map((z) => z.defaultRef).filter((r): r is string => !!r);
   const swatches = refs.length
-    ? await db.from('swatches').select('id, ref, active').in('ref', refs)
+    ? await db.from('swatches').select('id, ref, active, material').in('ref', refs)
     : { data: [], error: null };
   if (swatches.error) throw new Error(swatches.error.message);
   const swatchId = new Map((swatches.data ?? []).filter((s) => s.active).map((s) => [s.ref, s.id]));
   const badRefs = refs.filter((r) => !swatchId.has(r));
   if (badRefs.length)
     throw new Error(`Default color(s) not found or inactive: ${badRefs.join(', ')}. Nothing was uploaded.`);
+  const material = new Map((swatches.data ?? []).map((s) => [s.ref, s.material]));
+  const wrongMaterial = manifest.zones.filter(
+    (z) => z.defaultRef && material.get(z.defaultRef) !== z.material,
+  );
+  if (wrongMaterial.length)
+    throw new Error(
+      `Default color of another material: ${wrongMaterial.map((z) => `${z.label} (${z.defaultRef})`).join(', ')}. Nothing was uploaded.`,
+    );
+  // Every zone of a published model needs a default color (database rule): refuse now, not halfway.
+  const complete = manifest.zones.every((z) => z.defaultRef);
+  if (manifest.published && !complete)
+    throw new Error(
+      'Published models need a default color (defaultRef) on every zone. Nothing was uploaded.',
+    );
 
   const existing = await db
     .from('models')
@@ -72,9 +86,14 @@ export async function upload(dir: string, manifest: Manifest) {
   const stale = (old?.model_zones ?? []).filter((z) => !keep.has(z.name));
 
   // A published model stays published while it is updated when every step keeps it complete:
-  // same image size and no zone removed. Otherwise it is saved as a draft and published at the end.
+  // same image size, no zone removed, and a default color on every zone. Otherwise it is saved as a
+  // draft and published at the end.
   const inPlace =
-    !!old?.published && old.base_width === base.width && old.base_height === base.height && !stale.length;
+    !!old?.published &&
+    complete &&
+    old.base_width === base.width &&
+    old.base_height === base.height &&
+    !stale.length;
 
   // 2. Files under content-based names: a changed file gets a new name (the CDN can't serve an old
   //    copy), an unchanged file keeps its name.

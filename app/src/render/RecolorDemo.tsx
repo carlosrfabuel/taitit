@@ -5,8 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { AppText, Chip, Loader } from '@/ui';
 import { RecolorView } from './RecolorView';
 
-// Development-only check of the renderer on a real model (UI kit screen). The catalog and the
-// customizer get their own data layer on Days 9–13.
+// Development-only check of the renderer on a real model (UI kit screen), with a fixed test colorway.
 
 const storageUrl = (bucket: string, path: string) =>
   supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;

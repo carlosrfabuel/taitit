@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import {
   Canvas,
   ColorMatrix,
@@ -14,6 +14,8 @@ import {
   type SkImage,
 } from '@shopify/react-native-skia';
 import { GLOSS_STOPS, tokens, type RenderLayer, type RenderPlan } from '@taitit/shared';
+import { AppText } from '@/ui/AppText';
+import { Icon } from '@/ui/Icon';
 
 // Skia implementation of the shared recolor recipe (shared/src/render.ts). The admin preview and
 // the tools/zones preview use the same steps: fill → multiply shading → screen gloss → clip to the
@@ -57,7 +59,7 @@ type Shown = { key: string; plan: RenderPlan; loaded: Loaded };
  * that fails falls back to its plain color, like the admin preview; a failed base or layer image is
  * retried once, then reported (a wrong picture is worse than none).
  */
-function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean } {
+function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean; retry: () => void } {
   const key = JSON.stringify([plan.baseUrl, plan.layers.map((l) => [l.layerUrl, l.textureUrl])]);
   const planJson = JSON.stringify(plan);
   const [shown, setShown] = useState<Shown | null>(null);
@@ -88,7 +90,12 @@ function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean
     };
     // Re-runs on any plan change: color-only changes resolve at once from the image cache.
   }, [key, planJson, attempts]);
-  return { shown, failed: attempts >= 2 && shown?.key !== key };
+  return {
+    shown,
+    failed: attempts >= 2 && shown?.key !== key,
+    // Manual retry (e.g. after the connection is back): starts the attempts again.
+    retry: () => setFailure({ key, attempts: 0 }),
+  };
 }
 
 function Zone({
@@ -146,8 +153,9 @@ function Zone({
 /** The model photo recolored per the plan, scaled to `width` (height keeps the photo's proportions). */
 export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: number; style?: ViewStyle }) {
   const size = { width, height: (width * plan.height) / plan.width };
-  const { shown, failed } = usePlanImages(plan);
-  const loaded = shown?.loaded;
+  const { shown, failed, retry } = usePlanImages(plan);
+  // After a failure nothing is drawn: an older picture would show colors that are not the current ones.
+  const loaded = failed ? undefined : shown?.loaded;
   // The plan the loaded images belong to; while newer images load, this previous picture stays.
   const drawn = shown?.plan ?? plan;
   return (
@@ -157,9 +165,19 @@ export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: n
         !loaded && { backgroundColor: tokens.colors.border, borderRadius: tokens.radius.md },
         style,
       ]}
-      accessibilityRole="image"
-      accessibilityLabel={failed ? 'Image could not be loaded' : undefined}
+      accessibilityRole={failed ? undefined : 'image'}
     >
+      {failed && (
+        <Pressable
+          onPress={retry}
+          accessibilityRole="button"
+          accessibilityLabel="Image could not be loaded. Tap to retry."
+          style={styles.failed}
+        >
+          <Icon name="refresh-outline" color={tokens.colors.muted} />
+          <AppText variant="small">{"Couldn't load the image. Tap to retry."}</AppText>
+        </Pressable>
+      )}
       {loaded && (
         <Canvas style={size}>
           <Image image={loaded.base} x={0} y={0} width={size.width} height={size.height} fit="fill" />
@@ -177,3 +195,16 @@ export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: n
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  failed: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: tokens.spacing.xs,
+  },
+});

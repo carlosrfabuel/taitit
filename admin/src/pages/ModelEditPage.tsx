@@ -72,6 +72,8 @@ function ModelForm({ model }: { model: ModelRow | null }) {
     description: model?.description ?? '',
     published: model?.published ?? false,
   });
+  // Publish state as this form last opened or saved it: only an actual change here is written (see updateModel).
+  const [savedPublished, setSavedPublished] = useState(model?.published ?? false);
   const [errors, setErrors] = useState<FieldErrors>({});
   // Set when arriving from "create" (router state), replaced by "saved", cleared on any edit.
   const created = !!(useLocation().state as { created?: boolean } | null)?.created;
@@ -92,10 +94,11 @@ function ModelForm({ model }: { model: ModelRow | null }) {
   const save = useMutation({
     mutationFn: async (input: ModelInput) => {
       if (!model) return createModel(input);
-      await updateModel(model.id, input);
+      await updateModel(model.id, input, input.published !== savedPublished);
       return model.id;
     },
-    onSuccess: (savedId) => {
+    onSuccess: (savedId, input) => {
+      setSavedPublished(input.published);
       // Not awaited: the save is done once the database accepts it, even if this refresh is slow or fails.
       void queryClient.invalidateQueries({ queryKey: modelKeys.all });
       if (!model) navigate(`/models/${savedId}`, { replace: true, state: { created: true } });

@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -19,6 +20,12 @@ export default function AccountScreen() {
     />
   ) : null;
 
+  const version = (
+    <AppText variant="tiny" align="center">
+      Version {Constants.expoConfig?.version ?? '—'}
+    </AppText>
+  );
+
   if (!session) {
     return (
       <Screen>
@@ -32,6 +39,7 @@ export default function AccountScreen() {
           />
         </Card>
         {devKit}
+        {version}
       </Screen>
     );
   }
@@ -62,8 +70,9 @@ export default function AccountScreen() {
         onPress={onSignOut}
         loading={signingOut}
       />
-      {/* Account deletion (store requirement) arrives on Day 20. */}
+      {/* Account deletion (store requirement) arrives on Day 20; the privacy policy link when the client sends its URL. */}
       {devKit}
+      {version}
     </Screen>
   );
 }

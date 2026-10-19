@@ -73,16 +73,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-      .then(({ data }) => {
-        if (!cancelled) setLoadedProfile({ userId, profile: data });
-      });
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    // A failed load (e.g. no connection at startup) is retried a few times, waiting longer each time.
+    const load = (attempt: number) =>
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+        .then(({ data, error }) => {
+          if (cancelled) return;
+          if (error && attempt < 4) retry = setTimeout(() => load(attempt + 1), 2000 * 2 ** attempt);
+          else setLoadedProfile({ userId, profile: data });
+        });
+    load(0);
     return () => {
       cancelled = true;
+      clearTimeout(retry);
     };
   }, [userId]);
   const profile = loadedProfile && loadedProfile.userId === userId ? loadedProfile.profile : null;
