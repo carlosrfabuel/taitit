@@ -20,6 +20,8 @@ export type CatalogSwatch = {
   kind: SwatchKind;
   alpha: number | null;
   textureUrl: string | null;
+  /** Storage path of the texture (stored with an order). */
+  texturePath: string | null;
   finishes: Finish[];
   sortOrder: number;
 };
@@ -67,6 +69,7 @@ export async function fetchSwatches(): Promise<CatalogSwatch[]> {
     kind: s.kind,
     alpha: s.alpha,
     textureUrl: s.texture_path ? storageUrl('textures', s.texture_path) : null,
+    texturePath: s.texture_path,
     finishes: s.finishes,
     sortOrder: s.sort_order,
   }));
@@ -98,7 +101,8 @@ export async function fetchCatalog(swatches: CatalogSwatch[]): Promise<CatalogMo
         defaultFinish: z.default_finish,
         sortOrder: z.sort_order,
       }))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+      // Same order as the renderer and the order function: sort order, then id.
+      .sort((a, b) => a.sortOrder - b.sortOrder || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const plan = buildRenderPlan({
       baseUrl: storageUrl('models', m.base_path),
       width: m.base_width,

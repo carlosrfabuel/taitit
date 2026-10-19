@@ -36,6 +36,7 @@ function RootStack() {
       <Stack.Screen name="auth/callback" options={{ title: 'Confirm account' }} />
       <Stack.Screen name="customize/[modelId]" options={{ title: 'Customize' }} />
       <Stack.Screen name="order/summary" options={{ title: 'Order summary' }} />
+      <Stack.Screen name="order/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
       <Stack.Screen name="dev/ui-kit" options={{ title: 'UI kit' }} />
     </Stack>

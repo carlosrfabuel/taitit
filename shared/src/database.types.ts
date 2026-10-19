@@ -176,6 +176,7 @@ export type Database = {
           ref: string
           sort_order: number
           swatch_name: string
+          texture_path: string | null
           zone_name: string
         }
         Insert: {
@@ -189,6 +190,7 @@ export type Database = {
           ref: string
           sort_order?: number
           swatch_name: string
+          texture_path?: string | null
           zone_name: string
         }
         Update: {
@@ -202,6 +204,7 @@ export type Database = {
           ref?: string
           sort_order?: number
           swatch_name?: string
+          texture_path?: string | null
           zone_name?: string
         }
         Relationships: [
@@ -357,6 +360,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_order: {
+        Args: {
+          p_key: string
+          p_model_id: string
+          p_notes?: string
+          p_selection: Json
+          p_shop_ref?: string
+        }
+        Returns: Json
+      }
       model_publish_problems: {
         Args: { p_model_id: string }
         Returns: string[]

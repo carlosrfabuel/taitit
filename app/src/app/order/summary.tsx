@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +9,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { randomUUID } from 'expo-crypto';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
@@ -18,10 +18,16 @@ import {
   NOTES_MAX,
   ORDER_IMAGE_WIDTH,
   SHOP_REF_MAX,
+  linesToSelection,
+  orderErrorMessage,
+  orderContentKey,
+  orderKeys,
   orderLines,
+  placeOrder,
   uploadOrderImage,
   validateOrderInput,
 } from '@/orders/orders';
+import { orderKeyFor, orderPlaced } from '@/orders/pendingOrders';
 import { RecolorView, renderPlanToJpeg } from '@/render/RecolorView';
 import { AppText, Button, Card, EmptyState, Loader, Screen, Swatch, TextField, useToast } from '@/ui';
 
@@ -30,7 +36,8 @@ const PAGE = spacing.xl;
 
 // Order summary: everything that will be ordered, part by part, plus notes and the shop / customer
 // reference. Opened from the customizer with the model and the chosen colors in the link
-// (/order/summary?modelId=…&sel=…), so it survives a reload. Creating the order comes on Day 17.
+// (/order/summary?modelId=…&sel=…), so it survives a reload. Confirm uploads the order image, then
+// creates the order (database function create_order) and opens the confirmation.
 export default function OrderSummaryScreen() {
   const { modelId, sel } = useLocalSearchParams<{ modelId?: string; sel?: string }>();
   const { session } = useAuth();
@@ -100,14 +107,18 @@ function Summary({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const swatches = useSwatches().data ?? [];
   const [notes, setNotes] = useState('');
   const [shopRef, setShopRef] = useState('');
   const [errors, setErrors] = useState<{ notes?: string; shopRef?: string }>({});
   const [busy, setBusy] = useState(false);
-  // One key per order attempt: retries reuse it, so they can't create a second image (or, on Day 17,
-  // a second order).
-  const [attemptKey] = useState(() => randomUUID());
+  // Guards a second tap before the re-render (the button's own disabled state comes one frame later).
+  const sending = useRef(false);
+  const queryClient = useQueryClient();
+  const swatchesQuery = useSwatches();
+  const catalogQuery = useCatalog();
+  // Refreshing the catalog after "colors changed": confirm waits until both are back.
+  const refreshing = swatchesQuery.isFetching || catalogQuery.isFetching;
+  const swatches = swatchesQuery.data ?? [];
 
   const { lines, replaced, missing } = orderLines(model, swatches, selection);
   const picks = Object.fromEntries(lines.map((l) => [l.zoneId, { swatchId: l.swatchId, finish: l.finish }]));
@@ -121,18 +132,42 @@ function Summary({
   });
 
   const confirm = async () => {
-    if (busy) return;
+    if (sending.current) return;
     const input = validateOrderInput({ notes, shopRef });
     if ('errors' in input) return setErrors(input.errors);
+    sending.current = true;
     setBusy(true);
+    // The key belongs to what is ordered (model + every line as shown): a retry of the same content,
+    // even from a new screen or after a restart, gets the same key and so the same order. Changed
+    // content gets a new key, so its image is uploaded fresh and always matches the order.
+    const content = orderContentKey(userId, model.id, lines);
     try {
+      const key = await orderKeyFor(content);
+      // 1. The image, uploaded first (the order points to it). 2. The order, in one transaction.
       const jpeg = await renderPlanToJpeg(plan, ORDER_IMAGE_WIDTH);
-      await uploadOrderImage(userId, attemptKey, jpeg);
-      // Day 17: create the order (orders + order_items, one transaction, same key) and go to "Order sent".
-      toast('Order image ready. Sending the order comes in the next update.', 'success');
-    } catch {
-      toast("Couldn't prepare the order. Check your connection and try again.", 'error');
+      await uploadOrderImage(userId, key, jpeg);
+      const order = await placeOrder({
+        key,
+        modelId: model.id,
+        selection: linesToSelection(lines),
+        notes: input.notes,
+        shopRef: input.shopRef,
+      });
+      await orderPlaced(content);
+      void queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      // An earlier attempt had already gone through (its answer was lost): say so, show that order.
+      if (!order.created) toast('This order had already been sent.', 'info');
+      // Replace: "back" from the confirmation must not return to a summary that was already sent.
+      router.replace({ pathname: '/order/done', params: { id: order.id, number: String(order.number) } });
+    } catch (e) {
+      toast(orderErrorMessage(e), 'error');
+      if ((e as { message?: string } | null)?.message?.includes('order_colors_changed')) {
+        // Show the current catalog (the summary then flags what changed); confirm waits for it.
+        void swatchesQuery.refetch();
+        void catalogQuery.refetch();
+      }
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   };
@@ -214,7 +249,7 @@ function Summary({
           title="Confirm order"
           fullWidth
           loading={busy}
-          disabled={missing.length > 0 || lines.length === 0}
+          disabled={missing.length > 0 || lines.length === 0 || refreshing}
           onPress={confirm}
         />
       </View>

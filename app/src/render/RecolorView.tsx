@@ -189,9 +189,13 @@ export async function renderPlanToJpeg(plan: RenderPlan, width: number, quality 
       <Scene plan={plan} loaded={{ base, layers, textures }} size={size} />
     </>,
     size,
-  );
+  ).catch(() => null);
   if (!image) throw new Error('snapshot_failed');
-  return image.encodeToBytes(ImageFormat.JPEG, quality);
+  try {
+    return image.encodeToBytes(ImageFormat.JPEG, quality);
+  } finally {
+    image.dispose(); // full-size pixels: release now, not at the next garbage collection
+  }
 }
 
 /** The model photo recolored per the plan, scaled to `width` (height keeps the photo's proportions). */
