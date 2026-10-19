@@ -50,3 +50,6 @@ docs/
 
 # Vercel project link (account/project ids, created by the CLI)
 .vercel/
+
+# Vercel CLI local token
+.env.local

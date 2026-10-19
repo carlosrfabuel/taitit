@@ -14,7 +14,8 @@ export function AdminLayout() {
   const { email, signOut } = useAuth();
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4">
+      {/* Fixed to the window height (sticky): the account and sign-out stay visible on long pages. */}
+      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col self-start overflow-y-auto border-r border-line bg-surface p-4">
         <div className="mb-8 px-2 text-lg font-extrabold tracking-wider text-brand">TAITIT</div>
         <nav className="flex flex-col gap-1">
           {NAV.map((n) => (
