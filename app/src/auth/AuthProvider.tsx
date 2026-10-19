@@ -22,7 +22,14 @@ type AuthContextValue = {
   initializing: boolean;
   signIn: (email: string, password: string) => Promise<Result>;
   /** needsConfirmation: the account exists but the email link must be opened first. */
-  signUp: (name: string, email: string, password: string) => Promise<Result & { needsConfirmation: boolean }>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    business: Record<string, string | null>,
+  ) => Promise<Result & { needsConfirmation: boolean }>;
+  /** Loads the profile again (after the user edits it). */
+  reloadProfile: () => void;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<Result>;
   updatePassword: (password: string) => Promise<Result>;
@@ -113,15 +120,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? authErrorMessage(error) : null };
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { full_name: name.trim() }, emailRedirectTo: callbackUrl() },
-    });
-    if (error) return { error: authErrorMessage(error), needsConfirmation: false };
-    return { error: null, needsConfirmation: !data.session };
-  }, []);
+  const signUp = useCallback(
+    async (name: string, email: string, password: string, business: Record<string, string | null>) => {
+      // The business details go with the sign-up; the database copies them into the profile.
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: name.trim(), ...business }, emailRedirectTo: callbackUrl() },
+      });
+      if (error) return { error: authErrorMessage(error), needsConfirmation: false };
+      return { error: null, needsConfirmation: !data.session };
+    },
+    [],
+  );
+  const reloadProfile = useCallback(() => setProfileRefresh((n) => n + 1), []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -153,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendPasswordReset,
       updatePassword,
       exchangeCode,
+      reloadProfile,
     }),
     [
       session,
@@ -164,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendPasswordReset,
       updatePassword,
       exchangeCode,
+      reloadProfile,
     ],
   );
 

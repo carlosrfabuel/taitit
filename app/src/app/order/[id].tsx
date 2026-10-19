@@ -98,6 +98,15 @@ export default function OrderDetailScreen() {
           </View>
         ))}
       </Card>
+      {o.business.name ? (
+        <View style={styles.field}>
+          <AppText variant="tiny">SENT BY</AppText>
+          <AppText>{o.business.name}</AppText>
+          <AppText variant="small">
+            {[o.business.taxId, o.business.address, o.business.phone].filter(Boolean).join(' · ')}
+          </AppText>
+        </View>
+      ) : null}
       {o.shopRef ? (
         <View style={styles.field}>
           <AppText variant="tiny">SHOP / CUSTOMER REFERENCE</AppText>

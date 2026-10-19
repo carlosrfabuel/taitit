@@ -4,6 +4,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
 import { validateEmail, validateName, validatePassword } from '@/auth/validation';
+import {
+  businessColumns,
+  emptyBusiness,
+  validateBusiness,
+  type BusinessDetails,
+  type BusinessKey,
+} from '@/auth/business';
+import { BusinessFields } from '@/auth/BusinessFields';
 import { AppText, Button, EmptyState, Icon, Screen, TextField, useToast } from '@/ui';
 import { closeAuth } from '@/auth/navigation';
 
@@ -13,6 +21,8 @@ export default function SignUpScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // The optician's business details: TAITIT needs them on every order (and to approve the account).
+  const [business, setBusiness] = useState<BusinessDetails>(emptyBusiness);
   const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -28,12 +38,13 @@ export default function SignUpScreen() {
       email: validateEmail(email),
       password: validatePassword(password),
       accepted: accepted ? null : 'You must accept the privacy policy.',
+      ...validateBusiness(business),
     };
     setErrors(next);
     setFormError(null);
     if (Object.values(next).some(Boolean)) return;
     setLoading(true);
-    const { error, needsConfirmation } = await signUp(name, email, password);
+    const { error, needsConfirmation } = await signUp(name, email, password, businessColumns(business));
     setLoading(false);
     if (error) {
       setFormError(error);
@@ -67,7 +78,7 @@ export default function SignUpScreen() {
       <AppText variant="title">Create account</AppText>
       <View style={styles.form}>
         <TextField
-          label="Name"
+          label="Contact person"
           value={name}
           onChangeText={(v) => {
             setName(v);
@@ -104,6 +115,17 @@ export default function SignUpScreen() {
           autoCapitalize="none"
           autoComplete="new-password"
           textContentType="newPassword"
+        />
+        <AppText variant="heading" style={styles.section}>
+          Your business
+        </AppText>
+        <BusinessFields
+          values={business}
+          errors={errors as Partial<Record<BusinessKey, string | null>>}
+          onChange={(key, v) => {
+            setBusiness((b) => ({ ...b, [key]: v }));
+            clearError(key);
+          }}
         />
         <Pressable
           accessibilityRole="checkbox"
@@ -150,4 +172,5 @@ const styles = StyleSheet.create({
     minHeight: tokens.touch.minSize,
   },
   checkText: { flex: 1, color: tokens.colors.text },
+  section: { marginTop: tokens.spacing.sm },
 });

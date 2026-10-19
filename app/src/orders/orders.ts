@@ -195,6 +195,8 @@ export async function placeOrder(input: {
 /** What to tell the customer when placing an order fails. */
 export function orderErrorMessage(error: unknown): string {
   const message = (error as { message?: string } | null)?.message ?? '';
+  if (message.includes('business_details_missing'))
+    return 'Add your business details (name, tax ID, phone and address) before ordering.';
   if (message.includes('account_not_approved'))
     return 'Your account is waiting for approval by TAITIT. You can order once it is approved.';
   if (message.includes('order_colors_changed'))
@@ -232,6 +234,8 @@ export type Order = {
   shopRef: string | null;
   createdAt: string;
   imagePath: string | null;
+  /** The business as it was when the order was sent. */
+  business: { name: string | null; taxId: string | null; phone: string | null; address: string | null };
   /** Temporary link to the private image (valid for an hour), null if it can't be made. */
   imageUrl: string | null;
   items: OrderItem[];
@@ -244,7 +248,7 @@ export const orderKeys = {
 };
 
 const ORDER_COLUMNS =
-  'id, number, model_name, notes, shop_ref, created_at, image_path, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, model_name, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 type OrderRow = {
   id: string;
@@ -254,6 +258,12 @@ type OrderRow = {
   shop_ref: string | null;
   created_at: string;
   image_path: string | null;
+  business_name: string | null;
+  tax_id: string | null;
+  phone: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
   order_items: {
     zone_name: string;
     material: Material;
@@ -284,6 +294,12 @@ async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
     shopRef: r.shop_ref,
     createdAt: r.created_at,
     imagePath: r.image_path,
+    business: {
+      name: r.business_name,
+      taxId: r.tax_id,
+      phone: r.phone,
+      address: [r.address, r.postal_code, r.city].filter(Boolean).join(', ') || null,
+    },
     imageUrl: r.image_path ? (urls.get(r.image_path) ?? null) : null,
     items: [...r.order_items]
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -338,11 +354,14 @@ export async function fetchOrder(userId: string, id: string): Promise<Order | nu
 
 /** Order summary as plain text (WhatsApp). */
 export function orderText(
-  order: Pick<Order, 'number' | 'modelName' | 'items' | 'shopRef' | 'notes'>,
+  order: Pick<Order, 'number' | 'modelName' | 'items' | 'shopRef' | 'notes' | 'business'>,
 ): string {
   const finishName = { gloss: 'gloss', matte: 'matte' } as const;
   return [
     `TAITIT order #${order.number}`,
+    ...(order.business.name
+      ? [`From: ${order.business.name}${order.business.taxId ? ` (${order.business.taxId})` : ''}`]
+      : []),
     `Model: ${order.modelName}`,
     ...order.items.map(
       (i) => `• ${i.zoneName}: ${i.swatchName}${i.finish ? ` (${finishName[i.finish]})` : ''}, ref. ${i.ref}`,

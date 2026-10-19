@@ -12,12 +12,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
+import { businessComplete } from '@/auth/business';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import { parseSelection } from '@/designs/designs';
 import {
   NOTES_MAX,
   ORDER_IMAGE_WIDTH,
-  SHOP_REF_MAX,
   linesToSelection,
   orderErrorMessage,
   orderContentKey,
@@ -108,8 +108,7 @@ function Summary({
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const [notes, setNotes] = useState('');
-  const [shopRef, setShopRef] = useState('');
-  const [errors, setErrors] = useState<{ notes?: string; shopRef?: string }>({});
+  const [errors, setErrors] = useState<{ notes?: string }>({});
   const [busy, setBusy] = useState(false);
   // Guards a second tap before the re-render (the button's own disabled state comes one frame later).
   const sending = useRef(false);
@@ -122,6 +121,7 @@ function Summary({
   // Accounts wait for approval by TAITIT before they can order (the server checks it too).
   const { profile } = useAuth();
   const approved = canOrder(profile);
+  const hasBusiness = businessComplete(profile);
 
   const { lines, replaced, missing } = orderLines(model, swatches, selection);
   const picks = Object.fromEntries(lines.map((l) => [l.zoneId, { swatchId: l.swatchId, finish: l.finish }]));
@@ -136,7 +136,7 @@ function Summary({
 
   const confirm = async () => {
     if (sending.current) return;
-    const input = validateOrderInput({ notes, shopRef });
+    const input = validateOrderInput({ notes, shopRef: '' });
     if ('errors' in input) return setErrors(input.errors);
     sending.current = true;
     setBusy(true);
@@ -200,6 +200,36 @@ function Summary({
             </AppText>
           </Card>
         ) : null}
+        <Card style={styles.business}>
+          <AppText variant="tiny">ORDERING AS</AppText>
+          {profile?.business_name ? (
+            <>
+              <AppText variant="subheading">{profile.business_name}</AppText>
+              <AppText variant="small">
+                {[
+                  profile.tax_id,
+                  [profile.address, profile.postal_code, profile.city].filter(Boolean).join(', '),
+                  profile.phone,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </AppText>
+            </>
+          ) : null}
+          {!hasBusiness ? (
+            <AppText variant="small" color={tokens.colors.danger}>
+              Add your business details (name, tax ID, phone and address) to send orders.
+            </AppText>
+          ) : null}
+          <Button
+            title={hasBusiness ? 'Edit' : 'Add business details'}
+            variant="ghost"
+            size="sm"
+            icon="create-outline"
+            onPress={() => router.push('/business')}
+            style={styles.editBusiness}
+          />
+        </Card>
         <Card style={styles.lines}>
           {lines.map((l, i) => (
             <View key={l.zoneId} style={[styles.line, i > 0 && styles.lineBorder]}>
@@ -229,17 +259,6 @@ function Summary({
           ))}
         </Card>
         <TextField
-          label="Shop / customer reference (optional)"
-          value={shopRef}
-          onChangeText={(t) => {
-            setShopRef(t);
-            setErrors((e) => ({ ...e, shopRef: undefined }));
-          }}
-          error={errors.shopRef}
-          maxLength={SHOP_REF_MAX}
-          placeholder="e.g. Optica Sol · Ana López"
-        />
-        <TextField
           label="Notes (optional)"
           value={notes}
           onChangeText={(t) => {
@@ -261,7 +280,7 @@ function Summary({
           title="Confirm order"
           fullWidth
           loading={busy}
-          disabled={missing.length > 0 || lines.length === 0 || refreshing || !approved}
+          disabled={missing.length > 0 || lines.length === 0 || refreshing || !approved || !hasBusiness}
           onPress={confirm}
         />
       </View>
@@ -273,6 +292,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: PAGE, gap: spacing.lg },
   notice: { backgroundColor: colors.surfaceMuted },
+  business: { gap: 2 },
+  editBusiness: { alignSelf: 'flex-start', marginTop: tokens.spacing.xs },
   lines: { gap: 0, paddingVertical: spacing.sm },
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
   lineBorder: { borderTopWidth: 1, borderTopColor: colors.border },

@@ -219,45 +219,69 @@ export type Database = {
       }
       orders: {
         Row: {
+          address: string | null
+          business_name: string | null
+          city: string | null
           created_at: string
           customer_email: string | null
           customer_name: string | null
           id: string
           idempotency_key: string
           image_path: string | null
+          legal_name: string | null
           model_id: string | null
           model_name: string
           notes: string | null
           number: number
+          phone: string | null
+          postal_code: string | null
+          province: string | null
           shop_ref: string | null
+          tax_id: string | null
           user_id: string | null
         }
         Insert: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           id?: string
           idempotency_key: string
           image_path?: string | null
+          legal_name?: string | null
           model_id?: string | null
           model_name: string
           notes?: string | null
           number?: number
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           shop_ref?: string | null
+          tax_id?: string | null
           user_id?: string | null
         }
         Update: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           id?: string
           idempotency_key?: string
           image_path?: string | null
+          legal_name?: string | null
           model_id?: string | null
           model_name?: string
           notes?: string | null
           number?: number
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           shop_ref?: string | null
+          tax_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -279,39 +303,63 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          business_name: string | null
+          city: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          legal_name: string | null
+          phone: string | null
+          postal_code: string | null
+          province: string | null
           push_token: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["account_status"]
+          tax_id: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
+          legal_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           push_token?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
+          tax_id?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
+          legal_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          province?: string | null
           push_token?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["account_status"]
+          tax_id?: string | null
           updated_at?: string
         }
         Relationships: [

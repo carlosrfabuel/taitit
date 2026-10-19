@@ -35,6 +35,18 @@ begin
   -- Account approval: new accounts start pending; A is approved by TAITIT, B stays pending.
   select count(*) into n from public.profiles where id in (a, b) and status = 'pending';
   if n = 2 then passed := passed + 1; else failed := failed || E'\n1 new accounts do not start pending'; end if;
+  -- Business details typed at sign-up arrive as metadata: trimmed, cut to the limits, blank = none.
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values ('eeeeeeee-0000-4000-8000-000000000005', 'test-e@example.com',
+    jsonb_build_object('full_name', 'Ana', 'business_name', '  Optica Sol  ', 'tax_id', '   ', 'city', repeat('x', 200),
+                       'phone', '600 000 000', 'address', 'Calle 1', 'postal_code', '46001'),
+    'authenticated', 'authenticated');
+  select count(*) into n from public.profiles
+  where id = 'eeeeeeee-0000-4000-8000-000000000005' and business_name = 'Optica Sol' and tax_id is null
+    and char_length(city) = 80 and phone = '600 000 000' and full_name = 'Ana';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 sign-up business details not copied (trim, limits, blanks)'; end if;
+  select count(*) into n from public.profiles p where p.id = 'eeeeeeee-0000-4000-8000-000000000005' and not private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n1 details without a tax ID counted as complete'; end if;
   update public.profiles set status = 'approved' where id = a;
 
   -- TEST PUB is built complete (base image, zones with layers of the same size, default colors) and then
@@ -115,6 +127,17 @@ begin
   update public.profiles set full_name = 'x' where id = b;
   get diagnostics n = row_count;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer updated another profile'; end if;
+  -- A edits their own business details; never someone else's; limits enforced.
+  update public.profiles set business_name = 'Optica A', tax_id = 'B12345678', phone = '600', address = 'Calle A', postal_code = '46001', city = 'Valencia' where id = a;
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 customer cannot edit own business details'; end if;
+  select count(*) into n from public.profiles p where p.id = a and private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 complete business details not recognized'; end if;
+  update public.profiles set business_name = 'robado' where id = b;
+  get diagnostics n = row_count;
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer edited another account''s business details'; end if;
+  begin update public.profiles set tax_id = repeat('9', 21) where id = a; failed := failed || E'\n3 over-long tax ID accepted';
+  exception when check_violation then passed := passed + 1; end;
 
   select count(*) into n from public.designs;
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s designs (expected own 1)', n); end if;

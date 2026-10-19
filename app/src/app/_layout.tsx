@@ -38,6 +38,7 @@ function RootStack() {
       <Stack.Screen name="order/summary" options={{ title: 'Order summary' }} />
       <Stack.Screen name="order/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
+      <Stack.Screen name="business" options={{ title: 'Business details' }} />
       <Stack.Screen name="dev/ui-kit" options={{ title: 'UI kit' }} />
     </Stack>
   );

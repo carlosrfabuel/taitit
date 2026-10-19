@@ -10,6 +10,14 @@ export type CustomerRow = {
   status: AccountStatus;
   created_at: string;
   reviewed_at: string | null;
+  business_name: string | null;
+  legal_name: string | null;
+  tax_id: string | null;
+  phone: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  province: string | null;
 };
 
 export const customerKeys = { all: ['customers'] as const };
@@ -24,7 +32,9 @@ export const STATUS_LABEL: Record<AccountStatus, string> = {
 export async function listCustomers(): Promise<CustomerRow[]> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, status, created_at, reviewed_at')
+    .select(
+      'id, email, full_name, status, created_at, reviewed_at, business_name, legal_name, tax_id, phone, address, postal_code, city, province',
+    )
     .eq('role', 'customer')
     .order('created_at', { ascending: false });
   if (error) throw error;

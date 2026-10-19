@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
+import { businessComplete } from '@/auth/business';
 import { AppText, Button, Card, EmptyState, Screen, useToast } from '@/ui';
 
 export default function AccountScreen() {
@@ -76,6 +77,41 @@ export default function AccountScreen() {
                     : '—'}
           </AppText>
         </View>
+      </Card>
+      <Card>
+        <View style={styles.row}>
+          <AppText variant="tiny">BUSINESS</AppText>
+          {profile?.business_name ? (
+            <>
+              <AppText variant="subheading">{profile.business_name}</AppText>
+              <AppText variant="small">
+                {[
+                  profile.tax_id,
+                  [profile.address, profile.postal_code, profile.city].filter(Boolean).join(', '),
+                  profile.phone,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </AppText>
+            </>
+          ) : (
+            <AppText color={tokens.colors.muted}>
+              Not added yet. TAITIT needs them to process your orders.
+            </AppText>
+          )}
+          {profile && !businessComplete(profile) && profile.business_name ? (
+            <AppText variant="small" color={tokens.colors.danger}>
+              Some required details are missing.
+            </AppText>
+          ) : null}
+        </View>
+        <Button
+          title={profile?.business_name ? 'Edit business details' : 'Add business details'}
+          variant="secondary"
+          size="sm"
+          icon="create-outline"
+          onPress={() => router.push('/business')}
+        />
       </Card>
       <Button
         title="Sign out"

@@ -60,11 +60,40 @@ export function CustomersPage() {
 
   const columns: Column<CustomerRow>[] = [
     {
-      key: 'name',
-      header: 'Nombre',
-      render: (row) => <span className="font-semibold text-ink">{row.full_name || '—'}</span>,
+      key: 'business',
+      header: 'Óptica',
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-ink">{row.business_name || 'Sin datos de empresa'}</span>
+          {row.legal_name && row.legal_name !== row.business_name && (
+            <span className="text-xs text-muted">{row.legal_name}</span>
+          )}
+          {row.tax_id && <span className="text-xs text-muted">CIF/NIF {row.tax_id}</span>}
+        </div>
+      ),
     },
-    { key: 'email', header: 'Email', render: (row) => row.email ?? '—' },
+    {
+      key: 'contact',
+      header: 'Contacto',
+      render: (row) => (
+        <div className="flex flex-col">
+          <span>{row.full_name || '—'}</span>
+          <span className="text-xs text-muted">{row.email ?? '—'}</span>
+          {row.phone && <span className="text-xs text-muted">{row.phone}</span>}
+        </div>
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Dirección',
+      render: (row) => (
+        <span className="text-sm">
+          {[row.address, [row.postal_code, row.city].filter(Boolean).join(' '), row.province]
+            .filter(Boolean)
+            .join(', ') || '—'}
+        </span>
+      ),
+    },
     { key: 'created', header: 'Registro', render: (row) => formatDate(row.created_at) },
     {
       key: 'status',
