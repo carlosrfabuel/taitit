@@ -101,6 +101,14 @@ export const businessColumns = (values: BusinessDetails): Record<BusinessKey, st
   >;
 
 /** All required details present (same rule as the order function). */
+/**
+ * The details TAITIT approves an account with. Changing one of them (not filling in an empty one)
+ * sends an approved account back to review: database rule in 20261022130000_business_identity_review.sql.
+ */
+export const IDENTITY_KEYS: BusinessKey[] = ['business_name', 'legal_name', 'tax_id'];
+export const identityChanged = (before: BusinessDetails, after: BusinessDetails) =>
+  IDENTITY_KEYS.some((k) => before[k].trim() !== '' && after[k].trim() !== before[k].trim());
+
 export const businessComplete = (p: Profile | null) =>
   !!p && BUSINESS_FIELDS.every((f) => !f.required || !!p[f.key]?.trim());
 

@@ -3,7 +3,18 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
-import { AppText, Button, Chip, EmptyState, Loader, Screen, Swatch, useToast } from '@/ui';
+import {
+  AppText,
+  Button,
+  Chip,
+  EmptyState,
+  Loader,
+  PhotoStage,
+  PHOTO_STAGE_INSET,
+  Screen,
+  Swatch,
+  useToast,
+} from '@/ui';
 import { useAuth, useRequireAuth } from '@/auth/AuthProvider';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
@@ -27,6 +38,10 @@ import {
 
 const { spacing, colors } = tokens;
 const PAGE = spacing.xl;
+// The photo stage (PhotoStage), almost edge to edge.
+const STAGE_MARGIN = spacing.sm;
+// Fade over the right end of the zone chips while more are hidden there (opacity per 8 px strip).
+const FADE = [0.2, 0.45, 0.7, 0.9, 1];
 
 const saveError = (e: unknown) => {
   const message = (e as { message?: string } | null)?.message ?? '';
@@ -144,6 +159,13 @@ function Customizer({
   const [holding, setHolding] = useState(false);
   const [compare, setCompare] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(restored.replaced.length > 0);
+  // More zone chips hidden to the right of the row (shows the fade).
+  const [zonesMore, setZonesMore] = useState(false);
+  const zonesBox = useRef({ width: 0, content: 0, x: 0 });
+  const updateZonesMore = useCallback((next: Partial<{ width: number; content: number; x: number }>) => {
+    const box = Object.assign(zonesBox.current, next);
+    setZonesMore(box.content - box.width - box.x > 4);
+  }, []);
   // The design being edited (set after the first save) and what it was last saved as.
   const [saved, setSaved] = useState<{ id: string; name: string; key: string } | null>(() =>
     design
@@ -238,7 +260,9 @@ function Customizer({
         onPressOut={() => setHolding(false)}
         accessibilityLabel="Design preview. Touch and hold to see the original colors."
       >
-        <RecolorView plan={plan} width={width - PAGE * 2} />
+        <PhotoStage>
+          <RecolorView plan={plan} width={width - (STAGE_MARGIN + PHOTO_STAGE_INSET) * 2} />
+        </PhotoStage>
         {showOriginal ? (
           <View style={styles.badge} pointerEvents="none">
             <AppText variant="tiny" color={colors.onPrimary}>
@@ -274,21 +298,34 @@ function Customizer({
         />
       </View>
       {zones.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.zonesBar}
-          contentContainerStyle={styles.zones}
-        >
-          {zones.map((z) => (
-            <Chip
-              key={z.id}
-              label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
-              selected={z.id === zone?.id}
-              onPress={() => setZoneId(z.id)}
-            />
-          ))}
-        </ScrollView>
+        <View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.zonesBar}
+            contentContainerStyle={styles.zones}
+            onLayout={(e) => updateZonesMore({ width: e.nativeEvent.layout.width })}
+            onContentSizeChange={(w) => updateZonesMore({ content: w })}
+            onScroll={(e) => updateZonesMore({ x: e.nativeEvent.contentOffset.x })}
+            scrollEventThrottle={48}
+          >
+            {zones.map((z) => (
+              <Chip
+                key={z.id}
+                label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
+                selected={z.id === zone?.id}
+                onPress={() => setZoneId(z.id)}
+              />
+            ))}
+          </ScrollView>
+          {zonesMore ? (
+            <View pointerEvents="none" style={styles.fade}>
+              {FADE.map((o) => (
+                <View key={o} style={[styles.fadeStrip, { opacity: o }]} />
+              ))}
+            </View>
+          ) : null}
+        </View>
       ) : null}
       <ScrollView style={styles.palette} contentContainerStyle={styles.paletteContent}>
         {noticeOpen ? (
@@ -391,11 +428,13 @@ function Customizer({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  photo: { paddingHorizontal: PAGE, paddingTop: spacing.lg, paddingBottom: spacing.md },
+  photo: { paddingHorizontal: STAGE_MARGIN, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  fade: { position: 'absolute', top: 0, right: 0, bottom: 0, flexDirection: 'row' },
+  fadeStrip: { width: 8, backgroundColor: colors.background },
   badge: {
     position: 'absolute',
     top: spacing.lg + spacing.sm,
-    left: PAGE + spacing.sm,
+    left: STAGE_MARGIN + PHOTO_STAGE_INSET + spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: tokens.radius.sm,
@@ -416,9 +455,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.md,
     borderRadius: tokens.radius.md,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.highlight,
   },
-  noticeText: { flex: 1 },
+  noticeText: { flex: 1, color: colors.onHighlight },
   footerButton: { flex: 1 },
   footer: {
     flexDirection: 'row',

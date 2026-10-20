@@ -34,7 +34,7 @@ type AuthContextValue = {
     email: string,
     password: string,
     business: Record<string, string | null>,
-  ) => Promise<Result & { needsConfirmation: boolean }>;
+  ) => Promise<Result & { needsConfirmation: boolean; existingAccount: boolean }>;
   /** Loads the profile again (after the user edits it). */
   reloadProfile: () => void;
   signOut: () => Promise<void>;
@@ -157,10 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: { data: { full_name: name.trim(), ...business }, emailRedirectTo: confirmedUrl() },
       });
-      if (error) return { error: authErrorMessage(error), needsConfirmation: false };
+      if (error) return { error: authErrorMessage(error), needsConfirmation: false, existingAccount: false };
       // Also kept on the phone: a repeated sign-up of an unconfirmed email may not pass them on.
       await rememberSignUpBusiness(email, business);
-      return { error: null, needsConfirmation: !data.session };
+      // An email that already has a confirmed account: Supabase sends nothing and answers with a
+      // stand-in user without identities (it doesn't say so, to keep emails private).
+      const existingAccount = !data.session && data.user?.identities?.length === 0;
+      return { error: null, needsConfirmation: !data.session, existingAccount };
     },
     [],
   );
@@ -191,7 +194,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile, email, userId]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    // No connection: supabase-js keeps the session then. Sign out on this phone anyway.
+    if (error) await supabase.auth.signOut({ scope: 'local' });
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string): Promise<Result> => {

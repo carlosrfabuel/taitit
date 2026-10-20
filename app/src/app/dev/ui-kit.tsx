@@ -2,7 +2,19 @@ import { useState } from 'react';
 import { Redirect } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
-import { AppText, Button, Card, Chip, EmptyState, Screen, Skeleton, Swatch, TextField, useToast } from '@/ui';
+import {
+  AppText,
+  Badge,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Screen,
+  Skeleton,
+  Swatch,
+  TextField,
+  useToast,
+} from '@/ui';
 import { RecolorDemo } from '@/render/RecolorDemo';
 
 // Sample palette: solid, translucent and metal swatches (real colors come from the client's chart).
@@ -83,6 +95,13 @@ function UiKitScreen() {
             <Chip key={c} label={c} selected={chip === c} onPress={() => setChip(c)} />
           ))}
         </View>
+      </Section>
+
+      <Section title="Status">
+        <Badge tone="selected" icon="checkmark-circle" label="Approved: you can place orders" />
+        <Badge tone="highlight" icon="time-outline" label="Waiting for approval by TAITIT" />
+        <Badge tone="danger" icon="close-circle-outline" label="Not approved. Please contact TAITIT." />
+        <Badge label="Neutral" />
       </Section>
 
       <Section title="Color swatches">

@@ -16,6 +16,8 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   // Public: where the app's sign-up confirmation email lands (no admin login).
   { path: '/confirmed', element: <ConfirmedPage /> },
+  // Public: the Supabase Site URL (fallback for any email link Supabase won't redirect elsewhere).
+  { path: '/link', element: <ConfirmedPage kind="other" /> },
   { path: '*', element: <NotFoundPage /> },
   {
     path: '/',

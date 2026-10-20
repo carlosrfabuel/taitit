@@ -21,7 +21,7 @@ export function Chip({
       hitSlop={6}
       style={({ pressed }) => [styles.chip, selected && styles.selected, pressed && styles.pressed]}
     >
-      <AppText variant="label" color={selected ? colors.onPrimary : colors.text}>
+      <AppText variant="label" color={selected ? colors.onSelected : colors.text}>
         {label}
       </AppText>
     </Pressable>
@@ -37,6 +37,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  selected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  selected: { backgroundColor: colors.selected, borderColor: colors.selectedBorder },
   pressed: { opacity: 0.8 },
 });

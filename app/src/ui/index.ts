@@ -1,5 +1,7 @@
 export { AppText } from './AppText';
 export type { TextVariant } from './AppText';
+export { Badge } from './Badge';
+export type { BadgeTone } from './Badge';
 export { Button } from './Button';
 export type { ButtonVariant } from './Button';
 export { Card } from './Card';
@@ -8,6 +10,7 @@ export { EmptyState } from './EmptyState';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { Loader, Skeleton } from './Loader';
+export { PhotoStage, PHOTO_STAGE_INSET } from './PhotoStage';
 export { Screen } from './Screen';
 export { Swatch } from './Swatch';
 export { TextField } from './TextField';

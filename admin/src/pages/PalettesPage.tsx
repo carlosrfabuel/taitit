@@ -7,7 +7,7 @@ import { Button, EmptyState, Spinner, Swatch, Table, Tag, type Column } from '..
 import { SwatchDialog } from '../components/palettes/SwatchDialog';
 import { listSwatches, swatchKeys, textureUrl, type SwatchRow } from '../lib/swatches';
 import { reorder, saveOrder } from '../lib/models';
-import { dbMessage } from '../lib/errors';
+import { dbMessage, readMessage } from '../lib/errors';
 import { FINISH_LABEL, KIND_LABEL, MATERIAL_LABEL } from '../lib/labels';
 
 const TABS: Material[] = ['metal', 'acetate'];
@@ -149,10 +149,13 @@ export function PalettesPage() {
               aria-selected={tab === m}
               onClick={() => setTab(m)}
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold ${
-                tab === m ? 'border-brand bg-brand text-white' : 'border-line bg-surface text-ink hover:bg-bg'
+                tab === m
+                  ? 'border-selected-line bg-selected text-on-selected'
+                  : 'border-line bg-surface text-ink hover:bg-bg'
               }`}
             >
-              {MATERIAL_LABEL[m]} <span className={tab === m ? 'text-white/70' : 'text-muted'}>{count}</span>
+              {MATERIAL_LABEL[m]}{' '}
+              <span className={tab === m ? 'text-on-selected/70' : 'text-muted'}>{count}</span>
             </button>
           );
         })}
@@ -162,7 +165,7 @@ export function PalettesPage() {
       ) : swatches.isError && !swatches.data ? (
         <EmptyState
           title="No se pudieron cargar los colores"
-          message={dbMessage(swatches.error)}
+          message={readMessage(swatches.error)}
           action={<Button onClick={() => void swatches.refetch()}>Reintentar</Button>}
         />
       ) : (

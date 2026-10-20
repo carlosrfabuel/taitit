@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { businessComplete } from '@/auth/business';
-import { AppText, Button, Card, EmptyState, Screen, useToast } from '@/ui';
+import { AppText, Badge, Button, Card, EmptyState, Screen, useToast } from '@/ui';
 
 export default function AccountScreen() {
   const { session, profile, signOut } = useAuth();
@@ -65,17 +65,30 @@ export default function AccountScreen() {
         </View>
         <View style={styles.row}>
           <AppText variant="tiny">ACCOUNT</AppText>
-          <AppText color={canOrder(profile) ? tokens.colors.success : tokens.colors.muted}>
-            {profile?.role === 'admin'
-              ? 'Administrator'
-              : profile?.status === 'approved'
-                ? 'Approved: you can place orders'
-                : profile?.status === 'rejected'
-                  ? 'Not approved. Please contact TAITIT.'
-                  : profile
-                    ? 'Waiting for approval by TAITIT. You can browse and save designs meanwhile.'
-                    : '—'}
-          </AppText>
+          {profile ? (
+            <Badge
+              tone={canOrder(profile) ? 'selected' : profile.status === 'rejected' ? 'danger' : 'highlight'}
+              icon={
+                canOrder(profile)
+                  ? 'checkmark-circle'
+                  : profile.status === 'rejected'
+                    ? 'close-circle-outline'
+                    : 'time-outline'
+              }
+              label={
+                profile.role === 'admin'
+                  ? 'Administrator'
+                  : profile.status === 'approved'
+                    ? 'Approved: you can place orders'
+                    : profile.status === 'rejected'
+                      ? 'Not approved. Please contact TAITIT.'
+                      : 'Waiting for approval by TAITIT. You can browse and save designs meanwhile.'
+              }
+              style={styles.status}
+            />
+          ) : (
+            <AppText>—</AppText>
+          )}
         </View>
       </Card>
       <Card>
@@ -129,4 +142,5 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   row: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.sm },
+  status: { marginTop: tokens.spacing.xs },
 });

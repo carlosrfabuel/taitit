@@ -51,7 +51,7 @@ export function Button({
         size === 'sm' ? styles.sm : styles.md,
         { backgroundColor: p.bg, borderColor: p.border },
         fullWidth && styles.full,
-        inactive && styles.disabled,
+        disabled && !loading && styles.disabled,
         pressed && styles.pressed,
         style,
       ]}

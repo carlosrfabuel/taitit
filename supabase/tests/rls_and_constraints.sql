@@ -157,6 +157,25 @@ begin
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer edited another account''s business details'; end if;
   begin update public.profiles set tax_id = repeat('9', 21) where id = a; failed := failed || E'\n3 over-long tax ID accepted';
   exception when check_violation then passed := passed + 1; end;
+  -- Approved A: filling empty fields (above), contact changes and an unchanged save keep the approval;
+  -- changing the business name or tax ID TAITIT approved sends the account back to review.
+  select count(*) into n from public.profiles where id = a and status = 'approved';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 filling in empty business details removed the approval'; end if;
+  update public.profiles set phone = '611 222 333', address = 'Calle B 2', city = 'Madrid', business_name = '  Optica A ' where id = a;
+  select count(*) into n from public.profiles where id = a and status = 'approved';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 contact change / unchanged name removed the approval'; end if;
+  update public.profiles set tax_id = 'B87654321' where id = a;
+  select count(*) into n from public.profiles where id = a and status = 'pending' and reviewed_at is null and reviewed_by is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 approved customer changed the tax ID and stayed approved'; end if;
+  perform set_config('role', 'postgres', true);
+  update public.profiles set status = 'approved', reviewed_at = now() where id = a;
+  perform set_config('role', 'authenticated', true);
+  update public.profiles set business_name = 'Otra Optica' where id = a;
+  select count(*) into n from public.profiles where id = a and status = 'pending';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3 approved customer changed the business name and stayed approved'; end if;
+  perform set_config('role', 'postgres', true);
+  update public.profiles set status = 'approved', reviewed_at = now(), business_name = 'Optica A', tax_id = 'B12345678' where id = a;
+  perform set_config('role', 'authenticated', true);
 
   select count(*) into n from public.designs;
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s designs (expected own 1)', n); end if;

@@ -143,13 +143,15 @@ export const linesToSelection = (lines: OrderLine[]): OrderSelection => ({
 });
 
 /**
- * Identity of what is ordered: same model and same lines = same content. Used to keep one order
- * key per content until that order succeeds (see pendingOrders.ts).
+ * Identity of what is ordered: same model, same lines and same notes = same content. Used to keep
+ * one order key per content until that order succeeds (see pendingOrders.ts). The notes count: the
+ * same design for another patient (other notes) must be a new order, not the earlier one.
  */
-export const orderContentKey = (userId: string, modelId: string, lines: OrderLine[]) =>
+export const orderContentKey = (userId: string, modelId: string, lines: OrderLine[], notes: string | null) =>
   JSON.stringify([
     userId,
     modelId,
+    notes ?? '',
     lines.map((l) => [
       l.zoneId,
       l.swatchId,
@@ -188,14 +190,17 @@ export async function placeOrder(input: {
 export function orderErrorMessage(error: unknown): string {
   const message = (error as { message?: string } | null)?.message ?? '';
   if (message.includes('business_details_missing'))
-    return 'Add your business details (name, tax ID, phone and address) before ordering.';
+    return 'Add your business details (business name, tax ID, phone, address, postal code and city) before ordering.';
   if (message.includes('account_not_approved'))
     return 'Your account is not approved for orders yet. TAITIT reviews new accounts; please contact them if this takes long.';
   if (message.includes('order_colors_changed'))
     return 'Some colors changed in the meantime. Review your design and try again.';
   if (message.includes('order_model_unavailable')) return 'This model is no longer available.';
+  if (message.includes('not_signed_in') || message.includes('JWT'))
+    return 'Your session has expired. Please sign in again.';
+  // The upload is refused when the account can't order (any more) or the image limit is reached.
   if (message.includes('row-level security') || message.includes('Unauthorized'))
-    return "Couldn't upload the order image. Please contact TAITIT.";
+    return "Couldn't upload the order image: your account may not be approved for orders. Check your account, or contact TAITIT.";
   if (message.includes('order_image_missing') || message.includes('snapshot_failed'))
     return "Couldn't prepare the order image. Check your connection and try again.";
   return "Couldn't send the order. Check your connection and try again.";

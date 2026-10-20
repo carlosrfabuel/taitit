@@ -83,7 +83,9 @@ export function OrdersPage() {
             }
           />
           {rows.length === ORDERS_LIMIT && (
-            <p className="mt-3 text-sm text-muted">Se muestran los {ORDERS_LIMIT} pedidos más recientes.</p>
+            <p className="mt-3 text-sm text-muted">
+              Se muestran los {ORDERS_LIMIT} pedidos más recientes; el Excel de la lista incluye solo estos.
+            </p>
           )}
         </>
       )}

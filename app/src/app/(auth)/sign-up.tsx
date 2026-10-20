@@ -14,7 +14,7 @@ import {
 import { BusinessFields } from '@/auth/BusinessFields';
 import { AppText, Button, Icon, Screen, TextField, useToast } from '@/ui';
 import { useCloseAuth } from '@/auth/navigation';
-import { WaitingForConfirmation } from '@/auth/WaitingForConfirmation';
+import { WaitingForConfirmation, type WaitReason } from '@/auth/WaitingForConfirmation';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -29,6 +29,7 @@ export default function SignUpScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [waitReason, setWaitReason] = useState<WaitReason>('signed_up');
   const closeAuth = useCloseAuth();
   // An edited field drops its old error; the next submit validates everything again.
   const clearError = (field: string) => setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
@@ -46,13 +47,19 @@ export default function SignUpScreen() {
     setFormError(null);
     if (Object.values(next).some(Boolean)) return;
     setLoading(true);
-    const { error, needsConfirmation } = await signUp(name, email, password, businessColumns(business));
+    const { error, needsConfirmation, existingAccount } = await signUp(
+      name,
+      email,
+      password,
+      businessColumns(business),
+    );
     setLoading(false);
     if (error) {
       setFormError(error);
       return;
     }
     if (needsConfirmation) {
+      setWaitReason(existingAccount ? 'existing_account' : 'signed_up');
       setSentTo(email.trim());
       return;
     }
@@ -66,12 +73,13 @@ export default function SignUpScreen() {
         <WaitingForConfirmation
           email={sentTo}
           password={password}
-          justSent
+          reason={waitReason}
           onContinue={() => {
-            toast('Welcome to TAITIT', 'success');
+            toast(waitReason === 'existing_account' ? 'Signed in' : 'Welcome to TAITIT', 'success');
             closeAuth();
           }}
           onSignIn={() => router.dismissTo('/sign-in')}
+          onForgotPassword={() => router.push('/forgot-password')}
         />
       </Screen>
     );

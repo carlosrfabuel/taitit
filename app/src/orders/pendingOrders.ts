@@ -14,16 +14,20 @@ type Entry = { key: string; at: number };
 type Store = Record<string, Entry>;
 
 let memory: Store | null = null;
+let loading: Promise<Store> | null = null; // one read of the phone's storage, shared by all callers
 
-async function load(): Promise<Store> {
-  if (memory) return memory;
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    memory = raw ? (JSON.parse(raw) as Store) : {};
-  } catch {
-    memory = {}; // storage unavailable: still safe within this run of the app
-  }
-  return memory;
+function load(): Promise<Store> {
+  if (memory) return Promise.resolve(memory);
+  loading ??= (async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      memory = raw ? (JSON.parse(raw) as Store) : {};
+    } catch {
+      memory = {}; // storage unavailable: still safe within this run of the app
+    }
+    return memory;
+  })();
+  return loading;
 }
 
 async function save(store: Store) {

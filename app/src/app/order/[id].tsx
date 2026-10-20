@@ -5,7 +5,18 @@ import { Image } from 'expo-image';
 import { FINISH_LABEL, MATERIAL_LABEL, tokens } from '@taitit/shared';
 import { formatOrderDate, orderText, whatsappUrl } from '@/orders/orders';
 import { useOrder } from '@/orders/useOrders';
-import { AppText, Button, Card, EmptyState, Loader, Screen, Swatch, useToast } from '@/ui';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Loader,
+  PhotoStage,
+  PHOTO_STAGE_INSET,
+  Screen,
+  Swatch,
+  useToast,
+} from '@/ui';
 
 const { spacing, colors } = tokens;
 
@@ -45,7 +56,7 @@ export default function OrderDetailScreen() {
       </Screen>
     );
 
-  const imageWidth = width - spacing.xl * 2;
+  const imageWidth = width - (spacing.xl + PHOTO_STAGE_INSET) * 2;
   return (
     <Screen
       footer={
@@ -62,14 +73,16 @@ export default function OrderDetailScreen() {
     >
       <Stack.Screen options={{ title: `Order #${o.number}` }} />
       {o.imageUrl ? (
-        <Image
-          source={{ uri: o.imageUrl, cacheKey: o.imagePath ?? undefined }}
-          style={{ width: imageWidth, height: imageWidth / aspect }}
-          onLoad={(e) => e.source.width && e.source.height && setAspect(e.source.width / e.source.height)}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          accessibilityLabel={`Design of order ${o.number}`}
-        />
+        <PhotoStage>
+          <Image
+            source={{ uri: o.imageUrl, cacheKey: o.imagePath ?? undefined }}
+            style={{ width: imageWidth, height: imageWidth / aspect }}
+            onLoad={(e) => e.source.width && e.source.height && setAspect(e.source.width / e.source.height)}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            accessibilityLabel={`Design of order ${o.number}`}
+          />
+        </PhotoStage>
       ) : null}
       <View>
         <AppText variant="title">{o.modelName}</AppText>

@@ -128,12 +128,32 @@ export async function saveSwatch(
     throw res.error ?? { code: 'not_found', message: 'Swatch not found' };
   }
   const old = swatch?.texture_path;
-  if (old && (path || !keepsTexture)) await removeImages([old], 'textures');
+  if (old && (path || !keepsTexture)) await removeUnusedTextures([old]);
+}
+
+/**
+ * Removes old texture files, except those that past orders still show (order_items keeps the path of
+ * the texture that was ordered). If that can't be checked, the files are kept: a few unused files
+ * are better than broken colors in old orders.
+ */
+async function removeUnusedTextures(paths: (string | null | undefined)[]): Promise<void> {
+  const candidates = paths.filter((p): p is string => !!p);
+  if (!candidates.length) return;
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('texture_path')
+    .in('texture_path', candidates);
+  if (error) return;
+  const ordered = new Set(data.map((r) => r.texture_path));
+  await removeImages(
+    candidates.filter((p) => !ordered.has(p)),
+    'textures',
+  );
 }
 
 export async function deleteSwatch(swatch: SwatchRow): Promise<void> {
   const { data, error } = await supabase.from('swatches').delete().eq('id', swatch.id).select('id');
   if (error) throw error;
   if (!data.length) throw { code: 'not_found', message: 'Swatch not found' };
-  await removeImages([swatch.texture_path], 'textures');
+  await removeUnusedTextures([swatch.texture_path]);
 }

@@ -15,20 +15,37 @@ export function BusinessFields({
 }) {
   return (
     <View style={styles.fields}>
-      {BUSINESS_FIELDS.map((f) => (
-        <TextField
-          key={f.key}
-          label={f.label}
-          value={values[f.key]}
-          onChangeText={(v) => onChange(f.key, v)}
-          error={errors[f.key]}
-          helper={f.helper}
-          maxLength={f.max}
-          {...f.input}
-        />
-      ))}
+      {BUSINESS_FIELDS.map((f) => {
+        if (f.key === 'city') return null; // shown next to the postal code
+        const field = (g: (typeof BUSINESS_FIELDS)[number]) => (
+          <TextField
+            key={g.key}
+            label={g.label}
+            value={values[g.key]}
+            onChangeText={(v) => onChange(g.key, v)}
+            error={errors[g.key]}
+            helper={g.helper}
+            maxLength={g.max}
+            {...g.input}
+          />
+        );
+        const city = BUSINESS_FIELDS.find((g) => g.key === 'city');
+        if (f.key === 'postal_code' && city)
+          return (
+            <View key="postal_city" style={styles.row}>
+              <View style={styles.postal}>{field(f)}</View>
+              <View style={styles.city}>{field(city)}</View>
+            </View>
+          );
+        return field(f);
+      })}
     </View>
   );
 }
 
-const styles = StyleSheet.create({ fields: { gap: tokens.spacing.lg } });
+const styles = StyleSheet.create({
+  fields: { gap: tokens.spacing.lg },
+  row: { flexDirection: 'row', gap: tokens.spacing.md, alignItems: 'flex-start' },
+  postal: { flex: 2 },
+  city: { flex: 3 },
+});

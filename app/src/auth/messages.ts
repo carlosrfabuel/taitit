@@ -4,9 +4,10 @@ import { AuthError } from '@supabase/supabase-js';
 const BY_CODE: Record<string, string> = {
   invalid_credentials: 'Incorrect email or password.',
   email_not_confirmed: 'Confirm your email before signing in. Check your inbox.',
-  weak_password: 'This password is too weak. Use at least 8 characters.',
+  weak_password: 'Choose a stronger password: at least 8 characters, and not a common or leaked one.',
   same_password: 'The new password must be different from the current one.',
   email_address_invalid: 'This email address is not valid.',
+  user_already_exists: 'This email already has an account. Sign in instead.',
   over_email_send_rate_limit: 'Too many emails sent. Wait a few minutes and try again.',
   over_request_rate_limit: 'Too many attempts. Wait a few minutes and try again.',
   signup_disabled: 'Sign-up is temporarily disabled.',

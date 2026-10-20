@@ -21,7 +21,7 @@ import {
   type ModelInput,
   type ModelRow,
 } from '../lib/models';
-import { dbMessage, problemLabel, publishProblemsIn } from '../lib/errors';
+import { dbMessage, problemLabel, readMessage, publishProblemsIn } from '../lib/errors';
 
 const backLink = (
   <Link to="/models" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-accent">
@@ -48,7 +48,7 @@ export function ModelEditPage() {
         {backLink}
         <EmptyState
           title={model.isError ? 'No se pudo cargar el modelo' : 'Modelo no encontrado'}
-          message={model.isError ? dbMessage(model.error) : 'Puede que se haya eliminado.'}
+          message={model.isError ? readMessage(model.error) : 'Puede que se haya eliminado.'}
           action={
             model.isError ? <Button onClick={() => void model.refetch()}>Reintentar</Button> : undefined
           }

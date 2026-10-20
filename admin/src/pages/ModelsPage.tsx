@@ -6,7 +6,7 @@ import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
 import { PageHeader } from '../components/PageHeader';
 import { Button, EmptyState, Spinner, Table, Tag, type Column } from '../components/ui';
 import { listModels, modelKeys, reorder, saveOrder, type ModelRow } from '../lib/models';
-import { dbMessage } from '../lib/errors';
+import { dbMessage, readMessage } from '../lib/errors';
 import { publicUrl } from '../lib/images';
 
 export function ModelsPage() {
@@ -135,7 +135,7 @@ export function ModelsPage() {
       ) : models.isError && !models.data ? (
         <EmptyState
           title="No se pudieron cargar los modelos"
-          message={dbMessage(models.error)}
+          message={readMessage(models.error)}
           action={<Button onClick={() => void models.refetch()}>Reintentar</Button>}
         />
       ) : (

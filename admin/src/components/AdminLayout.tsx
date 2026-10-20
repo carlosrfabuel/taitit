@@ -33,7 +33,7 @@ export function AdminLayout() {
               to={n.to}
               className={({ isActive }) =>
                 `rounded-lg px-3 py-2 text-sm font-semibold ${
-                  isActive ? 'bg-brand text-white' : 'text-ink hover:bg-bg'
+                  isActive ? 'bg-selected text-on-selected' : 'text-ink hover:bg-bg'
                 }`
               }
             >

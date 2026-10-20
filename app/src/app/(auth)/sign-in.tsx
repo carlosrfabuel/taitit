@@ -49,18 +49,22 @@ export default function SignInScreen() {
         <WaitingForConfirmation
           email={email}
           password={password}
-          justSent={false}
+          reason="not_confirmed"
           onContinue={() => {
             toast('Signed in', 'success');
             closeAuth();
           }}
           onSignIn={() => setUnconfirmed(false)}
+          onForgotPassword={() => router.push('/forgot-password')}
         />
       </Screen>
     );
 
   return (
     <Screen>
+      <AppText variant="label" color={tokens.colors.primary} style={styles.wordmark}>
+        TAITIT
+      </AppText>
       <AppText variant="title">Welcome</AppText>
       <AppText variant="small">Sign in to save your designs and place orders.</AppText>
 
@@ -118,6 +122,7 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
+  wordmark: { letterSpacing: 3, fontWeight: tokens.weight.heavy },
   form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
   links: { gap: tokens.spacing.sm, marginTop: tokens.spacing.md },
 });

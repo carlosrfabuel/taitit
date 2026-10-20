@@ -49,7 +49,10 @@ export async function listModels(): Promise<ModelRow[]> {
   return (data as Raw[]).map(toRow);
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getModel(id: string): Promise<ModelRow | null> {
+  if (!UUID.test(id)) return null; // a mistyped link: "not found", not a database error
   const { data, error } = await supabase.from('models').select(COLUMNS).eq('id', id).maybeSingle();
   if (error) throw error;
   return data ? toRow(data as Raw) : null;

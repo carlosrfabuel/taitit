@@ -5,7 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
 import { BusinessFields } from '@/auth/BusinessFields';
-import { businessFromProfile, saveBusiness, validateBusiness, type BusinessKey } from '@/auth/business';
+import {
+  businessFromProfile,
+  identityChanged,
+  saveBusiness,
+  validateBusiness,
+  type BusinessKey,
+} from '@/auth/business';
 import { AppText, Button, EmptyState, Loader, Screen, useToast } from '@/ui';
 
 // Edit the optician's business details. They are copied into each new order; orders already sent
@@ -43,6 +49,7 @@ export default function BusinessScreen() {
       key={profile.id}
       userId={session.user.id}
       initial={businessFromProfile(profile)}
+      approved={profile.role === 'customer' && profile.status === 'approved'}
       onSaved={reloadProfile}
     />
   );
@@ -51,10 +58,13 @@ export default function BusinessScreen() {
 function BusinessForm({
   userId,
   initial,
+  approved,
   onSaved,
 }: {
   userId: string;
   initial: ReturnType<typeof businessFromProfile>;
+  /** An approved customer: changing the business name or tax ID needs TAITIT's review again. */
+  approved: boolean;
   onSaved: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -62,6 +72,7 @@ function BusinessForm({
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<Partial<Record<BusinessKey, string | null>>>({});
   const [busy, setBusy] = useState(false);
+  const needsReview = approved && identityChanged(initial, values);
 
   const save = async () => {
     if (busy) return;
@@ -71,7 +82,10 @@ function BusinessForm({
     try {
       await saveBusiness(userId, values);
       onSaved();
-      toast('Business details saved', 'success');
+      toast(
+        needsReview ? 'Saved. TAITIT will review your account again.' : 'Business details saved',
+        'success',
+      );
       router.back();
     } catch {
       toast("Couldn't save. Check your connection and try again.", 'error');
@@ -98,7 +112,19 @@ function BusinessForm({
             setErrors((e) => ({ ...e, [key]: null }));
           }}
         />
-        <Button title="Save" onPress={save} loading={busy} fullWidth />
+        {needsReview ? (
+          <AppText variant="small" color={tokens.colors.danger}>
+            {
+              "You changed your business name, legal name or tax ID. TAITIT will review your account again; until then you can't send orders."
+            }
+          </AppText>
+        ) : null}
+        <Button
+          title={needsReview ? 'Save and send for review' : 'Save'}
+          onPress={save}
+          loading={busy}
+          fullWidth
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

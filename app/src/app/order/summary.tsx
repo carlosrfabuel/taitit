@@ -29,7 +29,19 @@ import {
 } from '@/orders/orders';
 import { orderKeyFor, orderPlaced } from '@/orders/pendingOrders';
 import { RecolorView, renderPlanToJpeg } from '@/render/RecolorView';
-import { AppText, Button, Card, EmptyState, Loader, Screen, Swatch, TextField, useToast } from '@/ui';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Loader,
+  PhotoStage,
+  PHOTO_STAGE_INSET,
+  Screen,
+  Swatch,
+  TextField,
+  useToast,
+} from '@/ui';
 
 const { spacing, colors } = tokens;
 const PAGE = spacing.xl;
@@ -145,7 +157,7 @@ function Summary({
     // The key belongs to what is ordered (model + every line as shown): a retry of the same content,
     // even from a new screen or after a restart, gets the same key and so the same order. Changed
     // content gets a new key, so its image is uploaded fresh and always matches the order.
-    const content = orderContentKey(userId, model.id, lines);
+    const content = orderContentKey(userId, model.id, lines, input.notes);
     try {
       const key = await orderKeyFor(content);
       // 1. The image, uploaded first (the order points to it). 2. The order, in one transaction.
@@ -179,17 +191,38 @@ function Summary({
     }
   };
 
+  // Why Confirm is off, said next to the button (the details are further up the page).
+  const blockedReason = refreshing
+    ? null
+    : !profile
+      ? profileFailed
+        ? "Couldn't load your account."
+        : null
+      : !approved
+        ? profile.status === 'rejected'
+          ? 'Your account is not approved for orders.'
+          : 'Waiting for TAITIT to approve your account.'
+        : !hasBusiness
+          ? 'Add your business details first.'
+          : missing.length > 0
+            ? "A part has no color available, so this model can't be ordered now."
+            : null;
+
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <RecolorView plan={plan} width={width - PAGE * 2} />
+        <PhotoStage>
+          <RecolorView plan={plan} width={width - (PAGE + PHOTO_STAGE_INSET) * 2} />
+        </PhotoStage>
         <View>
           <AppText variant="title">{model.name}</AppText>
           {model.sizeRef ? <AppText variant="small">{model.sizeRef}</AppText> : null}
         </View>
         {profileFailed && !profile ? (
           <Card style={styles.notice}>
-            <AppText variant="small">{"Couldn't load your account. Check your connection."}</AppText>
+            <AppText variant="small" color={colors.onHighlight}>
+              {"Couldn't load your account. Check your connection."}
+            </AppText>
             <Button
               title="Try again"
               variant="ghost"
@@ -201,7 +234,7 @@ function Summary({
         ) : null}
         {profile && !approved ? (
           <Card style={styles.notice}>
-            <AppText variant="small">
+            <AppText variant="small" color={colors.onHighlight}>
               {profile.status === 'rejected'
                 ? 'Your account has not been approved for orders. Please contact TAITIT.'
                 : 'Your account is waiting for approval by TAITIT. You can send this order once it is approved.'}
@@ -218,7 +251,7 @@ function Summary({
         ) : null}
         {replaced.length > 0 ? (
           <Card style={styles.notice}>
-            <AppText variant="small">
+            <AppText variant="small" color={colors.onHighlight}>
               Some colors are no longer available and were replaced by the original ones:{' '}
               {replaced.join(', ')}. Check them before confirming.
             </AppText>
@@ -242,7 +275,8 @@ function Summary({
           ) : null}
           {profile && !hasBusiness ? (
             <AppText variant="small" color={tokens.colors.danger}>
-              Add your business details (name, tax ID, phone and address) to send orders.
+              Add your business details (business name, tax ID, phone, address, postal code and city) to send
+              orders.
             </AppText>
           ) : null}
           <Button
@@ -300,6 +334,11 @@ function Summary({
         </AppText>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
+        {blockedReason ? (
+          <AppText variant="small" align="center" style={styles.blocked}>
+            {blockedReason}
+          </AppText>
+        ) : null}
         <Button
           title="Confirm order"
           fullWidth
@@ -315,7 +354,8 @@ function Summary({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: PAGE, gap: spacing.lg },
-  notice: { backgroundColor: colors.surfaceMuted },
+  notice: { backgroundColor: colors.highlight, borderColor: colors.highlight },
+  blocked: { marginBottom: spacing.sm },
   business: { gap: 2 },
   editBusiness: { alignSelf: 'flex-start', marginTop: tokens.spacing.xs },
   lines: { gap: 0, paddingVertical: spacing.sm },

@@ -26,6 +26,24 @@ export const supabase = createClient<Database>(url, key, {
   },
 });
 
+/**
+ * A client that stores nothing and refreshes nothing, for sign-in attempts whose answer may come
+ * too late to use (WaitingForConfirmation): the app's own sign-in is changed only on purpose, with
+ * supabase.auth.setSession.
+ */
+let throwaway: ReturnType<typeof createClient<Database>> | null = null;
+export function throwawayClient() {
+  throwaway ??= createClient<Database>(url!, key!, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: 'taitit-throwaway',
+    },
+  });
+  return throwaway;
+}
+
 // Refresh tokens only while the app is in the foreground (Supabase's React Native guidance).
 AppState.addEventListener('change', (state) => {
   if (state === 'active') supabase.auth.startAutoRefresh();

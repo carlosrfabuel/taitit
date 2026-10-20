@@ -35,7 +35,7 @@ export default function ForgotPasswordScreen() {
           title="Check your email"
           message="If an account exists for that email, we have sent a link to set a new password. Open it on this phone; if you request another one, use only the latest."
           actionLabel="Back to sign in"
-          onAction={() => router.replace('/sign-in')}
+          onAction={() => router.dismissTo('/sign-in')}
         />
       </Screen>
     );

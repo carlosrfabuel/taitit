@@ -22,7 +22,7 @@ const formatDate = (iso: string) =>
 // can only order once approved here. The database enforces it (create_order, order image upload).
 export function CustomersPage() {
   const queryClient = useQueryClient();
-  const customers = useQuery({ queryKey: customerKeys.all, queryFn: listCustomers });
+  const customers = useQuery({ queryKey: customerKeys.all, queryFn: listCustomers, refetchInterval: 60_000 }); // like the badge
   const [tab, setTab] = useState<AccountStatus>('pending');
   const [error, setError] = useState<string | null>(null);
 
@@ -98,12 +98,13 @@ export function CustomersPage() {
     {
       key: 'status',
       header: 'Estado',
-      render: (row) =>
-        row.status === 'approved' ? (
-          <Tag tone="success">{STATUS_LABEL[row.status]}</Tag>
-        ) : (
-          <Tag>{STATUS_LABEL[row.status]}</Tag>
-        ),
+      render: (row) => (
+        <Tag
+          tone={row.status === 'approved' ? 'success' : row.status === 'pending' ? 'attention' : 'neutral'}
+        >
+          {STATUS_LABEL[row.status]}
+        </Tag>
+      ),
     },
     {
       key: 'actions',
@@ -134,7 +135,9 @@ export function CustomersPage() {
             aria-selected={tab === s}
             onClick={() => setTab(s)}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
-              tab === s ? 'bg-brand text-white' : 'border border-line bg-surface text-ink hover:bg-bg'
+              tab === s
+                ? 'border border-selected-line bg-selected text-on-selected'
+                : 'border border-line bg-surface text-ink hover:bg-bg'
             }`}
           >
             {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'} ({count(s)})

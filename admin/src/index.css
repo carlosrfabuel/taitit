@@ -1,19 +1,33 @@
 @import 'tailwindcss';
 
-/* Placeholder brand tokens, kept in sync with shared/src/tokens.ts. */
+/* Brand tokens, kept in sync with shared/src/tokens.ts (palette "Garden", 2026-10-20). */
 @theme {
-  --color-brand: #111111;
-  --color-accent: #1f7a8c;
-  --color-bg: #f7f7f5;
+  --color-brand: #2f6b47;
+  --color-accent: #2f6b47;
+  --color-bg: #fbf8ee;
   --color-surface: #ffffff;
-  --color-ink: #1b1b1b;
-  --color-muted: #6b6b6b;
-  --color-line: #e4e4e0;
-  --color-danger: #c2263a;
-  --color-success: #2e9e6b;
+  --color-surface-muted: #f3eed9;
+  --color-ink: #1d2620;
+  --color-muted: #5d675f;
+  --color-line: #e6e0cb;
+  --color-danger: #b3261e;
+  --color-success: #2e7d4f;
+  --color-selected: #ddefd9;
+  --color-on-selected: #1e4d31;
+  --color-selected-line: #b9ddb2;
+  --color-highlight: #fbe7a1;
+  --color-on-highlight: #4a3a08;
 }
 
 body {
   @apply bg-bg text-ink antialiased;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Printed order sheet: keep the color chips (browsers drop background colors when printing). */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

@@ -76,14 +76,16 @@ export function Swatch({
   );
 }
 
-/** Small status label, e.g. "Publicado" / "Borrador". */
-export function Tag({ tone = 'neutral', children }: { tone?: 'neutral' | 'success'; children: ReactNode }) {
+const TAG_TONES = {
+  neutral: 'bg-surface-muted text-muted',
+  success: 'bg-selected text-on-selected',
+  attention: 'bg-highlight text-on-highlight',
+} as const;
+
+/** Small status label, e.g. "Publicado" / "Borrador"; "attention" for what waits for the admin. */
+export function Tag({ tone = 'neutral', children }: { tone?: keyof typeof TAG_TONES; children: ReactNode }) {
   return (
-    <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-        tone === 'success' ? 'bg-success/15 text-success' : 'bg-bg text-muted'
-      }`}
-    >
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${TAG_TONES[tone]}`}>
       {children}
     </span>
   );
