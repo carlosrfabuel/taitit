@@ -9,6 +9,7 @@ import {
   downloadOrderSheet,
   formatOrderDate,
   getOrder,
+  isMissingFile,
   orderImageUrl,
   orderKeys,
   type OrderItemRow,
@@ -28,7 +29,10 @@ export function OrderDetailPage() {
     queryFn: () => orderImageUrl(o!.image_path!),
     enabled: !!o?.image_path,
     staleTime: 30 * 60_000, // the link lasts an hour
+    retry: (count, error) => !isMissingFile(error) && count < 2,
   });
+  // The file no longer exists (not a connection problem): said calmly, and nothing to download.
+  const imageGone = image.isError && isMissingFile(image.error);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const back = (
@@ -129,7 +133,7 @@ export function OrderDetailPage() {
             <Button
               variant="secondary"
               icon={<ImageDown className="size-4" aria-hidden />}
-              disabled={!o.image_path}
+              disabled={!o.image_path || imageGone}
               onClick={() => void download('image')}
             >
               Descargar imagen
@@ -157,8 +161,20 @@ export function OrderDetailPage() {
                 alt={`Diseño del pedido ${o.number}`}
                 className="h-auto w-full rounded-lg"
               />
+            ) : imageGone ? (
+              <p className="text-sm text-muted">La imagen de este pedido ya no está disponible.</p>
             ) : image.isError ? (
-              <p className="text-sm text-danger">No se pudo cargar la imagen.</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-danger">No se pudo cargar la imagen. Revisa tu conexión.</p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void image.refetch()}
+                  className="print:hidden"
+                >
+                  Reintentar
+                </Button>
+              </div>
             ) : o.image_path ? (
               <Spinner label="Cargando imagen…" />
             ) : (

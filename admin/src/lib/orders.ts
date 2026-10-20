@@ -86,6 +86,12 @@ export async function getOrder(id: string): Promise<OrderRow | null> {
   return data ? sortItems(data as OrderRow) : null;
 }
 
+/** The storage file does not exist (Storage answers "Object not found"), as opposed to a failed request. */
+export function isMissingFile(error: unknown): boolean {
+  const e = error as { message?: string; statusCode?: string | number } | null;
+  return /not.?found/i.test(e?.message ?? '') || String(e?.statusCode) === '404';
+}
+
 /** Temporary link to the private order image (an hour). */
 export async function orderImageUrl(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from('orders').createSignedUrl(path, 3600);

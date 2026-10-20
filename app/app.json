@@ -38,11 +38,11 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "owner": "kgh0515",
+    "owner": "otherkgh0515",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "8cb9af0b-becf-433d-8c0d-b0a4a9c7d29a"
+        "projectId": "20372d7d-20e6-4534-9e06-df46bdf48b3e"
       }
     }
   }
