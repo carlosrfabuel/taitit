@@ -16,7 +16,7 @@ export function LoginPage() {
 
   // Back to the page the guard sent us from (only paths inside the panel).
   const from = (location.state as { from?: string } | null)?.from;
-  const target = from?.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : '/models';
+  const target = from?.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : '/';
 
   if (status === 'admin') return <Navigate to={target} replace />;
 

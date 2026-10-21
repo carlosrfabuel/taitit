@@ -1,10 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter } from 'react-router';
 import { AdminLayout } from './components/AdminLayout';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
 import { ConfirmedPage } from './pages/ConfirmedPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
+import { HomePage } from './pages/HomePage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ModelEditPage } from './pages/ModelEditPage';
 import { PalettesPage } from './pages/PalettesPage';
@@ -34,7 +35,7 @@ export const router = createBrowserRouter([
     ),
     errorElement: <NotFoundPage />,
     children: [
-      { index: true, element: <Navigate to="/models" replace /> },
+      { index: true, element: <HomePage /> },
       { path: 'models', element: <ModelsPage /> },
       { path: 'models/new', element: <ModelEditPage /> },
       { path: 'models/:id', element: <ModelEditPage /> },

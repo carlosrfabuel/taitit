@@ -2,10 +2,12 @@ import { NavLink, Outlet } from 'react-router';
 import { LogOut } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { countPending, customerKeys } from '../lib/customers';
+import { countOrdersSince, orderKeys, ordersSeenAt } from '../lib/orders';
 import { useAuth } from '../auth/context';
 import { ThumbnailRefresher } from './ThumbnailRefresher';
 
 const NAV = [
+  { to: '/', label: 'Inicio' },
   { to: '/models', label: 'Modelos' },
   { to: '/palettes', label: 'Paletas' },
   { to: '/orders', label: 'Pedidos' },
@@ -22,32 +24,52 @@ export function AdminLayout() {
     refetchInterval: 60_000,
   });
   const pending = pendingQuery.data ?? 0;
+  // Orders sent since this browser last opened Pedidos, shown next to Pedidos.
+  const seen = useQuery({ queryKey: orderKeys.seen, queryFn: ordersSeenAt, staleTime: Infinity });
+  const seenAt = seen.data ?? null;
+  const freshQuery = useQuery({
+    queryKey: orderKeys.since(seenAt ?? ''),
+    queryFn: () => countOrdersSince(seenAt!),
+    enabled: !!seenAt,
+    refetchInterval: 60_000,
+  });
+  const fresh = seenAt ? (freshQuery.data ?? 0) : 0;
+  const badge = (to: string) =>
+    to === '/customers' && pending > 0
+      ? { n: pending, label: `${pending} pendientes`, tone: 'bg-danger text-white' }
+      : to === '/orders' && fresh > 0
+        ? { n: fresh, label: `${fresh} pedidos nuevos`, tone: 'bg-brand text-white' }
+        : null;
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4 print:hidden">
         <img src="/logo.svg" alt="TAITIT" className="mb-8 h-6 w-auto self-start px-2" />
         <nav className="flex flex-col gap-1">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-2 text-sm font-semibold ${
-                  isActive ? 'bg-selected text-on-selected' : 'text-ink hover:bg-bg'
-                }`
-              }
-            >
-              {n.label}
-              {n.to === '/customers' && pending > 0 && (
-                <span
-                  className="ml-2 rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold text-white"
-                  aria-label={`${pending} pendientes`}
-                >
-                  {pending}
-                </span>
-              )}
-            </NavLink>
-          ))}
+          {NAV.map((n) => {
+            const b = badge(n.to);
+            return (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.to === '/'}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-2 text-sm font-semibold ${
+                    isActive ? 'bg-selected text-on-selected' : 'text-ink hover:bg-bg'
+                  }`
+                }
+              >
+                {n.label}
+                {b && (
+                  <span
+                    className={`ml-2 rounded-full px-1.5 py-0.5 text-xs font-bold ${b.tone}`}
+                    aria-label={b.label}
+                  >
+                    {b.n}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="mt-auto border-t border-line pt-4">
           <p className="truncate px-2 text-xs text-muted" title={email ?? undefined}>

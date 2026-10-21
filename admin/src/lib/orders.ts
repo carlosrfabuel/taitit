@@ -1,5 +1,6 @@
 import { orderSheet, orderSheetName, type SheetOrder } from '@taitit/shared';
 import { addressLine } from './customers';
+import { fold } from './text';
 import type { Database } from '@taitit/shared';
 import { supabase } from './supabase';
 
@@ -55,7 +56,81 @@ export type OrderRow = {
 export const orderKeys = {
   all: ['orders'] as const,
   one: (id: string) => ['orders', id] as const,
+  seen: ['orders', 'seen'] as const,
+  since: (iso: string) => ['orders', 'since', iso] as const,
 };
+
+// "New" orders: sent after this browser last opened the order list. Kept per browser (no account
+// setting): a convenience, so storage may be missing (private window) and then nothing is marked new.
+const SEEN_KEY = 'taitit.admin.ordersSeenAt';
+
+/** When this browser last saw the newest order (ISO), or null. */
+export function ordersSeenAt(): string | null {
+  try {
+    return localStorage.getItem(SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function markOrdersSeen(iso: string) {
+  try {
+    localStorage.setItem(SEEN_KEY, iso);
+  } catch {
+    // storage unavailable: nothing to remember
+  }
+}
+
+/** How many orders were sent after `iso` (a count only: nothing is downloaded). */
+export async function countOrdersSince(iso: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('orders')
+    .select('id', { count: 'exact', head: true })
+    .gt('created_at', iso);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export type OrderPeriod = 'all' | 'today' | 'week' | 'month';
+
+export const PERIOD_LABEL: Record<OrderPeriod, string> = {
+  all: 'Todos',
+  today: 'Hoy',
+  week: '7 días',
+  month: '30 días',
+};
+
+/** The calendar day in Spain (YYYY-MM-DD), so "Hoy" means TAITIT's today. */
+const madridDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+
+/** Orders within the period whose number, optician, email, city, CIF or model contain the search. */
+export function filterOrders(
+  rows: OrderRow[],
+  query: string,
+  period: OrderPeriod,
+  now = new Date(),
+): OrderRow[] {
+  const q = fold(query.trim().replace(/^#/, ''));
+  const today = madridDay(now);
+  const days = period === 'week' ? 7 : period === 'month' ? 30 : 0;
+  const from = now.getTime() - days * 86_400_000;
+  return rows.filter((o) => {
+    if (period === 'today' && madridDay(new Date(o.created_at)) !== today) return false;
+    if (days && new Date(o.created_at).getTime() < from) return false;
+    if (!q) return true;
+    return [
+      String(o.number),
+      o.business_name,
+      o.legal_name,
+      o.customer_name,
+      o.customer_email,
+      o.contact_email,
+      o.city,
+      o.tax_id,
+      o.model_name,
+    ].some((v) => v && fold(v).includes(q));
+  });
+}
 
 const COLUMNS =
   'id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';

@@ -23,10 +23,12 @@ export function ModelsPage() {
       key: 'photo',
       header: 'Foto',
       className: 'w-28',
+      // The catalog thumbnail (the frame in its default colors). The base image alone is nearly white:
+      // its colored parts are blanked out for the layers drawn on top.
       render: (row) =>
-        row.base_path ? (
+        row.thumb_path || row.base_path ? (
           <img
-            src={publicUrl(row.base_path)}
+            src={publicUrl((row.thumb_path ?? row.base_path)!)}
             alt=""
             loading="lazy"
             className="h-10 w-24 rounded bg-bg object-contain"

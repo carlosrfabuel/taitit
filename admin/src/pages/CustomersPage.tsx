@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, RotateCcw, Trash2, Users, X } from 'lucide-react';
+import { Check, RotateCcw, Search, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
-import { Button, EmptyState, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
+import { Button, EmptyState, Input, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
   addressLine,
   deleteCustomerAccount,
@@ -14,8 +14,20 @@ import {
   type CustomerRow,
 } from '../lib/customers';
 import { dbMessage, readMessage } from '../lib/errors';
+import { fold } from '../lib/text';
 
 const TABS: AccountStatus[] = ['pending', 'approved', 'rejected'];
+
+/** The account's business, legal name, contact, emails, CIF or city contain the search. */
+const matches = (c: CustomerRow, query: string) => {
+  const q = fold(query.trim());
+  return (
+    !q ||
+    [c.business_name, c.legal_name, c.full_name, c.email, c.contact_email, c.tax_id, c.city].some(
+      (v) => v && fold(v).includes(q),
+    )
+  );
+};
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -26,6 +38,7 @@ export function CustomersPage() {
   const queryClient = useQueryClient();
   const customers = useQuery({ queryKey: customerKeys.all, queryFn: listCustomers, refetchInterval: 60_000 }); // like the badge
   const [tab, setTab] = useState<AccountStatus>('pending');
+  const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const change = useMutation({
@@ -43,7 +56,7 @@ export function CustomersPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 
-  const all = customers.data ?? [];
+  const all = (customers.data ?? []).filter((c) => matches(c, query));
   const rows = all.filter((c) => c.status === tab);
   const count = (s: AccountStatus) => all.filter((c) => c.status === s).length;
   const busy = (id: string) => change.isPending && change.variables?.id === id;
@@ -174,6 +187,20 @@ export function CustomersPage() {
         title="Clientes"
         note="Las ópticas se registran en la app y solo pueden enviar pedidos cuando las apruebas aquí. Mientras tanto pueden ver el catálogo y guardar diseños."
       />
+      <div className="relative mb-4 w-full max-w-sm">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
+          aria-hidden
+        />
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar óptica, contacto, email, CIF o ciudad"
+          aria-label="Buscar clientes"
+          className="pl-9"
+        />
+      </div>
       <div role="tablist" aria-label="Estado" className="mb-4 flex gap-2">
         {TABS.map((s) => (
           <button
@@ -213,8 +240,20 @@ export function CustomersPage() {
           empty={
             <EmptyState
               icon={<Users className="size-6" aria-hidden />}
-              title={tab === 'pending' ? 'No hay cuentas pendientes' : 'No hay cuentas en esta lista'}
-              message={tab === 'pending' ? 'Las nuevas ópticas aparecerán aquí al registrarse.' : undefined}
+              title={
+                query.trim()
+                  ? 'Ninguna cuenta coincide'
+                  : tab === 'pending'
+                    ? 'No hay cuentas pendientes'
+                    : 'No hay cuentas en esta lista'
+              }
+              message={
+                query.trim()
+                  ? 'Prueba con otra búsqueda o mira las otras pestañas.'
+                  : tab === 'pending'
+                    ? 'Las nuevas ópticas aparecerán aquí al registrarse.'
+                    : undefined
+              }
             />
           }
         />
