@@ -86,7 +86,9 @@ export default function OrderDetailScreen() {
       ) : null}
       <View>
         <AppText variant="title">{o.modelName}</AppText>
-        <AppText variant="small">Sent {formatOrderDate(o.createdAt)}</AppText>
+        <AppText variant="small">
+          Sent {formatOrderDate(o.createdAt)} · {o.quantity} {o.quantity === 1 ? 'frame' : 'frames'}
+        </AppText>
       </View>
       <Card style={styles.lines}>
         {o.items.map((i, n) => (

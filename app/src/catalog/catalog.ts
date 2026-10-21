@@ -5,6 +5,7 @@ import {
   type Material,
   type RenderPlan,
   type SwatchKind,
+  type ZoneRole,
 } from '@taitit/shared';
 import { supabase } from '@/lib/supabase';
 
@@ -34,6 +35,12 @@ export type CatalogZone = {
   defaultSwatchId: string | null;
   defaultFinish: Finish | null;
   sortOrder: number;
+  /** Main metal, secondary front or tips (Carlos, 2026-10-20); null on zones not set up yet. */
+  role: ZoneRole | null;
+  /** Tortoiseshell pattern for havana colors (acetate zones), see shared/src/render.ts. */
+  patternUrl: string | null;
+  patternHex: string | null;
+  patternOwn: boolean;
 };
 
 export type CatalogModel = {
@@ -75,16 +82,15 @@ export async function fetchSwatches(): Promise<CatalogSwatch[]> {
   }));
 }
 
-/** Published models in catalog order, each with its default-color plan. */
+/** Published models in alphabetical order (client decision 2026-10-20), each with its default-color plan. */
 export async function fetchCatalog(swatches: CatalogSwatch[]): Promise<CatalogModel[]> {
   const { data, error } = await supabase
     .from('models')
     .select(
       // One literal string: the client infers the row type from it.
-      'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, model_zones(id, name, material, layer_path, default_swatch_id, default_finish, sort_order)',
+      'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, model_zones(id, name, material, layer_path, default_swatch_id, default_finish, sort_order, role, pattern_path, pattern_hex, pattern_own)',
     )
     .eq('published', true)
-    .order('sort_order')
     .order('name');
   if (error) throw error;
   const result: CatalogModel[] = [];
@@ -100,6 +106,10 @@ export async function fetchCatalog(swatches: CatalogSwatch[]): Promise<CatalogMo
         defaultSwatchId: z.default_swatch_id,
         defaultFinish: z.default_finish,
         sortOrder: z.sort_order,
+        role: z.role,
+        patternUrl: z.pattern_path ? storageUrl('models', z.pattern_path) : null,
+        patternHex: z.pattern_hex,
+        patternOwn: z.pattern_own,
       }))
       // Same order as the renderer and the order function: sort order, then id.
       .sort((a, b) => a.sortOrder - b.sortOrder || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

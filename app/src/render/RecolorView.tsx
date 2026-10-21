@@ -15,19 +15,40 @@ import {
   vec,
   type SkImage,
 } from '@shopify/react-native-skia';
-import { GLOSS_STOPS, tokens, type RenderLayer, type RenderPlan } from '@taitit/shared';
+import {
+  GLOSS_STOPS,
+  SHADE_GAIN,
+  SHADE_TOP,
+  tokens,
+  type RenderLayer,
+  type RenderPlan,
+} from '@taitit/shared';
 import { AppText } from '@/ui/AppText';
 import { Icon } from '@/ui/Icon';
 
 // Skia implementation of the shared recolor recipe (shared/src/render.ts). The admin preview and
-// the tools/zones preview use the same steps: fill → multiply shading → screen gloss → clip to the
-// layer shape → draw with the swatch opacity.
+// the tools/zones preview use the same steps: fill → multiply shading → screen highlight → screen
+// gloss → clip to the layer shape → draw with the swatch opacity. A havana with a tortoiseshell pattern
+// fills with the pattern through its color matrix instead of fill + shading + highlight (the pattern
+// holds the photo's light).
 
-/** Forces alpha to 1 (the layer's gray shading stays): multiply then uses the shading only. */
-const OPAQUE = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1];
+/** The layer's gray shading × SHADE_GAIN (Skia caps at 1) with alpha forced to 1: multiply then uses
+ * the shading only, and the color shows as itself at the zone's typical brightness. */
+const SHADE = [SHADE_GAIN, 0, 0, 0, 0, 0, SHADE_GAIN, 0, 0, 0, 0, 0, SHADE_GAIN, 0, 0, 0, 0, 0, 0, 1];
+
+/** The layer's highlight, highlightOf(gray) = (gray − SHADE_TOP) / (1 − SHADE_TOP) (Skia clamps to
+ * 0..1), opaque: screen then takes the color that far toward white. */
+const HL = 1 / (1 - SHADE_TOP);
+const HL_OFFSET = -SHADE_TOP * HL;
+const HIGHLIGHT = [HL, 0, 0, 0, HL_OFFSET, HL, 0, 0, 0, HL_OFFSET, HL, 0, 0, 0, HL_OFFSET, 0, 0, 0, 0, 1];
 
 type Size = { width: number; height: number };
-type Loaded = { base: SkImage; layers: SkImage[]; textures: (SkImage | null)[] };
+type Loaded = {
+  base: SkImage;
+  layers: SkImage[];
+  textures: (SkImage | null)[];
+  patterns: (SkImage | null)[];
+};
 
 async function loadImage(url: string): Promise<SkImage> {
   const image = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(url));
@@ -37,7 +58,7 @@ async function loadImage(url: string): Promise<SkImage> {
 
 // Decoded images shared by every RecolorView (catalog cards, customizer): picking a color only loads
 // what is new. Small and most-recently-used, because full-size images are large in memory.
-const MAX_CACHED = 12;
+const MAX_CACHED = 16;
 const cache = new Map<string, Promise<SkImage>>();
 function cachedImage(url: string): Promise<SkImage> {
   let p = cache.get(url);
@@ -57,12 +78,15 @@ type Shown = { key: string; plan: RenderPlan; loaded: Loaded };
 
 /**
  * Every image of the plan, loaded together: nothing new is drawn until all are ready (no
- * half-recolored frame), and meanwhile the previous complete picture stays (no flicker). A texture
- * that fails falls back to its plain color, like the admin preview; a failed base or layer image is
+ * half-recolored frame), and meanwhile the previous complete picture stays (no flicker). A texture or
+ * pattern that fails falls back to its plain color, like the admin preview; a failed base or layer image is
  * retried once, then reported (a wrong picture is worse than none).
  */
 function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean; retry: () => void } {
-  const key = JSON.stringify([plan.baseUrl, plan.layers.map((l) => [l.layerUrl, l.textureUrl])]);
+  const key = JSON.stringify([
+    plan.baseUrl,
+    plan.layers.map((l) => [l.layerUrl, l.textureUrl, l.patternUrl]),
+  ]);
   const planJson = JSON.stringify(plan);
   const [shown, setShown] = useState<Shown | null>(null);
   const [failure, setFailure] = useState<{ key: string; attempts: number } | null>(null);
@@ -75,10 +99,11 @@ function usePlanImages(plan: RenderPlan): { shown: Shown | null; failed: boolean
       cachedImage(p.baseUrl),
       Promise.all(p.layers.map((l) => cachedImage(l.layerUrl))),
       Promise.all(p.layers.map((l) => (l.textureUrl ? cachedImage(l.textureUrl).catch(() => null) : null))),
+      Promise.all(p.layers.map((l) => (l.patternUrl ? cachedImage(l.patternUrl).catch(() => null) : null))),
     ]).then(
       // Images and the plan they were loaded for stay together (same layers, same order).
-      ([base, layers, textures]) =>
-        !cancelled && setShown({ key, plan: p, loaded: { base, layers, textures } }),
+      ([base, layers, textures, patterns]) =>
+        !cancelled && setShown({ key, plan: p, loaded: { base, layers, textures, patterns } }),
       () => {
         if (cancelled) return;
         if (attempts === 0)
@@ -104,11 +129,13 @@ function Zone({
   layer,
   image,
   texture,
+  pattern,
   size,
 }: {
   layer: RenderLayer;
   image: SkImage;
   texture: SkImage | null;
+  pattern: SkImage | null;
   size: Size;
 }) {
   const { width: w, height: h } = size;
@@ -129,14 +156,26 @@ function Zone({
     // Own layer per zone; the opacity is the layer paint's, so it applies once to the finished zone
     // (translucent acetate), not to each step inside it.
     <Group layer={<Paint opacity={layer.opacity} />}>
-      {texture ? (
-        <Image image={texture} x={0} y={0} width={w} height={h} fit="cover" />
+      {pattern && layer.patternMatrix ? (
+        // The tortoiseshell pattern already holds the photo's light and shadow: no shading step.
+        <Image image={pattern} x={0} y={0} width={w} height={h} fit="fill">
+          <ColorMatrix matrix={layer.patternMatrix} />
+        </Image>
       ) : (
-        <Fill color={layer.hex} />
+        <>
+          {texture ? (
+            <Image image={texture} x={0} y={0} width={w} height={h} fit="cover" />
+          ) : (
+            <Fill color={layer.hex} />
+          )}
+          <Image image={image} x={0} y={0} width={w} height={h} fit="fill" blendMode="multiply">
+            <ColorMatrix matrix={SHADE} />
+          </Image>
+          <Image image={image} x={0} y={0} width={w} height={h} fit="fill" blendMode="screen">
+            <ColorMatrix matrix={HIGHLIGHT} />
+          </Image>
+        </>
       )}
-      <Image image={image} x={0} y={0} width={w} height={h} fit="fill" blendMode="multiply">
-        <ColorMatrix matrix={OPAQUE} />
-      </Image>
       {layer.gloss && (
         <Rect x={0} y={0} width={w} height={h} blendMode="screen">
           <LinearGradient
@@ -163,6 +202,7 @@ function Scene({ plan, loaded, size }: { plan: RenderPlan; loaded: Loaded; size:
           layer={l}
           image={loaded.layers[i]!}
           texture={loaded.textures[i] ?? null}
+          pattern={loaded.patterns[i] ?? null}
           size={size}
         />
       ))}
@@ -172,21 +212,22 @@ function Scene({ plan, loaded, size }: { plan: RenderPlan; loaded: Loaded; size:
 
 /**
  * The design drawn off-screen at `width` px and encoded as JPEG (the order image). Stricter than the
- * screen view: every image must load, tortoiseshell textures included, because an order must show
+ * screen view: every image must load, tortoiseshell textures and patterns included, because an order must show
  * exactly what was chosen. Throws otherwise.
  */
 export async function renderPlanToJpeg(plan: RenderPlan, width: number, quality = 90): Promise<Uint8Array> {
   const size = { width, height: Math.round((width * plan.height) / plan.width) };
-  const [base, layers, textures] = await Promise.all([
+  const [base, layers, textures, patterns] = await Promise.all([
     cachedImage(plan.baseUrl),
     Promise.all(plan.layers.map((l) => cachedImage(l.layerUrl))),
     Promise.all(plan.layers.map((l) => (l.textureUrl ? cachedImage(l.textureUrl) : null))),
+    Promise.all(plan.layers.map((l) => (l.patternUrl ? cachedImage(l.patternUrl) : null))),
   ]);
   const image = await drawAsImage(
     <>
       {/* JPEG has no transparency: a white page behind the photo. */}
       <Fill color="#FFFFFF" />
-      <Scene plan={plan} loaded={{ base, layers, textures }} size={size} />
+      <Scene plan={plan} loaded={{ base, layers, textures, patterns }} size={size} />
     </>,
     size,
   ).catch(() => null);

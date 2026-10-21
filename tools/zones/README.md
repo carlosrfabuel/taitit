@@ -5,8 +5,11 @@ recolor renderer needs, and uploads it.
 
 For each model it produces, in `out/<model>/`:
 
-- `base.jpg`: the photo with every customizable zone cleared to the background color
-- `<zone>.png`: one layer per zone (max 4): alpha = zone mask, gray = the photo's light and shadow
+- `base.jpg`: the photo with every customizable zone cleared to the background color (clear parts such
+  as nose pads lose the frame color they reflect)
+- `<zone>.png`: one layer per zone (max 4): alpha = zone mask, gray = the photo's light and shadow:
+  up to 0.86 the shadows (0.86 = the zone's typical brightness, the color drawn as itself), above it
+  how far toward white (lit faces, a temple seen through the lens). See `shared/src/render.ts`.
 - `debug.png`: zones painted in flat colors over the photo, to check the masks
 - `preview.jpg`: the zones recolored in four test colorways (dark, light, gloss, translucent)
 - `manifest.json`: what `upload` sends to the database
@@ -29,11 +32,28 @@ For each model it produces, in `out/<model>/`:
      (e.g. the 2 largest are the rims, the rest are temple tips), or `attach` (highlights that join the
      zone they touch; isolated regions such as shadows are ignored). `minSaturation` keeps grayish
      shadows and clear parts out.
-   - `fixes`: rectangles (output pixels) where one zone must become another, for cases color and
-     regions can't resolve.
+     `within: [x1, y1, x2, y2]` limits a group to one rectangle (e.g. the grey gloss of one tip, a
+     color that elsewhere would catch the nose pads). `ownShading` shades a group against its own
+     color: a part photographed in another color than it is made in (KARL's black temples, gold in
+     production) then looks like the rest of its zone.
+   - `fixes`: rectangles (`rect`, output pixels) or polygons (`poly: [[x, y], ...]`) where one zone
+     must become another (or `"none"`: no zone, e.g. a floor shadow the color of white metal), for
+     cases color and regions can't resolve. They apply in order. Use a polygon where the boundary is
+     slanted (a tip ending where a rim passes in front of it): a rectangle leaves a square notch. With
+     `piecesInside: true` only connected pieces lying entirely inside the area change (a white lens
+     bevel next to a white frame piece). Pixels set to `"none"` stay out of every zone. With
+     `shadeAsZone: true` the changed pixels shade with their new zone, not with an `ownShading` group
+     they matched (the dark grain of a gold part, matched as the black front).
+   - `edgeGrow` (model option, default 1): passes of growth into anti-aliased edge pixels. 3 also
+     closes the dark 3-4 px seams between two zones, which otherwise keep the photo's color as a thin
+     line in light colorways.
    - `smooth` (zone option): blur sigma for patterned originals (tortoiseshell), so the pattern
-     doesn't show through new colors. `contrast` (default 0.55, dark metal ~0.9): how strongly the
-     photo's light shows through.
+     doesn't show through new colors. `shadow` (default 0.8): how much of the photo's shadows shows
+     (exponent of the darkness ratio; 1 = as photographed). Highlights always show as photographed.
+     (`contrast`, the earlier linear model, was replaced by it on 2026-10-20.)
+   - Edges: a pixel at a part's border is partly clear only where it mixes with the background or a
+     clear lens; between two parts, or next to something dark outside the zones, it is opaque (else
+     the background shows through as dotted lines in other colors).
 4. Build and check `debug.png` and `preview.jpg`; adjust the config and rebuild until clean:
 
    ```bash
@@ -55,6 +75,28 @@ For each model it produces, in `out/<model>/`:
    A published model stays published during a re-upload, unless its image size changes or a zone is
    removed: then it is unpublished while uploading and published again at the end (if that fails, it
    stays unpublished and the tool says so).
+
+## Tortoiseshell patterns (havana colors)
+
+Every acetate zone also gets `<zone>-pattern.jpg`: how real tortoiseshell differs from its average
+color, per pixel (brightness in red, colorfulness in green, light and shadow included). When the
+customer picks a havana color, the app, the admin and the preview draw that pattern in the color
+(`shared/src/render.ts`), so the spots look real instead of a flat brown.
+
+- `"pattern": "own"` (zone option) for parts that are tortoiseshell in the photo (DAFT, SONNIE, the
+  tips of KARL, PINTO, SOFIE, PAUL): the photo's own pattern. A havana of exactly the zone's average
+  color (shown in the admin, "Carey de la foto") gives the part as photographed.
+- Default for other acetate zones: borrowed from `textures/tortoise.jpg`, a texture quilted from TAITIT's
+  havana sample chip "1":
+
+  ```bash
+  npm run zones -- texture-image "<path>/colores acetatos.jpeg" 720,440,900,1190 --scale 0.3 --patch 24
+  ```
+
+  (`npm run zones -- texture <models/x.json> <zone>` makes it from a model's tortoiseshell zone instead.)
+
+- `"pattern": "none"`: plain havana color. A havana color with its own texture (admin, Paletas) uses
+  that texture on borrowed zones; own patterns always win.
 
 ## Notes
 

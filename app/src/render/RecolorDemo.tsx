@@ -23,7 +23,7 @@ async function load() {
   const model = await supabase
     .from('models')
     .select(
-      'id, name, base_path, base_width, base_height, model_zones(id, name, layer_path, default_swatch_id, default_finish, sort_order)',
+      'id, name, base_path, base_width, base_height, model_zones(id, name, layer_path, default_swatch_id, default_finish, sort_order, pattern_path, pattern_hex, pattern_own)',
     )
     .eq('published', true)
     .order('sort_order')
@@ -70,6 +70,8 @@ export function RecolorDemo() {
       defaultSwatchId: z.default_swatch_id,
       defaultFinish: z.default_finish,
       sortOrder: z.sort_order,
+      patternUrl: z.pattern_path ? storageUrl('models', z.pattern_path) : null,
+      patternOwn: z.pattern_own,
     })),
     swatches: swatches.map((s) => ({
       id: s.id,

@@ -14,11 +14,11 @@ export function DeleteModelButton({ model }: { model: ModelRow }) {
 
   const remove = useMutation({
     mutationFn: async () => {
-      // Read the layer paths first: after the delete the zone rows are gone.
+      // Read the layer and pattern paths first: after the delete the zone rows are gone.
       const zones = await listZones(model.id);
       await deleteModel(
         model,
-        zones.map((z) => z.layer_path),
+        zones.flatMap((z) => [z.layer_path, z.pattern_path]),
       );
     },
     onSuccess: () => {

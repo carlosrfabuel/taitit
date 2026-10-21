@@ -70,6 +70,12 @@ export type Database = {
           material: Database["public"]["Enums"]["material"]
           model_id: string
           name: string
+          pattern_height: number | null
+          pattern_hex: string | null
+          pattern_own: boolean
+          pattern_path: string | null
+          pattern_width: number | null
+          role: Database["public"]["Enums"]["zone_role"] | null
           sort_order: number
         }
         Insert: {
@@ -82,6 +88,12 @@ export type Database = {
           material: Database["public"]["Enums"]["material"]
           model_id: string
           name: string
+          pattern_height?: number | null
+          pattern_hex?: string | null
+          pattern_own?: boolean
+          pattern_path?: string | null
+          pattern_width?: number | null
+          role?: Database["public"]["Enums"]["zone_role"] | null
           sort_order?: number
         }
         Update: {
@@ -94,6 +106,12 @@ export type Database = {
           material?: Database["public"]["Enums"]["material"]
           model_id?: string
           name?: string
+          pattern_height?: number | null
+          pattern_hex?: string | null
+          pattern_own?: boolean
+          pattern_path?: string | null
+          pattern_width?: number | null
+          role?: Database["public"]["Enums"]["zone_role"] | null
           sort_order?: number
         }
         Relationships: [
@@ -178,6 +196,7 @@ export type Database = {
           swatch_name: string
           texture_path: string | null
           zone_name: string
+          zone_role: Database["public"]["Enums"]["zone_role"] | null
         }
         Insert: {
           alpha?: number | null
@@ -192,6 +211,7 @@ export type Database = {
           swatch_name: string
           texture_path?: string | null
           zone_name: string
+          zone_role?: Database["public"]["Enums"]["zone_role"] | null
         }
         Update: {
           alpha?: number | null
@@ -206,6 +226,7 @@ export type Database = {
           swatch_name?: string
           texture_path?: string | null
           zone_name?: string
+          zone_role?: Database["public"]["Enums"]["zone_role"] | null
         }
         Relationships: [
           {
@@ -236,6 +257,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           province: string | null
+          quantity: number
           shop_ref: string | null
           tax_id: string | null
           user_id: string | null
@@ -258,6 +280,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           province?: string | null
+          quantity?: number
           shop_ref?: string | null
           tax_id?: string | null
           user_id?: string | null
@@ -280,6 +303,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           province?: string | null
+          quantity?: number
           shop_ref?: string | null
           tax_id?: string | null
           user_id?: string | null
@@ -430,11 +454,14 @@ export type Database = {
           p_key: string
           p_model_id: string
           p_notes?: string
+          p_quantity?: number
           p_selection: Json
           p_shop_ref?: string
         }
         Returns: Json
       }
+      delete_customer_account: { Args: { p_user: string }; Returns: undefined }
+      delete_my_account: { Args: never; Returns: undefined }
       model_publish_problems: {
         Args: { p_model_id: string }
         Returns: string[]
@@ -453,6 +480,7 @@ export type Database = {
       material: "metal" | "acetate"
       swatch_kind: "metal" | "solid" | "translucent" | "havana"
       user_role: "customer" | "admin"
+      zone_role: "main" | "secondary" | "tips"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -585,6 +613,7 @@ export const Constants = {
       material: ["metal", "acetate"],
       swatch_kind: ["metal", "solid", "translucent", "havana"],
       user_role: ["customer", "admin"],
+      zone_role: ["main", "secondary", "tips"],
     },
   },
 } as const

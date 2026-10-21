@@ -1,0 +1,241 @@
+{
+  "name": "CELEST",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/celest.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "backgroundThreshold": 248,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M05",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A12"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A12"
+    }
+  ],
+  "groups": [
+    {
+      "name": "white metal (front and temples)",
+      "colors": [
+        "#DEE0DF",
+        "#E7EAEA",
+        "#D2D5D4",
+        "#C6CAC9"
+      ],
+      "tolerance": 16,
+      "zone": "metal"
+    },
+    {
+      "name": "mint acetate: the 2 largest regions are the rims, the rest the tips",
+      "colors": [
+        "#7CD0C3",
+        "#9ADCD2",
+        "#64C8BA",
+        "#BADDD7"
+      ],
+      "tolerance": 40,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "bright top face of the left rim and the far temple",
+      "colors": [
+        "#F2F2F2",
+        "#F4F4F4",
+        "#F6F6F6",
+        "#F3F3F5",
+        "#F5F5F7",
+        "#F0F0F2"
+      ],
+      "tolerance": 5,
+      "within": [
+        240,
+        45,
+        395,
+        120
+      ],
+      "attach": true
+    },
+    {
+      "name": "bright top face of the right rim",
+      "colors": [
+        "#F2F2F2",
+        "#F4F4F4",
+        "#F6F6F6",
+        "#F3F3F5",
+        "#F5F5F7",
+        "#F0F0F2"
+      ],
+      "tolerance": 5,
+      "within": [
+        750,
+        55,
+        1000,
+        200
+      ],
+      "attach": true
+    },
+    {
+      "name": "bright top face of the bridge",
+      "colors": [
+        "#F2F2F2",
+        "#F4F4F4",
+        "#F6F6F6",
+        "#F3F3F5",
+        "#F5F5F7",
+        "#F0F0F2"
+      ],
+      "tolerance": 5,
+      "within": [
+        410,
+        160,
+        590,
+        190
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        40,
+        20,
+        394,
+        450
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "the left lens has two mint arcs: they are rims, not tips (the far tip starts at x 395)"
+    },
+    {
+      "rect": [
+        394,
+        150,
+        445,
+        450
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "lower end of the left lens arc"
+    },
+    {
+      "rect": [
+        195,
+        437,
+        258,
+        448
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow left of the left rim (white-metal colored)"
+    },
+    {
+      "rect": [
+        318,
+        450,
+        356,
+        458
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow right of the left rim"
+    },
+    {
+      "rect": [
+        640,
+        497,
+        700,
+        510
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow left of the right rim"
+    },
+    {
+      "rect": [
+        810,
+        519,
+        862,
+        531
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow right of the right rim"
+    },
+    {
+      "rect": [
+        625,
+        232,
+        690,
+        246
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow under the far tip"
+    },
+    {
+      "rect": [
+        1485,
+        328,
+        1550,
+        342
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow under the near tip"
+    },
+    {
+      "rect": [
+        603,
+        250,
+        665,
+        365
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "right nose pad (white like the metal)"
+    },
+    {
+      "rect": [
+        690,
+        513,
+        900,
+        540
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "floor shadow under the right rim"
+    },
+    {
+      "rect": [
+        1395,
+        128,
+        1465,
+        150
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "white highlight along the top of the near tip"
+    }
+  ]
+}

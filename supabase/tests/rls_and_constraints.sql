@@ -313,6 +313,16 @@ begin
   exception when check_violation then passed := passed + 1; end;
   begin insert into public.model_zones (model_id, name, material, default_swatch_id) values (m_draft, 'Aros', 'acetate', sw_metal); failed := failed || E'\n4 zone accepted a default swatch of the wrong material';
   exception when check_violation then passed := passed + 1; end;
+  -- Zone roles (2026-10-20): main metal is metal, tips are acetate, one zone per role and model.
+  begin insert into public.model_zones (model_id, name, material, role) values (m_draft, 'Main', 'acetate', 'main'); failed := failed || E'\n4 an acetate "main metal" zone was accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin insert into public.model_zones (model_id, name, material, role) values (m_draft, 'Tips', 'metal', 'tips'); failed := failed || E'\n4 metal tips were accepted';
+  exception when check_violation then passed := passed + 1; end;
+  insert into public.model_zones (model_id, name, material, role) values (m_draft, 'Secondary A', 'metal', 'secondary');
+  passed := passed + 1; -- the secondary front can be metal
+  begin insert into public.model_zones (model_id, name, material, role) values (m_draft, 'Secondary B', 'acetate', 'secondary'); failed := failed || E'\n4 a second "secondary front" on one model was accepted';
+  exception when unique_violation then passed := passed + 1; end;
+  delete from public.model_zones where model_id = m_draft and name = 'Secondary A';
 
   -- -------------------------------------------------------------------------
   -- 4b. Publishing rules (as admin): only complete models can be published, and stay complete
@@ -436,9 +446,90 @@ begin
   passed := passed + 1; -- other edits of a color in use still work
 
   -- -------------------------------------------------------------------------
-  -- 6. Account deletion (default rule)
+  -- 5b. Tortoiseshell patterns for havana colors (zone_patterns migrations)
   -- -------------------------------------------------------------------------
-  delete from auth.users where id = a;
+  -- A pattern needs all its fields, and its average color as #RRGGBB.
+  begin update public.model_zones set pattern_path = 'test/aros-pattern.jpg' where model_id = m_pub and name = 'Aros';
+    failed := failed || E'\n5b a pattern without size and color was accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.model_zones set pattern_path = 'test/aros-pattern.jpg', pattern_width = 1600, pattern_height = 556, pattern_hex = 'brown'
+    where model_id = m_pub and name = 'Aros';
+    failed := failed || E'\n5b a bad pattern color was accepted';
+  exception when check_violation then passed := passed + 1; end;
+  -- A complete pattern of the base image's size, on a published model: accepted.
+  update public.model_zones set pattern_path = 'test/aros-pattern.jpg', pattern_width = 1600, pattern_height = 556,
+    pattern_hex = '#483932', pattern_own = true where model_id = m_pub and name = 'Aros';
+  select count(*) into n from public.model_zones where model_id = m_pub and name = 'Aros' and pattern_own and pattern_hex = '#483932';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5b a valid pattern was not saved'; end if;
+  -- Guests read it (the app draws it).
+  perform set_config('role', 'anon', true);
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  select count(*) into n from public.model_zones where model_id = m_pub and pattern_path = 'test/aros-pattern.jpg' and pattern_hex = '#483932';
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5b guests cannot read the pattern'; end if;
+  -- A published model can't get a pattern of another size; a metal zone can't get one at all.
+  begin update public.model_zones set pattern_width = 800 where model_id = m_pub and name = 'Aros';
+    failed := failed || E'\n5b a pattern of another size was accepted on a published model';
+  exception when check_violation then passed := passed + 1; end;
+  -- (an update is dropped by the trigger; an insert is refused by the check)
+  update public.model_zones set pattern_path = 'test/frente-pattern.jpg', pattern_width = 1600, pattern_height = 556, pattern_hex = '#111111'
+    where model_id = m_pub and name = 'Frente';
+  select count(*) into n from public.model_zones where model_id = m_pub and name = 'Frente' and pattern_path is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5b a metal zone kept a pattern'; end if;
+  begin insert into public.model_zones (model_id, name, material, pattern_path, pattern_width, pattern_height, pattern_hex)
+      values (m_draft, 'Metal con patrón', 'metal', 'test/x.jpg', 1600, 556, '#111111');
+    failed := failed || E'\n5b a metal zone was created with a pattern';
+  exception when check_violation then passed := passed + 1; end;
+  -- A new layer written by the tool keeps the pattern written with it (the panel clears it itself).
+  update public.model_zones set layer_path = 'test/aros-v2.png' where model_id = m_pub and name = 'Aros';
+  select count(*) into n from public.model_zones where model_id = m_pub and name = 'Aros' and pattern_path = 'test/aros-pattern.jpg';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5b a layer change dropped the pattern'; end if;
+  -- A zone that becomes metal drops its pattern instead of failing.
+  insert into public.model_zones (model_id, name, material, pattern_path, pattern_width, pattern_height, pattern_hex, pattern_own)
+    values (m_draft, 'Terminales', 'acetate', 'test/t-pattern.jpg', 1600, 556, '#524040', true) returning id into z_new;
+  update public.model_zones set material = 'metal' where id = z_new;
+  select count(*) into n from public.model_zones where id = z_new and pattern_path is null and pattern_hex is null and pattern_width is null and not pattern_own;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5b a zone turned metal kept its pattern'; end if;
+  -- Publishing checks the pattern size like the layers'.
+  insert into public.models (name, category, base_path, base_width, base_height) values ('TEST PAT', 'Sol', 'test/b2.jpg', 1600, 556) returning id into m_new;
+  insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height, pattern_path, pattern_width, pattern_height, pattern_hex)
+    values (m_new, 'Aros', 'acetate', sw_acet, 'test/a2.png', 1600, 556, 'test/p2.jpg', 800, 278, '#483932');
+  arr := private.publish_problems(m_new, 'test/b2.jpg', 1600, 556);
+  if arr = array['pattern_size_mismatch'] then passed := passed + 1; else failed := failed || E'\n5b publish problems: ' || array_to_string(arr, ','); end if;
+  begin update public.models set published = true where id = m_new;
+    failed := failed || E'\n5b a model with a pattern of another size was published';
+  exception when check_violation then passed := passed + 1; end;
+
+  -- -------------------------------------------------------------------------
+  -- 6. Account deletion: from the app with delete_my_account() (Day 20), default rule for the data
+  -- -------------------------------------------------------------------------
+  perform set_config('role', 'anon', true);
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  begin perform public.delete_my_account(); failed := failed || E'\n6 a guest could call delete_my_account';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+  begin perform public.delete_my_account(); failed := failed || E'\n6 an admin deleted their own account from the app';
+  exception when insufficient_privilege then
+    if sqlerrm = 'admin_account' then passed := passed + 1; else failed := failed || E'\n6 admin refused for the wrong reason: ' || sqlerrm; end if;
+  end;
+  -- TAITIT deletes an account on request (delete_customer_account): admins only, customers only.
+  begin perform public.delete_customer_account(adm); failed := failed || E'\n6 an admin deleted their own account from the panel';
+  exception when check_violation then passed := passed + 1; end;
+  perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
+  begin perform public.delete_customer_account(a); failed := failed || E'\n6 CRITICAL a customer deleted another account';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform public.delete_customer_account(adm); failed := failed || E'\n6 CRITICAL a customer deleted the admin';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
+  perform public.delete_my_account();
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+  select count(*) into n from auth.users where id = a;
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n6 delete_my_account left the user'; end if;
+  select count(*) into n from auth.users where id in (b, adm);
+  if n = 2 then passed := passed + 1; else failed := failed || E'\n6 deleting A touched other accounts'; end if;
   select count(*) into n from public.profiles where id = a;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n6 profile kept after account deletion'; end if;
   select count(*) into n from public.designs where user_id = a;

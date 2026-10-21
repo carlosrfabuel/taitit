@@ -3,6 +3,8 @@ import { AdminLayout } from './components/AdminLayout';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
 import { ConfirmedPage } from './pages/ConfirmedPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ModelEditPage } from './pages/ModelEditPage';
 import { PalettesPage } from './pages/PalettesPage';
@@ -18,6 +20,10 @@ export const router = createBrowserRouter([
   { path: '/confirmed', element: <ConfirmedPage /> },
   // Public: the Supabase Site URL (fallback for any email link Supabase won't redirect elsewhere).
   { path: '/link', element: <ConfirmedPage kind="other" /> },
+  // Public: the privacy policy (app sign-up and account screens, app stores).
+  { path: '/privacy', element: <PrivacyPage /> },
+  // Public: how to delete an account, with or without the app (Google Play).
+  { path: '/account-deletion', element: <AccountDeletionPage /> },
   { path: '*', element: <NotFoundPage /> },
   {
     path: '/',

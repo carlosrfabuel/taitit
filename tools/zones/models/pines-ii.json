@@ -1,0 +1,184 @@
+{
+  "name": "PINES II",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/pines-ii.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M12",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M16",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A12"
+    }
+  ],
+  "groups": [
+    {
+      "name": "neon green metal (top of the front, temples)",
+      "colors": [
+        "#80F07B",
+        "#6CE66B",
+        "#4FE04F",
+        "#A6F59E"
+      ],
+      "tolerance": 42,
+      "zone": "metal"
+    },
+    {
+      "name": "purple metal (lower rims) and navy tips: the largest region is the rims, the rest the tips",
+      "colors": [
+        "#60507B",
+        "#4C4D7B",
+        "#464674",
+        "#534F72",
+        "#6E5F8C"
+      ],
+      "tolerance": 30,
+      "split": {
+        "largest": 1,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "teal of the translucent tips",
+      "colors": [
+        "#396872",
+        "#2A7164",
+        "#6C7DA1",
+        "#6B7795"
+      ],
+      "tolerance": 30,
+      "zone": "terminales"
+    },
+    {
+      "name": "dark green core of the far tip above the lens (holes in the tip otherwise)",
+      "colors": [
+        "#027B5E",
+        "#017F62",
+        "#007D5A",
+        "#2F7F66",
+        "#25604A"
+      ],
+      "tolerance": 22,
+      "within": [
+        455,
+        35,
+        645,
+        72
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "grey-navy shades of the near tip",
+      "colors": [
+        "#484A5A",
+        "#656480",
+        "#44556C",
+        "#77758B",
+        "#707A8A"
+      ],
+      "tolerance": 20,
+      "attach": true
+    },
+    {
+      "name": "grey-blue gloss on top of the near tip",
+      "colors": [
+        "#9E9EB0",
+        "#8D90A1",
+        "#7C9A9C",
+        "#6D9B92"
+      ],
+      "tolerance": 14,
+      "within": [
+        1410,
+        92,
+        1570,
+        310
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "teal core of the far tip seen through the lens",
+      "colors": [
+        "#419373",
+        "#318F6F",
+        "#43937A",
+        "#4A957C"
+      ],
+      "tolerance": 14,
+      "within": [
+        640,
+        85,
+        770,
+        240
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        60,
+        140,
+        645,
+        250
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "purple bevel fragments on the left rim and bridge are rims, not tips"
+    },
+    {
+      "rect": [
+        60,
+        250,
+        1010,
+        530
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "purple bevel fragments on the lower rims"
+    },
+    {
+      "rect": [
+        1410,
+        95,
+        1570,
+        310
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1410"
+    },
+    {
+      "rect": [
+        1410,
+        95,
+        1570,
+        310
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "near tip: green reflections"
+    }
+  ]
+}

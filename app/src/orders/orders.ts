@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 
 /** Limit (database: orders.notes ≤ 1000 characters). */
 export const NOTES_MAX = 1000;
+/** Identical frames per order (database limit). */
+export const QUANTITY_MAX = 99;
 
 /** Width of the order image (the full photo width of today's models; enough for print and email). */
 export const ORDER_IMAGE_WIDTH = 1600;
@@ -143,15 +145,22 @@ export const linesToSelection = (lines: OrderLine[]): OrderSelection => ({
 });
 
 /**
- * Identity of what is ordered: same model, same lines and same notes = same content. Used to keep
+ * Identity of what is ordered: same model, same lines, same notes and quantity = same content. Used to keep
  * one order key per content until that order succeeds (see pendingOrders.ts). The notes count: the
  * same design for another patient (other notes) must be a new order, not the earlier one.
  */
-export const orderContentKey = (userId: string, modelId: string, lines: OrderLine[], notes: string | null) =>
+export const orderContentKey = (
+  userId: string,
+  modelId: string,
+  lines: OrderLine[],
+  notes: string | null,
+  quantity: number,
+) =>
   JSON.stringify([
     userId,
     modelId,
     notes ?? '',
+    quantity,
     lines.map((l) => [
       l.zoneId,
       l.swatchId,
@@ -174,11 +183,13 @@ export async function placeOrder(input: {
   modelId: string;
   selection: OrderSelection;
   notes: string | null;
+  quantity: number;
 }): Promise<{ id: string; number: number; created: boolean }> {
   const { data, error } = await supabase.rpc('create_order', {
     p_key: input.key,
     p_model_id: input.modelId,
     p_selection: input.selection,
+    p_quantity: input.quantity,
     ...(input.notes ? { p_notes: input.notes } : {}),
   });
   if (error) throw error;
@@ -196,6 +207,7 @@ export function orderErrorMessage(error: unknown): string {
   if (message.includes('order_colors_changed'))
     return 'Some colors changed in the meantime. Review your design and try again.';
   if (message.includes('order_model_unavailable')) return 'This model is no longer available.';
+  if (message.includes('order_quantity_invalid')) return `Choose a quantity between 1 and ${QUANTITY_MAX}.`;
   if (message.includes('not_signed_in') || message.includes('JWT'))
     return 'Your session has expired. Please sign in again.';
   // The upload is refused when the account can't order (any more) or the image limit is reached.
@@ -227,6 +239,8 @@ export type Order = {
   id: string;
   number: number;
   modelName: string;
+  /** Identical frames of this design. */
+  quantity: number;
   notes: string | null;
   shopRef: string | null;
   createdAt: string;
@@ -245,12 +259,13 @@ export const orderKeys = {
 };
 
 const ORDER_COLUMNS =
-  'id, number, model_name, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 type OrderRow = {
   id: string;
   number: number;
   model_name: string;
+  quantity: number;
   notes: string | null;
   shop_ref: string | null;
   created_at: string;
@@ -287,6 +302,7 @@ async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
     id: r.id,
     number: r.number,
     modelName: r.model_name,
+    quantity: r.quantity,
     notes: r.notes,
     shopRef: r.shop_ref,
     createdAt: r.created_at,
@@ -351,7 +367,7 @@ export async function fetchOrder(userId: string, id: string): Promise<Order | nu
 
 /** Order summary as plain text (WhatsApp). */
 export function orderText(
-  order: Pick<Order, 'number' | 'modelName' | 'items' | 'shopRef' | 'notes' | 'business'>,
+  order: Pick<Order, 'number' | 'modelName' | 'quantity' | 'items' | 'shopRef' | 'notes' | 'business'>,
 ): string {
   const finishName = { gloss: 'gloss', matte: 'matte' } as const;
   return [
@@ -360,6 +376,7 @@ export function orderText(
       ? [`From: ${order.business.name}${order.business.taxId ? ` (${order.business.taxId})` : ''}`]
       : []),
     `Model: ${order.modelName}`,
+    `Quantity: ${order.quantity}`,
     ...order.items.map(
       (i) => `• ${i.zoneName}: ${i.swatchName}${i.finish ? ` (${finishName[i.finish]})` : ''}, ref. ${i.ref}`,
     ),

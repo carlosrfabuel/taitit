@@ -73,6 +73,28 @@ export function applySwatch(
   return { ...picks, [zone.id]: { swatchId: swatch.id, finish: next } };
 }
 
+/**
+ * The customer picks a color for a zone. The tips follow the secondary front (client rule
+ * 2026-10-20): when both are acetate and the tips show the same color as the secondary front, a new
+ * secondary color goes to the tips too. Tips the customer gave their own color keep it. One change
+ * (one undo step) either way.
+ */
+export function chooseSwatch(
+  picks: Picks,
+  zones: CatalogZone[],
+  zone: CatalogZone,
+  swatches: CatalogSwatch[],
+  swatch: CatalogSwatch,
+): Picks {
+  const next = applySwatch(picks, zone, swatches, swatch);
+  if (next === picks || zone.role !== 'secondary') return next;
+  const tips = zones.find((z) => z.role === 'tips');
+  if (!tips || tips.id === zone.id || tips.material !== zone.material) return next;
+  const before = currentPick(zone, swatches, picks).swatch;
+  const tipsNow = currentPick(tips, swatches, picks).swatch;
+  return before && tipsNow?.id === before.id ? applySwatch(next, tips, swatches, swatch) : next;
+}
+
 /** Sets the finish of a zone's current color; ignored when the color doesn't offer it. */
 export function applyFinish(
   picks: Picks,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
-import { FINISH_LABEL, MATERIAL_LABEL } from '../../lib/labels';
+import { FINISH_LABEL, MATERIAL_LABEL, ZONE_ROLE_LABEL } from '../../lib/labels';
 import { Button, Card, Modal, Spinner, Swatch } from '../ui';
 import { publicUrl } from '../../lib/images';
 import { modelKeys, reorder, saveOrder, type ModelRow } from '../../lib/models';
@@ -125,7 +125,18 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                   label={`Forma de la zona ${zone.name}`}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">{zone.name}</p>
+                  <p className="font-semibold text-ink">
+                    {zone.name}
+                    {zone.role ? (
+                      <span className="ml-2 rounded-full bg-selected px-2 py-0.5 text-xs font-semibold text-on-selected">
+                        {ZONE_ROLE_LABEL[zone.role]}
+                      </span>
+                    ) : (
+                      <span className="ml-2 rounded-full bg-highlight px-2 py-0.5 text-xs font-semibold text-on-highlight">
+                        Sin zona asignada
+                      </span>
+                    )}
+                  </p>
                   <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
                     {MATERIAL_LABEL[zone.material]} ·{' '}
                     {swatch ? (
@@ -139,6 +150,19 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                       <span className="text-danger">sin color por defecto</span>
                     )}
                   </p>
+                  {zone.pattern_hex && (
+                    <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                      {zone.pattern_own ? (
+                        <>
+                          Carey de la foto · color medio
+                          <Swatch hex={zone.pattern_hex} title={zone.pattern_hex} size={16} />
+                          {zone.pattern_hex} (un havana de este color se ve como en la foto)
+                        </>
+                      ) : (
+                        'Carey real de TAITIT para los colores havana'
+                      )}
+                    </p>
+                  )}
                   {!zone.layer_path && <p className="text-sm text-danger">Falta la capa.</p>}
                   {sizeMismatch && (
                     <p className="text-sm text-danger">

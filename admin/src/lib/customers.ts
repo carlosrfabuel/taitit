@@ -60,6 +60,15 @@ export async function countPending(): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * Deletes a customer's account on their request (database function: admins only; never an admin or
+ * the caller). Profile and designs go; their orders stay with the name/email copy.
+ */
+export async function deleteCustomerAccount(userId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_customer_account', { p_user: userId });
+  if (error) throw error;
+}
+
 /** Approve, reject or move back to pending (database function: admins only, never their own account). */
 export async function setAccountStatus(userId: string, status: AccountStatus): Promise<void> {
   const { error } = await supabase.rpc('set_account_status', { p_user: userId, p_status: status });

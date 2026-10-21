@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, RotateCcw, Users, X } from 'lucide-react';
+import { Check, RotateCcw, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
-import { Button, EmptyState, Spinner, Table, Tag, type Column } from '../components/ui';
+import { Button, EmptyState, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
+  deleteCustomerAccount,
   customerKeys,
   listCustomers,
   setAccountStatus,
@@ -30,6 +31,14 @@ export function CustomersPage() {
     mutationFn: ({ id, status }: { id: string; status: AccountStatus }) => setAccountStatus(id, status),
     onMutate: () => setError(null),
     onError: (e) => setError(`No se pudo cambiar el estado. ${dbMessage(e)}`),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
+  });
+
+  // Deleting an account on the customer's request (the public /account-deletion page offers it by email).
+  const [toDelete, setToDelete] = useState<CustomerRow | null>(null);
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteCustomerAccount(id),
+    onSuccess: () => setToDelete(null),
     onSettled: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 
@@ -109,12 +118,23 @@ export function CustomersPage() {
     {
       key: 'actions',
       header: '',
-      className: 'w-64',
+      className: 'w-72',
       render: (row) => (
         <div className="flex justify-end gap-2">
           {row.status !== 'approved' && action(row, 'approved', 'Aprobar', Check, 'primary')}
           {row.status !== 'rejected' && action(row, 'rejected', 'Rechazar', X, 'secondary')}
           {row.status !== 'pending' && action(row, 'pending', 'Pendiente', RotateCcw, 'ghost')}
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Trash2 className="size-4" aria-hidden />}
+            disabled={change.isPending || remove.isPending}
+            onClick={() => {
+              remove.reset();
+              setToDelete(row);
+            }}
+            aria-label={`Eliminar cuenta: ${row.email ?? row.full_name ?? 'cliente'}`}
+          />
         </div>
       ),
     },
@@ -171,6 +191,45 @@ export function CustomersPage() {
           }
         />
       )}
+      <Modal
+        open={!!toDelete}
+        title="Eliminar cuenta"
+        onClose={() => !remove.isPending && setToDelete(null)}
+        dismissible={!remove.isPending}
+        footer={
+          <>
+            <Button variant="secondary" disabled={remove.isPending} onClick={() => setToDelete(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              loading={remove.isPending}
+              onClick={() => toDelete && remove.mutate(toDelete.id)}
+            >
+              Eliminar cuenta
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3 text-sm">
+          <p>
+            ¿Eliminar la cuenta de{' '}
+            <span className="font-semibold">
+              {toDelete?.business_name || toDelete?.full_name || 'este cliente'}
+            </span>
+            {toDelete?.email ? ` (${toDelete.email})` : ''}? Hazlo solo si el cliente lo ha pedido.
+          </p>
+          <p className="text-muted">
+            Se borran la cuenta, los datos de empresa y los diseños guardados. Sus pedidos se conservan, con
+            el nombre y el email con los que se enviaron. No se puede deshacer.
+          </p>
+          {remove.isError && (
+            <p role="alert" className="text-danger">
+              No se pudo eliminar. {dbMessage(remove.error)}
+            </p>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

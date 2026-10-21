@@ -94,7 +94,10 @@ export function Select({
   options,
   className = '',
   ...rest
-}: Common & SelectHTMLAttributes<HTMLSelectElement> & { options: { value: string; label: string }[] }) {
+}: Common &
+  SelectHTMLAttributes<HTMLSelectElement> & {
+    options: { value: string; label: string; disabled?: boolean }[];
+  }) {
   return (
     <Field label={label} error={error} hint={hint}>
       {(id, describedBy) => (
@@ -106,7 +109,7 @@ export function Select({
           className={`${control} h-10 border-line ${className}`}
         >
           {options.map((o) => (
-            <option key={o.value} value={o.value}>
+            <option key={o.value} value={o.value} disabled={o.disabled}>
               {o.label}
             </option>
           ))}

@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import type { Database } from '@taitit/shared';
-import { supabase } from '@/lib/supabase';
+import { supabase, throwawayClient } from '@/lib/supabase';
+import { forgetUserOrders } from '@/orders/pendingOrders';
 import { authErrorMessage } from './messages';
 import type { BusinessKey } from './business';
 import { forgetSignUpBusiness, pendingSignUpBusiness, rememberSignUpBusiness } from './pendingBusiness';
@@ -39,6 +40,8 @@ type AuthContextValue = {
   reloadProfile: () => void;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<Result>;
+  /** Deletes the signed-in account after checking its password (store requirement), then signs out. */
+  deleteAccount: (password: string) => Promise<Result>;
   updatePassword: (password: string) => Promise<Result>;
   /** Turns the one-time code from an email link into a session on this device. errorCode = Supabase error code. */
   exchangeCode: (code: string) => Promise<Result & { errorCode: string | null }>;
@@ -199,6 +202,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) await supabase.auth.signOut({ scope: 'local' });
   }, []);
 
+  const deleteAccount = useCallback(
+    async (password: string): Promise<Result> => {
+      const email = session?.user.email;
+      const uid = session?.user.id;
+      if (!email || !uid) return { error: 'You are not signed in.' };
+      // Password checked on a client that keeps nothing: the app's own sign-in is not touched.
+      const check = await throwawayClient().auth.signInWithPassword({ email, password });
+      if (check.error)
+        return {
+          error:
+            check.error.code === 'invalid_credentials'
+              ? 'Incorrect password.'
+              : authErrorMessage(check.error),
+        };
+      await throwawayClient().auth.signOut({ scope: 'local' });
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error)
+        return {
+          error: error.message.includes('admin_account')
+            ? "Admin accounts can't be deleted from the app. Ask another admin."
+            : "Couldn't delete the account. Check your connection and try again.",
+        };
+      // Nothing of the account stays on this phone.
+      await Promise.all([forgetUserOrders(uid), forgetSignUpBusiness(email)]);
+      await supabase.auth.signOut({ scope: 'local' });
+      return { error: null };
+    },
+    [session],
+  );
+
   const sendPasswordReset = useCallback(async (email: string): Promise<Result> => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: resetUrl() });
     return { error: error ? authErrorMessage(error) : null };
@@ -223,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      deleteAccount,
       sendPasswordReset,
       resendConfirmation,
       updatePassword,
@@ -237,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      deleteAccount,
       sendPasswordReset,
       resendConfirmation,
       updatePassword,

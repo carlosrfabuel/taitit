@@ -1,0 +1,75 @@
+{
+  "name": "LOULOU",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/loulou.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M07",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A12"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A12"
+    }
+  ],
+  "groups": [
+    {
+      "name": "magenta metal (front and temples)",
+      "colors": [
+        "#EF038B",
+        "#FD3AB4",
+        "#FD6DD5",
+        "#D80079"
+      ],
+      "tolerance": 45,
+      "zone": "metal"
+    },
+    {
+      "name": "turquoise acetate: the 2 largest regions are the inner rims, the rest the tips",
+      "colors": [
+        "#4FB3AF",
+        "#8EC4C6",
+        "#6CC9C1",
+        "#A3DAD6",
+        "#22B5A9"
+      ],
+      "tolerance": 36,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        688,
+        146,
+        770,
+        235
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens, below the inner rim it crosses"
+    }
+  ]
+}

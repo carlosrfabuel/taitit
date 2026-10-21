@@ -1,0 +1,183 @@
+{
+  "name": "SONNIE",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/sonnie.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M13",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A16",
+      "smooth": 8,
+      "pattern": "own"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A16",
+      "smooth": 6,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "mint metal (front and temples); the grey floor shadow under the front is not",
+      "colors": [
+        "#7CA080",
+        "#A2C6AA",
+        "#8DB592",
+        "#6A9070",
+        "#B8D6BE"
+      ],
+      "tolerance": 30,
+      "minSaturation": 18,
+      "zone": "metal"
+    },
+    {
+      "name": "tortoiseshell acetate: the 2 largest regions are the inner rims, the rest the tips",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840"
+      ],
+      "tolerance": 40,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "clear grey part, mauve shadows and pale gloss of the near tip",
+      "colors": [
+        "#A29B9F",
+        "#9D959A",
+        "#9C9394",
+        "#ADA0A1",
+        "#DAD5DB",
+        "#6F5E61",
+        "#7C6E71",
+        "#746A6D",
+        "#635354",
+        "#EFE4E0",
+        "#F0DDD0",
+        "#E1DEE2"
+      ],
+      "tolerance": 18,
+      "within": [
+        1455,
+        110,
+        1570,
+        316
+      ],
+      "attach": true
+    },
+    {
+      "name": "mauve shadows and pale gloss of the far tip",
+      "colors": [
+        "#605154",
+        "#6C5D5F",
+        "#D1CDCF",
+        "#C4BEBE"
+      ],
+      "tolerance": 18,
+      "within": [
+        440,
+        50,
+        650,
+        120
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        40,
+        120,
+        560,
+        565
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "small tortoiseshell bits of the left inner rim are rim, not tips"
+    },
+    {
+      "rect": [
+        560,
+        310,
+        1060,
+        565
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "same, right inner rim (below the far tip)"
+    },
+    {
+      "rect": [
+        560,
+        150,
+        700,
+        310
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "same, right inner rim (left of the far tip)"
+    },
+    {
+      "rect": [
+        787,
+        150,
+        1060,
+        310
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "same, right inner rim (right of the far tip)"
+    },
+    {
+      "rect": [
+        702,
+        170,
+        785,
+        310
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens touches the inner rim"
+    },
+    {
+      "rect": [
+        676,
+        146,
+        702,
+        200
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip just below the inner rim it crosses"
+    }
+  ]
+}

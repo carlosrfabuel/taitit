@@ -1,0 +1,88 @@
+{
+  "name": "VINCE",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/vince.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M10",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A05"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A05"
+    }
+  ],
+  "groups": [
+    {
+      "name": "navy metal (front and temples)",
+      "colors": [
+        "#2E2E4B",
+        "#434263",
+        "#4E4B67",
+        "#44445E"
+      ],
+      "tolerance": 30,
+      "zone": "metal"
+    },
+    {
+      "name": "lit top face of the front and the far temple seen through the left lens",
+      "colors": [
+        "#5B6B9F",
+        "#6A78A8",
+        "#788396",
+        "#5A667B",
+        "#7B8597"
+      ],
+      "tolerance": 24,
+      "zone": "metal"
+    },
+    {
+      "name": "orange acetate: the 2 largest regions are the inner rims, the rest the tips",
+      "colors": [
+        "#EA6F21",
+        "#FD9B5D",
+        "#FE8625",
+        "#FDA463",
+        "#FFBBA6",
+        "#FDC094"
+      ],
+      "tolerance": 45,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        655,
+        119,
+        725,
+        168
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens touches the inner rim"
+    }
+  ]
+}

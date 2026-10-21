@@ -1,0 +1,278 @@
+{
+  "name": "SOFIE",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/sofie.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M02",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M06",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A11",
+      "smooth": 5,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "dark grey metal (front) and the grey tortoiseshell tips",
+      "colors": [
+        "#535156",
+        "#676A6E",
+        "#373334",
+        "#4A484C",
+        "#5E5C61"
+      ],
+      "tolerance": 30,
+      "zone": "metal"
+    },
+    {
+      "name": "khaki gold metal (end pieces and temples); not the grey highlights of the front",
+      "colors": [
+        "#8C7D6D",
+        "#AD9D89",
+        "#9A8A70",
+        "#BFAE92"
+      ],
+      "tolerance": 30,
+      "minSaturation": 14,
+      "zone": "frente"
+    },
+    {
+      "name": "light and teal spots of the far tip",
+      "colors": [
+        "#C8C8CC",
+        "#B0B0B6",
+        "#E0E0E4",
+        "#40A8A0",
+        "#5CB8B0",
+        "#2E8C86",
+        "#8A8C92",
+        "#5E8C8E",
+        "#518082",
+        "#5B8085"
+      ],
+      "tolerance": 30,
+      "within": [
+        462,
+        10,
+        700,
+        84
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "light and teal spots of the far tip (seen through the lens)",
+      "colors": [
+        "#C8C8CC",
+        "#B0B0B6",
+        "#E0E0E4",
+        "#40A8A0",
+        "#5CB8B0",
+        "#2E8C86",
+        "#8A8C92",
+        "#5E8C8E",
+        "#518082",
+        "#5B8085"
+      ],
+      "tolerance": 30,
+      "within": [
+        688,
+        93,
+        810,
+        223
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "light spots of the near tip",
+      "colors": [
+        "#C8C8CC",
+        "#B0B0B6",
+        "#E0E0E4",
+        "#40A8A0",
+        "#5CB8B0",
+        "#2E8C86",
+        "#8A8C92",
+        "#5E8C8E",
+        "#518082",
+        "#5B8085"
+      ],
+      "tolerance": 30,
+      "within": [
+        1480,
+        50,
+        1570,
+        278
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "poly": [
+        [
+          462,
+          10
+        ],
+        [
+          701,
+          10
+        ],
+        [
+          701,
+          72
+        ],
+        [
+          690,
+          75.5
+        ],
+        [
+          680,
+          78.5
+        ],
+        [
+          670,
+          80.5
+        ],
+        [
+          662,
+          85
+        ],
+        [
+          462,
+          85
+        ]
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 462 to the right rim it passes behind (above the rim, which passes in front: its top edge, not a square corner)"
+    },
+    {
+      "poly": [
+        [
+          462,
+          10
+        ],
+        [
+          701,
+          10
+        ],
+        [
+          701,
+          72
+        ],
+        [
+          690,
+          75.5
+        ],
+        [
+          680,
+          78.5
+        ],
+        [
+          670,
+          80.5
+        ],
+        [
+          662,
+          85
+        ],
+        [
+          462,
+          85
+        ]
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "beige spots of the far tip (above the rim, which passes in front: its top edge, not a square corner)"
+    },
+    {
+      "rect": [
+        688,
+        93,
+        810,
+        223
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "beige spots of the far tip in the lens"
+    },
+    {
+      "rect": [
+        688,
+        93,
+        810,
+        223
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip seen through the right lens"
+    },
+    {
+      "rect": [
+        1480,
+        50,
+        1570,
+        278
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1480"
+    },
+    {
+      "rect": [
+        1480,
+        50,
+        1570,
+        278
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip: gold reflections"
+    },
+    {
+      "rect": [
+        1190,
+        88,
+        1262,
+        140
+      ],
+      "from": "metal",
+      "to": "frente",
+      "note": "hinge details of the gold temple (dark shading matched the grey front)"
+    },
+    {
+      "rect": [
+        680,
+        205,
+        702,
+        232
+      ],
+      "from": "terminales",
+      "to": "none",
+      "piecesInside": true,
+      "note": "top edge of the right nose pad (light grey like the tip spots)"
+    }
+  ]
+}

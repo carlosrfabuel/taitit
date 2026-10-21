@@ -52,6 +52,15 @@ export async function orderKeyFor(content: string, now = Date.now()): Promise<st
   return key;
 }
 
+/** Forgets every pending order of this user (their account was deleted). */
+export async function forgetUserOrders(userId: string): Promise<void> {
+  const store = await load();
+  // Content keys start with the user id (orderContentKey).
+  const prefix = JSON.stringify([userId]).slice(0, -1);
+  const rest = Object.fromEntries(Object.entries(store).filter(([content]) => !content.startsWith(prefix)));
+  if (Object.keys(rest).length !== Object.keys(store).length) await save(rest);
+}
+
 /** The order for this content went through: the next one is a new order. */
 export async function orderPlaced(content: string): Promise<void> {
   const store = await load();

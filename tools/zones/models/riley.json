@@ -1,0 +1,118 @@
+{
+  "name": "RILEY",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/riley.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M10",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M11",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A07"
+    }
+  ],
+  "groups": [
+    {
+      "name": "dark blue metal (rims)",
+      "colors": [
+        "#384475",
+        "#2C3566"
+      ],
+      "tolerance": 35,
+      "zone": "metal"
+    },
+    {
+      "name": "light blue (bridge, end pieces, temples and tips)",
+      "colors": [
+        "#0590CB",
+        "#5DA5D6",
+        "#0471AA",
+        "#0994CD",
+        "#47AFE0",
+        "#7DB3E0",
+        "#71B1E2",
+        "#9BC0E6"
+      ],
+      "tolerance": 45,
+      "zone": "frente"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        500,
+        5,
+        700,
+        110
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 500 (same light blue as the temple)"
+    },
+    {
+      "rect": [
+        700,
+        30,
+        830,
+        225
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens"
+    },
+    {
+      "rect": [
+        660,
+        250,
+        720,
+        330
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "light blue reflection on the right nose pad"
+    },
+    {
+      "rect": [
+        148,
+        250,
+        185,
+        306
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "light blue reflection on the inner bevel of the left rim"
+    },
+    {
+      "rect": [
+        1478,
+        95,
+        1565,
+        320
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1478"
+    }
+  ]
+}

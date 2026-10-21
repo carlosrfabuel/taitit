@@ -47,7 +47,8 @@ export function LoginPage() {
         noValidate
         className="w-full max-w-sm rounded-2xl border border-line bg-surface p-8"
       >
-        <div className="text-center text-xl font-extrabold tracking-wider text-brand">TAITIT · Panel</div>
+        <img src="/logo.svg" alt="TAITIT" className="mx-auto h-8 w-auto" />
+        <div className="text-center text-sm font-semibold uppercase tracking-widest text-muted">Panel</div>
         <p className="mt-1 mb-6 text-center text-sm text-muted">Acceso de administrador</p>
         {status === 'loading' && !loading ? (
           <Spinner label="Comprobando sesión…" />

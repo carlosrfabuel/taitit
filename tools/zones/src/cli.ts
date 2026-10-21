@@ -3,12 +3,16 @@
 //   npm run zones -- analyze <photo>          dominant colors + crop, to help write a model config
 //   npm run zones -- build <models/x.json>    base.jpg, <zone>.png, debug.png, preview.jpg, manifest.json
 //   npm run zones -- upload <out/x>           Storage + models/model_zones rows (admin account)
+//   npm run zones -- texture <models/x.json> <zone> [--patch 24]   textures/tortoise.jpg from a tortoiseshell zone
+//   npm run zones -- texture-image <photo> <x1,y1,x2,y2> [--scale s] [--patch 24]   same, from a photo rectangle (e.g. a sample chip)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { loadConfig, MAX_ZONES, slug } from './config.ts';
-import { autoCrop, isBackground, loadCropped, writeJpeg, writePng, type Raster } from './image.ts';
+import { autoCrop, isBackground, loadCropped, writeJpeg, writePng, type Crop, type Raster } from './image.ts';
 import { buildLayers, composite } from './layers.ts';
+import sharp from 'sharp';
 import { segment } from './segment.ts';
+import { buildTexture, loadTexture, writePattern } from './patterns.ts';
 
 const OUT_ROOT = resolve(import.meta.dirname, '..', 'out');
 
@@ -17,6 +21,8 @@ export type Manifest = {
   slug: string;
   width: number;
   height: number;
+  /** Part of the original photo the images were cut from (original pixels; for the zone sheets). */
+  crop?: Crop;
   base: string;
   category: string;
   sizeRef: string | null;
@@ -26,10 +32,13 @@ export type Manifest = {
     id: string;
     label: string;
     material: 'metal' | 'acetate';
+    role: 'main' | 'secondary' | 'tips' | null;
     file: string;
     pixels: number;
     defaultRef: string | null;
     defaultFinish: 'gloss' | 'matte' | null;
+    /** Tortoiseshell pattern for havana colors (acetate zones): file, average color, own or borrowed. */
+    pattern: { file: string; hex: string; own: boolean } | null;
   }[];
 };
 
@@ -108,8 +117,8 @@ async function build(configFile: string) {
   const crop = !config.crop || config.crop === 'auto' ? await autoCrop(inputPath, threshold) : config.crop;
   const raster = await loadCropped(inputPath, crop, config.outputWidth ?? 1600);
 
-  const seg = segment(raster, config.zones, config.groups, config.fixes ?? [], threshold);
-  const layers = await buildLayers(raster, seg, config.zones);
+  const seg = segment(raster, config.zones, config.groups, config.fixes ?? [], threshold, config.edgeGrow);
+  const layers = await buildLayers(raster, seg, config.zones, config.groups, await loadTexture());
 
   const modelSlug = slug(config.name);
   const dir = join(OUT_ROOT, modelSlug);
@@ -118,8 +127,13 @@ async function build(configFile: string) {
   for (let k = 0; k < config.zones.length; k++)
     await writePng(layers.zones[k]!, join(dir, `${config.zones[k]!.id}.png`));
   await writePng(layers.debug, join(dir, 'debug.png'));
+  for (let k = 0; k < config.zones.length; k++) {
+    const p = layers.patterns[k];
+    if (p) await writePattern(p.raster, join(dir, `${config.zones[k]!.id}-pattern.jpg`));
+  }
 
-  // Visual QA: the same zones in four test colorways (dark, light, translucent, gloss).
+  // Visual QA: the same zones in four test colorways (dark, light, translucent, gloss), then a fifth
+  // with the acetate zones in a havana color drawn with their tortoiseshell pattern.
   const sets = [
     ['#1E1E22', '#4CFF5A', '#C2263A', '#2350C8'],
     ['#E9E6DF', '#7A4A1E', '#C9A45C', '#4A7FD0'],
@@ -136,6 +150,15 @@ async function build(configFile: string) {
       })),
     ),
   );
+  tiles.push(
+    composite(
+      layers,
+      config.zones.map((z) => ({
+        hex: z.material === 'acetate' ? '#C08A3E' : '#C9A45C',
+        pattern: z.material === 'acetate',
+      })),
+    ),
+  );
   const sheet = new Uint8Array(raster.width * raster.height * 4 * tiles.length);
   tiles.forEach((t, j) => sheet.set(t.data, j * t.data.length));
   await writeJpeg(
@@ -149,6 +172,7 @@ async function build(configFile: string) {
     slug: modelSlug,
     width: raster.width,
     height: raster.height,
+    crop,
     base: 'base.jpg',
     category: config.category ?? '',
     sizeRef: config.sizeRef ?? null,
@@ -158,10 +182,14 @@ async function build(configFile: string) {
       id: z.id,
       label: z.label,
       material: z.material,
+      role: z.role ?? null,
       file: `${z.id}.png`,
       pixels: seg.stats[k]!.pixels,
       defaultRef: z.defaultRef ?? null,
       defaultFinish: z.defaultFinish ?? null,
+      pattern: layers.patterns[k]
+        ? { file: `${z.id}-pattern.jpg`, hex: layers.patterns[k]!.hex, own: layers.patterns[k]!.own }
+        : null,
     })),
   };
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
@@ -179,6 +207,40 @@ async function build(configFile: string) {
   );
   console.log(`  output: ${dir}  (check debug.png and preview.jpg)`);
   if (seg.stats.some((s) => s.pixels === 0)) process.exitCode = 1;
+}
+
+/** textures/tortoise.jpg from a zone that is tortoiseshell in its photo (same crop and zones as build). */
+async function texture(configFile: string, zoneId: string, patch: number) {
+  const { config, inputPath } = loadConfig(resolve(configFile));
+  const threshold = config.backgroundThreshold ?? 235;
+  const crop = !config.crop || config.crop === 'auto' ? await autoCrop(inputPath, threshold) : config.crop;
+  const raster = await loadCropped(inputPath, crop, config.outputWidth ?? 1600);
+  const seg = segment(raster, config.zones, config.groups, config.fixes ?? [], threshold, config.edgeGrow);
+  const index = config.zones.findIndex((z) => z.id === zoneId) + 1;
+  if (!index) throw new Error(`No zone "${zoneId}" in ${configFile}.`);
+  const t = await buildTexture(raster, (i) => seg.zone[i] === index && !seg.edge[i], 1600, 720, patch);
+  console.log(`texture from ${t.patches} patches of ${patch} px -> ${t.file}`);
+}
+
+/** textures/tortoise.jpg from a rectangle of any photo (e.g. a sample chip), scaled to the frames' size. */
+async function textureFromImage(image: string, rect: string, scale: number, patch: number) {
+  const [x1, y1, x2, y2] = rect.split(',').map(Number) as [number, number, number, number];
+  const { data, info } = await sharp(resolve(image))
+    .rotate()
+    .extract({ left: x1, top: y1, width: x2 - x1, height: y2 - y1 })
+    .resize({ width: Math.round((x2 - x1) * scale) })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const raster = {
+    width: info.width,
+    height: info.height,
+    data: new Uint8Array(data.buffer, data.byteOffset, data.length),
+  };
+  const t = await buildTexture(raster, () => true, 1600, 720, patch);
+  console.log(
+    `texture from ${t.patches} patches of ${patch} px (source ${raster.width}x${raster.height}) -> ${t.file}`,
+  );
 }
 
 async function upload(outDir: string) {
@@ -199,8 +261,13 @@ try {
   if (command === 'analyze' && arg) await analyze(arg, flag('threshold', 235));
   else if (command === 'build' && arg) await build(arg);
   else if (command === 'upload' && arg) await upload(arg);
+  else if (command === 'texture' && arg && rest[0]) await texture(arg, rest[0], flag('patch', 24));
+  else if (command === 'texture-image' && arg && rest[0])
+    await textureFromImage(arg, rest[0], flag('scale', 1), flag('patch', 24));
   else {
-    console.log('usage: npm run zones -- analyze <photo> | build <models/x.json> | upload <out/x>');
+    console.log(
+      'usage: npm run zones -- analyze <photo> | build <models/x.json> | upload <out/x> | texture <models/x.json> <zone>',
+    );
     process.exitCode = 2;
   }
 } catch (e) {

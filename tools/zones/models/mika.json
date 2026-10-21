@@ -1,0 +1,105 @@
+{
+  "name": "MIKA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/mika.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M06",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M16",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A12"
+    }
+  ],
+  "groups": [
+    {
+      "name": "orange metal (rims and temples)",
+      "colors": [
+        "#F4A55C",
+        "#F8B27B",
+        "#FEB16D",
+        "#C5743A"
+      ],
+      "tolerance": 40,
+      "zone": "metal"
+    },
+    {
+      "name": "lavender metal (top bar)",
+      "colors": [
+        "#978EBC",
+        "#9581B5"
+      ],
+      "tolerance": 35,
+      "zone": "frente"
+    },
+    {
+      "name": "translucent navy tips (teal where seen through the lens)",
+      "colors": [
+        "#50526F",
+        "#2B3C64",
+        "#6190A9"
+      ],
+      "tolerance": 40,
+      "zone": "terminales"
+    },
+    {
+      "name": "smoky grey top of the near tip, by the joint",
+      "colors": [
+        "#3D3435",
+        "#494552",
+        "#66656C",
+        "#838699",
+        "#878790",
+        "#707694",
+        "#696E85",
+        "#7E8197"
+      ],
+      "tolerance": 22,
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        1452,
+        85,
+        1570,
+        310
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip (from the joint at x 1452): lavender tints of the translucent navy"
+    },
+    {
+      "rect": [
+        1452,
+        85,
+        1570,
+        310
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "near tip: orange reflections"
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "name": "PAUL",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/paul.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M11",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M04",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A11",
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "blue metal (front and temples)",
+      "colors": [
+        "#4B4983",
+        "#636380",
+        "#3E3C78",
+        "#5D5B95"
+      ],
+      "tolerance": 32,
+      "minSaturation": 25,
+      "zone": "metal"
+    },
+    {
+      "name": "far temple seen through the left lens (lavender)",
+      "colors": [
+        "#9D88B8",
+        "#937BB4",
+        "#9081B2"
+      ],
+      "tolerance": 22,
+      "zone": "metal"
+    },
+    {
+      "name": "grey metal: the largest region is the top bar; other grey bits are shading on the blue metal",
+      "colors": [
+        "#8E8C9B",
+        "#AFAEB9",
+        "#88878D",
+        "#97989D"
+      ],
+      "tolerance": 26,
+      "split": {
+        "largest": 1,
+        "zone": "frente",
+        "rest": "metal"
+      }
+    },
+    {
+      "name": "black-grey acetate tips (teal where seen through the lens)",
+      "colors": [
+        "#312E2F",
+        "#2C2A2D",
+        "#52928B",
+        "#55988F"
+      ],
+      "tolerance": 34,
+      "zone": "terminales"
+    },
+    {
+      "name": "grey shades of the far tip",
+      "colors": [
+        "#504B51",
+        "#6C6263",
+        "#545160",
+        "#4B464D",
+        "#625B62",
+        "#605D6D",
+        "#5A5563"
+      ],
+      "tolerance": 14,
+      "within": [
+        455,
+        15,
+        705,
+        80
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "grey shades of the near tip",
+      "colors": [
+        "#4F4C52",
+        "#605C64",
+        "#716B72",
+        "#645E6A",
+        "#49454C",
+        "#6B646C"
+      ],
+      "tolerance": 14,
+      "within": [
+        1462,
+        85,
+        1575,
+        266
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "inner face of the grey bar leg",
+      "colors": [
+        "#6D6B73",
+        "#64636B"
+      ],
+      "tolerance": 12,
+      "within": [
+        455,
+        85,
+        480,
+        125
+      ],
+      "zone": "frente"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        280,
+        30,
+        456,
+        160
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "dark seams around the grey bar matched the black tips; they are shading of the blue metal"
+    },
+    {
+      "rect": [
+        590,
+        78,
+        800,
+        116
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "dark seam under the right half of the grey bar"
+    },
+    {
+      "rect": [
+        450,
+        115,
+        470,
+        155
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "dark seam at the right leg of the grey bar"
+    },
+    {
+      "rect": [
+        1200,
+        190,
+        1220,
+        220
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "dark bit at the hinge"
+    },
+    {
+      "rect": [
+        457,
+        18,
+        705,
+        62
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip above the grey bar (grey highlights)"
+    },
+    {
+      "rect": [
+        455,
+        15,
+        560,
+        57
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "lower edge of the far tip (grey highlights joined to the bar)"
+    },
+    {
+      "rect": [
+        560,
+        15,
+        640,
+        62
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "same, where the tip comes down to the bar"
+    },
+    {
+      "rect": [
+        640,
+        15,
+        700,
+        67
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "same, just above the bar"
+    },
+    {
+      "rect": [
+        1462,
+        85,
+        1575,
+        285
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1462"
+    },
+    {
+      "rect": [
+        1462,
+        85,
+        1575,
+        285
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip highlights"
+    }
+  ]
+}

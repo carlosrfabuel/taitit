@@ -45,11 +45,15 @@ export async function upload(dir: string, manifest: Manifest) {
   };
   const base = await size(manifest.base);
   for (const z of manifest.zones) {
-    const s = await size(z.file);
-    if (s.width !== base.width || s.height !== base.height)
-      throw new Error(
-        `Layer ${z.file} is ${s.width}x${s.height}, the base image is ${base.width}x${base.height}.`,
-      );
+    for (const f of [z.file, ...(z.pattern ? [z.pattern.file] : [])]) {
+      const s = await size(f);
+      if (s.width !== base.width || s.height !== base.height)
+        throw new Error(
+          `Layer ${f} is ${s.width}x${s.height}, the base image is ${base.width}x${base.height}.`,
+        );
+    }
+    if (z.pattern && z.material !== 'acetate')
+      throw new Error(`Zone ${z.label}: only acetate zones have a pattern.`);
   }
   const refs = manifest.zones.map((z) => z.defaultRef).filter((r): r is string => !!r);
   const swatches = refs.length
@@ -77,7 +81,9 @@ export async function upload(dir: string, manifest: Manifest) {
 
   const existing = await db
     .from('models')
-    .select('id, published, base_path, base_width, base_height, model_zones(id, name, layer_path)')
+    .select(
+      'id, published, base_path, base_width, base_height, model_zones(id, name, layer_path, pattern_path)',
+    )
     .eq('name', manifest.model)
     .maybeSingle();
   if (existing.error) throw new Error(existing.error.message);
@@ -98,7 +104,8 @@ export async function upload(dir: string, manifest: Manifest) {
   // 2. Files under content-based names: a changed file gets a new name (the CDN can't serve an old
   //    copy), an unchanged file keeps its name.
   const stored = new Map<string, string>();
-  for (const f of [manifest.base, ...manifest.zones.map((z) => z.file)]) {
+  const patternFiles = manifest.zones.flatMap((z) => (z.pattern ? [z.pattern.file] : []));
+  for (const f of [manifest.base, ...manifest.zones.map((z) => z.file), ...patternFiles]) {
     const body = readFileSync(join(dir, f));
     const ext = extname(f);
     const path = `${manifest.slug}/${basename(f, ext)}-${createHash('sha256').update(body).digest('hex').slice(0, 10)}${ext}`;
@@ -142,17 +149,28 @@ export async function upload(dir: string, manifest: Manifest) {
         );
       if (del.error) throw new Error(del.error.message);
     }
+    // Roles are unique per model: clear the existing ones first, so zones can swap roles.
+    if (old) {
+      const clear = await db.from('model_zones').update({ role: null }).eq('model_id', modelId);
+      if (clear.error) throw new Error(clear.error.message);
+    }
     for (const [order, z] of manifest.zones.entries()) {
       const row = {
         model_id: modelId,
         name: z.label,
         material: z.material,
+        role: z.role ?? null,
         layer_path: stored.get(z.file)!,
         layer_width: base.width,
         layer_height: base.height,
         default_swatch_id: z.defaultRef ? swatchId.get(z.defaultRef)! : null,
         default_finish: z.defaultFinish,
         sort_order: order,
+        pattern_path: z.pattern ? stored.get(z.pattern.file)! : null,
+        pattern_width: z.pattern ? base.width : null,
+        pattern_height: z.pattern ? base.height : null,
+        pattern_hex: z.pattern?.hex ?? null,
+        pattern_own: z.pattern?.own ?? false,
       };
       const found = (old?.model_zones ?? []).find((c) => c.name === z.label);
       const res = found
@@ -173,9 +191,10 @@ export async function upload(dir: string, manifest: Manifest) {
 
   // 5. Files no longer used (previous versions, removed zones). Best effort: leftovers are never shown.
   const used = new Set(stored.values());
-  const unused = [old?.base_path, ...(old?.model_zones ?? []).map((z) => z.layer_path)].filter(
-    (p): p is string => !!p && !used.has(p),
-  );
+  const unused = [
+    old?.base_path,
+    ...(old?.model_zones ?? []).flatMap((z) => [z.layer_path, z.pattern_path]),
+  ].filter((p): p is string => !!p && !used.has(p));
   if (unused.length) {
     const rm = await db.storage.from('models').remove(unused);
     if (rm.error) console.warn(`  warning: could not remove old files: ${rm.error.message}`);

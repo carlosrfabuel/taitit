@@ -86,9 +86,14 @@ export function writeJpeg(raster: Raster, file: string, quality = 90) {
 export async function blurChannel(values: Float32Array, width: number, height: number, sigma: number) {
   const bytes = new Uint8Array(values.length);
   for (let i = 0; i < values.length; i++) bytes[i] = Math.max(0, Math.min(255, Math.round(values[i]!)));
+  // sharp hands a one-channel image back as three channels: keep one, or every row is read shifted
+  // (that showed as horizontal stripes in smoothed zones).
   const out = await sharp(Buffer.from(bytes), { raw: { width, height, channels: 1 } })
     .blur(sigma)
+    .extractChannel(0)
     .raw()
     .toBuffer();
+  if (out.length !== values.length)
+    throw new Error(`blur returned ${out.length} values for ${values.length} pixels`);
   return Float32Array.from(out);
 }

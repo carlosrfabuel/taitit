@@ -39,7 +39,7 @@ export function OrdersPage() {
       ),
     },
     { key: 'model', header: 'Modelo', render: (o) => o.model_name },
-    { key: 'parts', header: 'Piezas', className: 'w-20', render: (o) => o.order_items.length },
+    { key: 'quantity', header: 'Cantidad', className: 'w-24', render: (o) => o.quantity },
   ];
 
   return (

@@ -1,0 +1,93 @@
+{
+  "name": "ROBYN",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/robyn.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M13",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M12",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A01"
+    }
+  ],
+  "groups": [
+    {
+      "name": "light green metal (rims)",
+      "colors": [
+        "#5BE45F",
+        "#5EEB66",
+        "#4FEA66"
+      ],
+      "tolerance": 40,
+      "zone": "metal"
+    },
+    {
+      "name": "dark green metal (bridge, end pieces, temples)",
+      "colors": [
+        "#208274",
+        "#4B948C",
+        "#04743F",
+        "#1F8074",
+        "#3E938D"
+      ],
+      "tolerance": 40,
+      "zone": "frente"
+    },
+    {
+      "name": "yellow-green acetate tips",
+      "colors": [
+        "#A8F067",
+        "#A3F259",
+        "#A8F45E",
+        "#B4F478",
+        "#BFF093",
+        "#B8FA6A"
+      ],
+      "tolerance": 35,
+      "zone": "terminales"
+    },
+    {
+      "name": "seams between the rims and the dark green parts",
+      "colors": [
+        "#0EB82C",
+        "#02673B"
+      ],
+      "tolerance": 30,
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        150,
+        300,
+        230,
+        360
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "rim highlight matched the tips color"
+    }
+  ]
+}

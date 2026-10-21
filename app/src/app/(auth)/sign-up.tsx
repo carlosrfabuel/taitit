@@ -15,6 +15,7 @@ import { BusinessFields } from '@/auth/BusinessFields';
 import { AppText, Button, Icon, Screen, TextField, useToast } from '@/ui';
 import { useCloseAuth } from '@/auth/navigation';
 import { WaitingForConfirmation, type WaitReason } from '@/auth/WaitingForConfirmation';
+import { openPrivacyPolicy } from '@/lib/links';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -154,9 +155,18 @@ export default function SignUpScreen() {
             size={24}
             color={accepted ? tokens.colors.primary : tokens.colors.muted}
           />
-          {/* Link to the real policy URL once the client publishes it (Milestone 5). */}
           <AppText variant="small" style={styles.checkText}>
-            I accept the privacy policy and the terms of use.
+            I accept the{' '}
+            <AppText
+              variant="small"
+              color={tokens.colors.primary}
+              style={styles.link}
+              onPress={openPrivacyPolicy}
+              accessibilityRole="link"
+            >
+              privacy policy
+            </AppText>
+            .
           </AppText>
         </Pressable>
         {errors.accepted ? (
@@ -184,5 +194,6 @@ const styles = StyleSheet.create({
     minHeight: tokens.touch.minSize,
   },
   checkText: { flex: 1, color: tokens.colors.text },
+  link: { textDecorationLine: 'underline', fontWeight: tokens.weight.medium },
   section: { marginTop: tokens.spacing.sm },
 });

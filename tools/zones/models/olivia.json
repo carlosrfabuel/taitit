@@ -1,0 +1,99 @@
+{
+  "name": "OLIVIA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/olivia.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M04",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M09",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A05"
+    }
+  ],
+  "groups": [
+    {
+      "name": "light blue metal (front and temples)",
+      "colors": [
+        "#AFD0E6",
+        "#BDD7EC",
+        "#A5B8CE",
+        "#9EC3DE"
+      ],
+      "tolerance": 22,
+      "zone": "metal"
+    },
+    {
+      "name": "orange metal (corner pieces) and orange tips",
+      "colors": [
+        "#FE8B48",
+        "#F5732F",
+        "#FFA46B",
+        "#E2632A"
+      ],
+      "tolerance": 42,
+      "zone": "frente"
+    },
+    {
+      "name": "salmon highlight of the near tip",
+      "colors": [
+        "#FEB69F",
+        "#FEB8A4",
+        "#FEBCAC",
+        "#FECDC2"
+      ],
+      "tolerance": 14,
+      "within": [
+        1488,
+        75,
+        1570,
+        300
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        518,
+        40,
+        920,
+        275
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 518"
+    },
+    {
+      "rect": [
+        1488,
+        75,
+        1570,
+        300
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1488"
+    }
+  ]
+}

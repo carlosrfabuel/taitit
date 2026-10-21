@@ -8,6 +8,8 @@ export type Segmentation = {
   zone: Uint8Array;
   /** Pixels added by edge growing (anti-aliased borders), get partial alpha. */
   edge: Uint8Array;
+  /** Per pixel: the group whose color it matched (-1 none); edge pixels take their neighbor's. */
+  group: Int16Array;
   background: Uint8Array;
   stats: { zone: string; pixels: number; regions: number }[];
   unassignedProduct: number;
@@ -57,12 +59,47 @@ export function connectedRegions(mask: Uint8Array, width: number, height: number
   return { labels, sizes };
 }
 
+/** A fix's area: bounding box and membership (rectangle inclusive; polygon by pixel center, even-odd). */
+function fixArea(f: FixConfig): {
+  box: [number, number, number, number];
+  has: (x: number, y: number) => boolean;
+} {
+  if (f.rect) {
+    const [x1, y1, x2, y2] = f.rect;
+    return { box: f.rect, has: (x, y) => x >= x1 && x <= x2 && y >= y1 && y <= y2 };
+  }
+  const poly = f.poly!;
+  const xs = poly.map((p) => p[0]);
+  const ys = poly.map((p) => p[1]);
+  const box: [number, number, number, number] = [
+    Math.floor(Math.min(...xs)),
+    Math.floor(Math.min(...ys)),
+    Math.ceil(Math.max(...xs)),
+    Math.ceil(Math.max(...ys)),
+  ];
+  return {
+    box,
+    has: (x, y) => {
+      const px = x + 0.5;
+      const py = y + 0.5;
+      let inside = false;
+      for (let a = 0, b = poly.length - 1; a < poly.length; b = a++) {
+        const [xa, ya] = poly[a]!;
+        const [xb, yb] = poly[b]!;
+        if (ya > py !== yb > py && px < ((xb - xa) * (py - ya)) / (yb - ya) + xa) inside = !inside;
+      }
+      return inside;
+    },
+  };
+}
+
 export function segment(
   raster: Raster,
   zones: ZoneConfig[],
   groups: GroupConfig[],
   fixes: FixConfig[],
   backgroundThreshold: number,
+  edgeGrow = 1,
 ): Segmentation {
   const { width, height, data } = raster;
   const n = width * height;
@@ -77,6 +114,7 @@ export function segment(
     rgb: g.colors.map(hexToRgb),
     tol2: (g.tolerance ?? 60) ** 2,
     minSat: g.minSaturation ?? 0,
+    within: g.within,
   }));
   for (let i = 0; i < n; i++) {
     if (background[i]) continue;
@@ -84,10 +122,13 @@ export function segment(
     const g = data[i * 4 + 1]!;
     const b = data[i * 4 + 2]!;
     const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+    const x = i % width;
+    const y = (i / width) | 0;
     let best = -1;
     let bestD = Infinity;
     groupColors.forEach((gc, gi) => {
       if (saturation < gc.minSat) return;
+      if (gc.within && (x < gc.within[0] || y < gc.within[1] || x > gc.within[2] || y > gc.within[3])) return;
       for (const [cr, cg, cb] of gc.rgb) {
         const d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2;
         if (d <= gc.tol2 && d < bestD) {
@@ -156,15 +197,41 @@ export function segment(
     }
   });
 
-  // 3. Manual corrections for cases color + regions can't resolve.
+  // 3. Manual corrections for cases color + regions can't resolve. Pixels a fix takes out of every
+  //    zone ("none") stay out: hole filling and edge growth below never bring them back.
+  const cleared = new Uint8Array(n);
   for (const f of fixes) {
     const from = zoneIndex(f.from);
-    const to = zoneIndex(f.to);
-    const [x1, y1, x2, y2] = f.rect;
+    const to = f.to === 'none' ? NONE : zoneIndex(f.to);
+    const area = fixArea(f);
+    const [x1, y1, x2, y2] = area.box;
+    if (f.piecesInside) {
+      const mask = new Uint8Array(n);
+      for (let i = 0; i < n; i++) if (zone[i] === from) mask[i] = 1;
+      const { labels, sizes } = connectedRegions(mask, width, height);
+      const inside = sizes.map(() => true);
+      for (let i = 0; i < n; i++) {
+        const l = labels[i]!;
+        if (l < 0 || !inside[l]) continue;
+        const x = i % width;
+        const y = (i / width) | 0;
+        if (!area.has(x, y)) inside[l] = false;
+      }
+      for (let i = 0; i < n; i++) {
+        if (labels[i]! < 0 || !inside[labels[i]!]) continue;
+        zone[i] = to;
+        if (to === NONE) cleared[i] = 1;
+        if (f.shadeAsZone) group[i] = -1;
+      }
+      continue;
+    }
     for (let y = Math.max(0, y1); y <= Math.min(height - 1, y2); y++) {
       for (let x = Math.max(0, x1); x <= Math.min(width - 1, x2); x++) {
         const i = y * width + x;
-        if (zone[i] === from) zone[i] = to;
+        if (zone[i] !== from || !area.has(x, y)) continue;
+        zone[i] = to;
+        if (to === NONE) cleared[i] = 1;
+        if (f.shadeAsZone) group[i] = -1;
       }
     }
   }
@@ -173,7 +240,7 @@ export function segment(
   //     areas (lenses, nose pads) are never touched because of the size limit.
   {
     const holeMask = new Uint8Array(n);
-    for (let i = 0; i < n; i++) if (zone[i] === NONE) holeMask[i] = 1;
+    for (let i = 0; i < n; i++) if (zone[i] === NONE && !cleared[i]) holeMask[i] = 1;
     const { labels, sizes } = connectedRegions(holeMask, width, height);
     const maxHole = 60;
     const neighborZone = new Int16Array(sizes.length).fill(-1); // -1 unknown, 0 mixed/border, z = single zone
@@ -199,18 +266,30 @@ export function segment(
     }
   }
 
-  // 4. Grow each zone 1px into anti-aliased edge pixels that are neither background nor another zone.
+  // 4. Grow each zone 1px per pass into anti-aliased edge pixels that are neither background nor
+  //    another zone (more passes also close the seams between two zones).
   const edge = new Uint8Array(n);
   const grown = zone.slice();
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const i = y * width + x;
-      if (zone[i] !== NONE || luminance(data[i * 4]!, data[i * 4 + 1]!, data[i * 4 + 2]!) > 240) continue;
-      for (const q of [i - 1, i + 1, i - width, i + width]) {
-        if (zone[q] !== NONE) {
-          grown[i] = zone[q]!;
-          edge[i] = 1;
-          break;
+  const grownGroup = group.slice();
+  for (let pass = 0; pass < Math.max(1, edgeGrow); pass++) {
+    const before = grown.slice();
+    const beforeGroup = grownGroup.slice();
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const i = y * width + x;
+        if (
+          before[i] !== NONE ||
+          cleared[i] ||
+          luminance(data[i * 4]!, data[i * 4 + 1]!, data[i * 4 + 2]!) > 240
+        )
+          continue;
+        for (const q of [i - 1, i + 1, i - width, i + width]) {
+          if (before[q] !== NONE) {
+            grown[i] = before[q]!;
+            grownGroup[i] = beforeGroup[q]!;
+            edge[i] = 1;
+            break;
+          }
         }
       }
     }
@@ -226,6 +305,7 @@ export function segment(
   return {
     zone: grown,
     edge,
+    group: grownGroup,
     background,
     stats: zones.map((z, k) => ({
       zone: z.id,

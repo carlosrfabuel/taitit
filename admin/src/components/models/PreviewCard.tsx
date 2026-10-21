@@ -40,6 +40,8 @@ export function PreviewCard({ model }: { model: ModelRow }) {
         defaultSwatchId: z.default_swatch_id,
         defaultFinish: z.default_finish,
         sortOrder: z.sort_order,
+        patternUrl: z.pattern_path ? publicUrl(z.pattern_path) : null,
+        patternOwn: z.pattern_own,
       })),
       swatches: swatches.data.map(toRenderSwatch),
       picks,

@@ -44,7 +44,8 @@ type Raw = Omit<ModelRow, 'zones'> & { model_zones: { count: number }[] };
 const toRow = ({ model_zones, ...m }: Raw): ModelRow => ({ ...m, zones: model_zones[0]?.count ?? 0 });
 
 export async function listModels(): Promise<ModelRow[]> {
-  const { data, error } = await supabase.from('models').select(COLUMNS).order('sort_order').order('name');
+  // Alphabetical, like the app (client decision 2026-10-20).
+  const { data, error } = await supabase.from('models').select(COLUMNS).order('name');
   if (error) throw error;
   return (data as Raw[]).map(toRow);
 }

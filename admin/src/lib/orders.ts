@@ -6,6 +6,7 @@ type Enums = Database['public']['Enums'];
 
 export type OrderItemRow = {
   zone_name: string;
+  zone_role: Enums['zone_role'] | null;
   material: Enums['material'];
   swatch_name: string;
   hex: string;
@@ -22,6 +23,7 @@ export type OrderRow = {
   number: number;
   created_at: string;
   model_name: string;
+  quantity: number;
   notes: string | null;
   shop_ref: string | null;
   image_path: string | null;
@@ -44,7 +46,7 @@ export const orderKeys = {
 };
 
 const COLUMNS =
-  'id, number, created_at, model_name, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -103,25 +105,16 @@ export const toSheetOrder = (o: OrderRow): SheetOrder => ({
   number: o.number,
   createdAt: o.created_at,
   modelName: o.model_name,
+  quantity: o.quantity,
   notes: o.notes,
-  customerName: o.customer_name,
-  customerEmail: o.customer_email,
   businessName: o.business_name,
-  legalName: o.legal_name,
   taxId: o.tax_id,
-  phone: o.phone,
-  address: o.address,
-  postalCode: o.postal_code,
-  city: o.city,
-  province: o.province,
   items: o.order_items.map((i) => ({
-    zoneName: i.zone_name,
-    material: i.material,
+    zoneRole: i.zone_role,
     swatchName: i.swatch_name,
     ref: i.ref,
-    hex: i.hex,
     finish: i.finish,
-    kind: i.kind,
+    sortOrder: i.sort_order,
   })),
 });
 

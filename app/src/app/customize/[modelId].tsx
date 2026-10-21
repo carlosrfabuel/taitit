@@ -1,5 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
@@ -24,7 +31,7 @@ import { NameSheet } from '@/designs/NameSheet';
 import { RecolorView } from '@/render/RecolorView';
 import {
   applyFinish,
-  applySwatch,
+  chooseSwatch,
   commit,
   currentPick,
   effectivePicks,
@@ -42,6 +49,8 @@ const PAGE = spacing.xl;
 const STAGE_MARGIN = spacing.sm;
 // Fade over the right end of the zone chips while more are hidden there (opacity per 8 px strip).
 const FADE = [0.2, 0.45, 0.7, 0.9, 1];
+const FADE_STRIP = 8;
+const FADE_WIDTH = FADE.length * FADE_STRIP;
 
 const saveError = (e: unknown) => {
   const message = (e as { message?: string } | null)?.message ?? '';
@@ -194,6 +203,24 @@ function Customizer({
     }, [session]),
   );
 
+  // A chip chosen while partly hidden (under the fade or off screen) scrolls fully into view.
+  const zonesRow = useRef<ScrollView>(null);
+  const chipBoxes = useRef<Record<string, { x: number; width: number }>>({});
+  const rememberChip = (id: string, e: LayoutChangeEvent) => {
+    const { x, width } = e.nativeEvent.layout;
+    chipBoxes.current[id] = { x, width };
+  };
+  const chooseZone = (id: string) => {
+    setZoneId(id);
+    const chip = chipBoxes.current[id];
+    const box = zonesBox.current;
+    if (!chip || !box.width) return;
+    if (chip.x + chip.width + FADE_WIDTH > box.x + box.width)
+      zonesRow.current?.scrollTo({ x: chip.x + chip.width + FADE_WIDTH - box.width, animated: true });
+    else if (chip.x - PAGE < box.x)
+      zonesRow.current?.scrollTo({ x: Math.max(0, chip.x - PAGE), animated: true });
+  };
+
   const zones = model.zones.filter((z) => z.layerUrl);
   // The selected zone, or the first one (also when the selected zone was removed meanwhile).
   const zone = zones.find((z) => z.id === zoneId) ?? zones[0] ?? null;
@@ -300,6 +327,7 @@ function Customizer({
       {zones.length > 0 ? (
         <View>
           <ScrollView
+            ref={zonesRow}
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.zonesBar}
@@ -310,12 +338,13 @@ function Customizer({
             scrollEventThrottle={48}
           >
             {zones.map((z) => (
-              <Chip
-                key={z.id}
-                label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
-                selected={z.id === zone?.id}
-                onPress={() => setZoneId(z.id)}
-              />
+              <View key={z.id} onLayout={(e) => rememberChip(z.id, e)}>
+                <Chip
+                  label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
+                  selected={z.id === zone?.id}
+                  onPress={() => chooseZone(z.id)}
+                />
+              </View>
             ))}
           </ScrollView>
           {zonesMore ? (
@@ -379,7 +408,9 @@ function Customizer({
                       alpha={s.kind === 'translucent' ? s.alpha : null}
                       texture={s.kind === 'havana' ? s.textureUrl : null}
                       selected={s.id === selected?.id}
-                      onPress={() => change((h) => commit(h, applySwatch(h.picks, zone, swatches, s)))}
+                      onPress={() =>
+                        change((h) => commit(h, chooseSwatch(h.picks, model.zones, zone, swatches, s)))
+                      }
                       accessibilityLabel={`${s.name}, ${s.ref}`}
                     />
                   ))}
@@ -430,7 +461,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   photo: { paddingHorizontal: STAGE_MARGIN, paddingTop: spacing.md, paddingBottom: spacing.sm },
   fade: { position: 'absolute', top: 0, right: 0, bottom: 0, flexDirection: 'row' },
-  fadeStrip: { width: 8, backgroundColor: colors.background },
+  fadeStrip: { width: FADE_STRIP, backgroundColor: colors.background },
   badge: {
     position: 'absolute',
     top: spacing.lg + spacing.sm,

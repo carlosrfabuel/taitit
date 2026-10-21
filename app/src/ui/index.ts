@@ -11,6 +11,7 @@ export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { Loader, Skeleton } from './Loader';
 export { PhotoStage, PHOTO_STAGE_INSET } from './PhotoStage';
+export { QuantityStepper } from './QuantityStepper';
 export { Screen } from './Screen';
 export { Swatch } from './Swatch';
 export { TextField } from './TextField';

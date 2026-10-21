@@ -1,69 +1,43 @@
 // Explicit .ts extensions: the file also runs unbundled (Node in the tests, Deno for the email).
-import type { Finish, Material, SwatchKind } from './types.ts';
+import type { Finish, ZoneRole } from './types.ts';
 import { buildXlsx, type Cell } from './xlsx.ts';
 
-// The order as a spreadsheet for TAITIT's accounting (client decision 2026-10-19): one row per
-// part, with the order and the optician repeated on every row (imports cleanly). The same file is
-// downloaded in the admin panel and attached to the order email. ⏳ Columns to be confirmed by the
-// client; changing them only touches this file.
+// The order as a spreadsheet for TAITIT's accounting. One row per order with the columns Carlos
+// listed (2026-10-20): model, main colour, secondary colour, end tips colour, quantity; headers in
+// his words. Order number, date and optician go first so rows can be matched; notes last. The same
+// file is downloaded in the admin panel and attached to the order email.
 
 export type SheetOrder = {
   number: number;
   createdAt: string;
   modelName: string;
+  quantity: number;
   notes: string | null;
-  customerName: string | null;
-  customerEmail: string | null;
   businessName: string | null;
-  legalName: string | null;
   taxId: string | null;
-  phone: string | null;
-  address: string | null;
-  postalCode: string | null;
-  city: string | null;
-  province: string | null;
   items: {
-    zoneName: string;
-    material: Material;
+    /** Null on orders placed before zones had roles: then the part's position decides. */
+    zoneRole: ZoneRole | null;
     swatchName: string;
     ref: string;
-    hex: string;
     finish: Finish | null;
-    kind: SwatchKind;
+    sortOrder: number;
   }[];
 };
 
-const MATERIAL: Record<Material, string> = { metal: 'Metal', acetate: 'Acetato' };
-const FINISH: Record<Finish, string> = { gloss: 'Brillo', matte: 'Mate' };
-const KIND: Record<SwatchKind, string> = {
-  metal: 'Metal',
-  solid: 'Sólido',
-  translucent: 'Translúcido',
-  havana: 'Carey',
-};
+const FINISH: Record<Finish, string> = { gloss: 'gloss', matte: 'matte' };
 
 export const ORDER_SHEET_COLUMNS = [
-  'Pedido',
-  'Fecha',
-  'Óptica',
-  'Razón social',
-  'CIF/NIF',
-  'Teléfono',
-  'Dirección',
-  'CP',
-  'Ciudad',
-  'Provincia',
-  'Contacto',
-  'Email',
-  'Modelo',
-  'Pieza',
-  'Material',
-  'Color',
-  'Referencia',
-  'Acabado',
-  'Tipo',
-  'HEX',
-  'Notas',
+  'Order',
+  'Date',
+  'Optician',
+  'VAT number',
+  'Model',
+  'Main colour',
+  'Secondary colour',
+  'End tips colour',
+  'Quantity',
+  'Notes',
 ] as const;
 
 /** Date as day/month/year in Spain's time zone (what TAITIT reads), e.g. 19/10/2026. */
@@ -75,34 +49,41 @@ export const sheetDate = (iso: string) =>
     year: 'numeric',
   });
 
+/** A part's colour in one cell: reference, name and finish, e.g. "PH-M06 Gold (gloss)". */
+export const sheetColour = (i: SheetOrder['items'][number]) =>
+  `${i.ref} ${i.swatchName}${i.finish ? ` (${FINISH[i.finish]})` : ''}`;
+
+const ROLES: ZoneRole[] = ['main', 'secondary', 'tips'];
+
+/** The part for each role: by its role, or (older orders) by position: 1st main, 2nd secondary, 3rd tips. */
+function byRole(items: SheetOrder['items']): Record<ZoneRole, SheetOrder['items'][number] | undefined> {
+  const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
+  const withRoles = sorted.some((i) => i.zoneRole);
+  return Object.fromEntries(
+    ROLES.map((role, n) => [role, withRoles ? sorted.find((i) => i.zoneRole === role) : sorted[n]]),
+  ) as Record<ZoneRole, SheetOrder['items'][number] | undefined>;
+}
+
 export function orderSheetRows(orders: SheetOrder[]): Cell[][] {
   const rows: Cell[][] = [[...ORDER_SHEET_COLUMNS]];
   for (const o of orders) {
-    for (const i of o.items) {
-      rows.push([
-        o.number,
-        sheetDate(o.createdAt),
-        o.businessName,
-        o.legalName,
-        o.taxId,
-        o.phone,
-        o.address,
-        o.postalCode,
-        o.city,
-        o.province,
-        o.customerName,
-        o.customerEmail,
-        o.modelName,
-        i.zoneName,
-        MATERIAL[i.material],
-        i.swatchName,
-        i.ref,
-        i.finish ? FINISH[i.finish] : null,
-        KIND[i.kind],
-        i.hex,
-        o.notes,
-      ]);
-    }
+    const parts = byRole(o.items);
+    const colour = (role: ZoneRole) => {
+      const part = parts[role];
+      return part ? sheetColour(part) : null;
+    };
+    rows.push([
+      o.number,
+      sheetDate(o.createdAt),
+      o.businessName,
+      o.taxId,
+      o.modelName,
+      colour('main'),
+      colour('secondary'),
+      colour('tips'),
+      o.quantity,
+      o.notes,
+    ]);
   }
   return rows;
 }

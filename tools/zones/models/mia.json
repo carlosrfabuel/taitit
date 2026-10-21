@@ -1,0 +1,112 @@
+{
+  "name": "MIA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/mia.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M12",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M09",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A05"
+    }
+  ],
+  "groups": [
+    {
+      "name": "dark green metal (upper rims and bridge)",
+      "colors": [
+        "#348079",
+        "#2E7A72",
+        "#43908A",
+        "#226660",
+        "#03847D",
+        "#0D867D"
+      ],
+      "tolerance": 34,
+      "zone": "metal"
+    },
+    {
+      "name": "dark shadow at the right end piece",
+      "colors": [
+        "#4C5F5C",
+        "#4A5956",
+        "#46605C",
+        "#4E5554"
+      ],
+      "tolerance": 14,
+      "within": [
+        1045,
+        255,
+        1075,
+        290
+      ],
+      "attach": true
+    },
+    {
+      "name": "orange metal (lower rims and temples) and orange tips",
+      "colors": [
+        "#FE7F3F",
+        "#FA9887",
+        "#BC3920",
+        "#FF9A5C"
+      ],
+      "tolerance": 42,
+      "zone": "frente"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        468,
+        55,
+        700,
+        135
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 468"
+    },
+    {
+      "rect": [
+        690,
+        100,
+        840,
+        290
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens"
+    },
+    {
+      "rect": [
+        1475,
+        105,
+        1570,
+        330
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1475"
+    }
+  ]
+}

@@ -107,7 +107,8 @@ function OrderRow({ order }: { order: Order }) {
       <View style={styles.info}>
         <AppText variant="subheading">Order #{order.number}</AppText>
         <AppText variant="small" numberOfLines={1}>
-          {order.modelName} · {formatOrderDate(order.createdAt)}
+          {order.modelName}
+          {order.quantity > 1 ? ` × ${order.quantity}` : ''} · {formatOrderDate(order.createdAt)}
           {order.shopRef ? ` · ${order.shopRef}` : ''}
         </AppText>
       </View>

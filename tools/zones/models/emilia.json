@@ -1,0 +1,253 @@
+{
+  "name": "EMILIA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/emilia.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "backgroundThreshold": 240,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M15",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M05",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A03"
+    }
+  ],
+  "groups": [
+    {
+      "name": "red metal (rims, bridge and temples)",
+      "colors": [
+        "#BB1E38",
+        "#C93B4F",
+        "#C6697A",
+        "#A8182E",
+        "#D45066"
+      ],
+      "tolerance": 40,
+      "zone": "metal"
+    },
+    {
+      "name": "white: the metal pieces around the lenses; the tips, nose pads and floor shadows are taken out below",
+      "colors": [
+        "#E5E3E7",
+        "#E6E5EB",
+        "#E4E2E5",
+        "#EAE8F5",
+        "#E3E1EB",
+        "#DAD8DE",
+        "#D2D0D8"
+      ],
+      "tolerance": 12,
+      "minSaturation": 2,
+      "zone": "frente"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        452,
+        12,
+        620,
+        100
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 455 (the right piece starts below y 135 here)"
+    },
+    {
+      "poly": [
+        [
+          620,
+          30
+        ],
+        [
+          661,
+          30
+        ],
+        [
+          661,
+          40
+        ],
+        [
+          691,
+          40
+        ],
+        [
+          691,
+          78.5
+        ],
+        [
+          680,
+          81.5
+        ],
+        [
+          670,
+          84.5
+        ],
+        [
+          660,
+          87.5
+        ],
+        [
+          650,
+          94.5
+        ],
+        [
+          645,
+          99
+        ],
+        [
+          620,
+          99
+        ]
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip coming down to the right piece, above that piece's top edge (they meet near x 690; both white in the photo)"
+    },
+    {
+      "rect": [
+        695,
+        105,
+        805,
+        248
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens"
+    },
+    {
+      "rect": [
+        1455,
+        50,
+        1562,
+        282
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1458"
+    },
+    {
+      "rect": [
+        478,
+        185,
+        522,
+        300
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "left nose pad"
+    },
+    {
+      "rect": [
+        640,
+        200,
+        705,
+        338
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "right nose pad (inside the lens, past the red rim)"
+    },
+    {
+      "rect": [
+        130,
+        411,
+        525,
+        445
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "floor shadow under the left piece"
+    },
+    {
+      "rect": [
+        640,
+        474,
+        1062,
+        491
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "floor shadow under the right piece"
+    },
+    {
+      "rect": [
+        1480,
+        283,
+        1562,
+        300
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow under the near tip"
+    },
+    {
+      "rect": [
+        484,
+        292,
+        508,
+        314
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "lower end of the left nose pad"
+    },
+    {
+      "rect": [
+        120,
+        85,
+        320,
+        388
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "white bevel inside the left lens"
+    },
+    {
+      "rect": [
+        618,
+        205,
+        648,
+        296
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "edge of the right nose pad"
+    },
+    {
+      "rect": [
+        655,
+        330,
+        765,
+        422
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "white bevel inside the right lens"
+    }
+  ]
+}

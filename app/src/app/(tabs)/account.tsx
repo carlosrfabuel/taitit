@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { businessComplete } from '@/auth/business';
+import { openPrivacyPolicy } from '@/lib/links';
 import { AppText, Badge, Button, Card, EmptyState, Screen, useToast } from '@/ui';
 
 export default function AccountScreen() {
@@ -133,7 +134,18 @@ export default function AccountScreen() {
         onPress={onSignOut}
         loading={signingOut}
       />
-      {/* Account deletion (store requirement) arrives on Day 20; the privacy policy link when the client sends its URL. */}
+      <Button
+        title="Privacy policy"
+        variant="ghost"
+        icon="shield-checkmark-outline"
+        onPress={openPrivacyPolicy}
+      />
+      <Button
+        title="Delete account"
+        variant="ghost"
+        icon="trash-outline"
+        onPress={() => router.push('/delete-account')}
+      />
       {devKit}
       {version}
     </Screen>

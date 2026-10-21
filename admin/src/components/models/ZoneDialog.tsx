@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { type Finish, type Material } from '@taitit/shared';
-import { FINISH_LABEL, MATERIAL_LABEL } from '../../lib/labels';
+import { type Finish, type Material, type ZoneRole } from '@taitit/shared';
+import {
+  FINISH_LABEL,
+  MATERIAL_LABEL,
+  ZONE_ROLE_APP_NAME,
+  ZONE_ROLE_LABEL,
+  ZONE_ROLE_MATERIAL,
+} from '../../lib/labels';
 import { Button, Input, Modal, Select, Swatch } from '../ui';
 import { checkLayer, publicUrl, type Size } from '../../lib/images';
 import { modelKeys, type ModelRow } from '../../lib/models';
@@ -20,10 +26,12 @@ type Props = {
 };
 
 const MATERIALS: Material[] = ['metal', 'acetate'];
+const ROLES: ZoneRole[] = ['main', 'secondary', 'tips'];
 
 export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(zone?.name ?? '');
+  const [role, setRole] = useState<ZoneRole | null>(zone?.role ?? null);
   const [material, setMaterial] = useState<Material>(zone?.material ?? 'acetate');
   const [swatchId, setSwatchId] = useState<string | null>(zone?.default_swatch_id ?? null);
   const [finish, setFinish] = useState<Finish | null>(zone?.default_finish ?? null);
@@ -53,7 +61,7 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
       saveZone(
         model.id,
         zone,
-        { name, material, default_swatch_id: swatchId, default_finish: shownFinish },
+        { name, role, material, default_swatch_id: swatchId, default_finish: shownFinish },
         layer && { file: layer.file, size: layer.size },
         Math.max(-1, ...zones.map((z) => z.sort_order)) + 1,
       ),
@@ -76,6 +84,25 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
     setErrors((e) => ({ ...e, layer: undefined }));
     setLayer({ file, size: checked.size, url: URL.createObjectURL(file) });
   };
+
+  // Material fixed by the role (main metal = metal, tips = acetate); a default color must follow it.
+  const lockedMaterial = role ? (ZONE_ROLE_MATERIAL[role] ?? null) : null;
+  const changeMaterial = (m: Material) => {
+    setMaterial(m);
+    if (swatch && swatch.material !== m) pickSwatch(null);
+  };
+  const pickRole = (r: ZoneRole | null) => {
+    setRole(r);
+    // The app name follows the role while it is empty or still a role's default name.
+    const defaults = Object.values(ZONE_ROLE_APP_NAME);
+    if (r && (!name.trim() || defaults.includes(name.trim()))) setName(ZONE_ROLE_APP_NAME[r]);
+    const fixed = r ? ZONE_ROLE_MATERIAL[r] : undefined;
+    if (fixed && fixed !== material) changeMaterial(fixed);
+    setErrors((x) => ({ ...x, name: undefined }));
+    if (!save.isPending) save.reset();
+  };
+  // Roles another zone of this model already has.
+  const taken = new Set(zones.filter((z) => z.id !== zone?.id && z.role).map((z) => z.role));
 
   const pickSwatch = (id: string | null) => {
     setSwatchId(id);
@@ -129,12 +156,26 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
       }
     >
       <form id="zone-form" onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <Select
+          label="Zona"
+          value={role ?? ''}
+          hint="Metal principal (con las varillas), frente secundario y terminales: las 3 zonas de cada modelo."
+          options={[
+            { value: '', label: 'Sin asignar' },
+            ...ROLES.map((r) => ({
+              value: r,
+              label: taken.has(r) ? `${ZONE_ROLE_LABEL[r]} (ya asignada)` : ZONE_ROLE_LABEL[r],
+              disabled: taken.has(r),
+            })),
+          ]}
+          onChange={(e) => pickRole((e.target.value || null) as ZoneRole | null)}
+        />
         <Input
           label="Nombre"
           value={name}
           maxLength={ZONE_NAME_MAX}
           error={errors.name}
-          hint="Se muestra en la app, en inglés: p. ej. Front, Rims, Temples."
+          hint="Se muestra en la app, en inglés: p. ej. Main metal, Secondary front, Tips."
           onChange={(e) => {
             setName(e.target.value);
             setErrors((x) => ({ ...x, name: undefined }));
@@ -145,11 +186,13 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           label="Material"
           value={material}
           options={MATERIALS.map((m) => ({ value: m, label: MATERIAL_LABEL[m] }))}
-          onChange={(e) => {
-            const m = e.target.value as Material;
-            setMaterial(m);
-            if (swatch && swatch.material !== m) pickSwatch(null); // a default color must be of the zone's material
-          }}
+          disabled={!!lockedMaterial}
+          hint={
+            lockedMaterial
+              ? `Siempre ${MATERIAL_LABEL[lockedMaterial].toLowerCase()} en esta zona.`
+              : undefined
+          }
+          onChange={(e) => changeMaterial(e.target.value as Material)}
         />
         <div className="flex items-end gap-3">
           <div className="flex-1">

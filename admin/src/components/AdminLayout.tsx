@@ -25,7 +25,7 @@ export function AdminLayout() {
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4 print:hidden">
-        <div className="mb-8 px-2 text-lg font-extrabold tracking-wider text-brand">TAITIT</div>
+        <img src="/logo.svg" alt="TAITIT" className="mb-8 h-6 w-auto self-start px-2" />
         <nav className="flex flex-col gap-1">
           {NAV.map((n) => (
             <NavLink

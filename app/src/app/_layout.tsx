@@ -39,6 +39,7 @@ function RootStack() {
       <Stack.Screen name="order/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
       <Stack.Screen name="business" options={{ title: 'Business details' }} />
+      <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
       <Stack.Screen name="dev/ui-kit" options={{ title: 'UI kit' }} />
     </Stack>
   );

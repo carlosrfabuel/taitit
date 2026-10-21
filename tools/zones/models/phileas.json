@@ -3,42 +3,53 @@
   "category": "Optical",
   "sizeRef": "53-19-140",
   "description": "Titanium front and temples with acetate inner rims and temple tips.",
-  "published": false,
+  "published": true,
   "input": "../input/phileas.jpg",
   "crop": "auto",
   "outputWidth": 1600,
   "zones": [
     {
       "id": "metal",
-      "label": "Front & temples",
+      "label": "Main metal",
       "material": "metal",
+      "role": "main",
       "defaultRef": "PH-M01",
-      "defaultFinish": "matte",
-      "contrast": 0.9
+      "defaultFinish": "matte"
     },
     {
       "id": "aros",
-      "label": "Rims",
+      "label": "Secondary front",
       "material": "acetate",
+      "role": "secondary",
       "defaultRef": "PH-A01"
     },
     {
       "id": "terminales",
-      "label": "Temple tips",
+      "label": "Tips",
       "material": "acetate",
+      "role": "tips",
       "defaultRef": "PH-A01"
     }
   ],
   "groups": [
     {
       "name": "black metal",
-      "colors": ["#252A26", "#3F3E41", "#656265"],
+      "colors": [
+        "#252A26",
+        "#3F3E41",
+        "#656265"
+      ],
       "tolerance": 40,
       "zone": "metal"
     },
     {
       "name": "green acetate",
-      "colors": ["#78DB63", "#31B227", "#4CFF5A", "#0A780A"],
+      "colors": [
+        "#78DB63",
+        "#31B227",
+        "#4CFF5A",
+        "#0A780A"
+      ],
       "tolerance": 70,
       "split": {
         "largest": 2,
@@ -48,14 +59,21 @@
     },
     {
       "name": "green highlights",
-      "colors": ["#88F078", "#A8F09C", "#C0F5B4"],
+      "colors": [
+        "#88F078",
+        "#A8F09C",
+        "#C0F5B4"
+      ],
       "tolerance": 45,
       "minSaturation": 45,
       "attach": true
     },
     {
       "name": "pale halo",
-      "colors": ["#E6FADC", "#DCF5D2"],
+      "colors": [
+        "#E6FADC",
+        "#DCF5D2"
+      ],
       "tolerance": 22,
       "minSaturation": 22,
       "attach": true
@@ -63,7 +81,12 @@
   ],
   "fixes": [
     {
-      "rect": [668, 179, 750, 240],
+      "rect": [
+        668,
+        179,
+        750,
+        240
+      ],
       "from": "aros",
       "to": "terminales",
       "note": "far temple tip seen through the right lens touches the rim"

@@ -68,7 +68,7 @@ export default function OrderDoneScreen() {
         </AppText>
         <AppText align="center" color={colors.muted}>
           {order.data
-            ? `${order.data.modelName} · ${order.data.items.length} ${order.data.items.length === 1 ? 'part' : 'parts'}`
+            ? `${order.data.modelName} · ${order.data.quantity} ${order.data.quantity === 1 ? 'frame' : 'frames'}`
             : ' '}
         </AppText>
         <AppText variant="small" align="center">

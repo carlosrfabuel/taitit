@@ -1,6 +1,8 @@
 export type Material = 'metal' | 'acetate';
 export type Finish = 'gloss' | 'matte';
 export type SwatchKind = 'metal' | 'solid' | 'translucent' | 'havana';
+/** Which of the three zones every model has (Carlos, 2026-10-20). */
+export type ZoneRole = 'main' | 'secondary' | 'tips';
 
 export type Swatch = {
   id: string;

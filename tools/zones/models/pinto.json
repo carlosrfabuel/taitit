@@ -1,0 +1,182 @@
+{
+  "name": "PINTO",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/pinto.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M11",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M06",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A16",
+      "smooth": 6,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "blue metal (upper front and temples)",
+      "colors": [
+        "#1F378E",
+        "#2A44A0",
+        "#18307E",
+        "#3A52AE"
+      ],
+      "tolerance": 40,
+      "zone": "metal"
+    },
+    {
+      "name": "mustard metal (lower rims, bridge, pad arms)",
+      "colors": [
+        "#EDA744",
+        "#EBBB84",
+        "#F2B451",
+        "#D9952F"
+      ],
+      "tolerance": 40,
+      "zone": "frente"
+    },
+    {
+      "name": "tortoiseshell far tip (above the bridge)",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840",
+        "#8D7E83",
+        "#847B80",
+        "#7E747C",
+        "#C29F90",
+        "#DCC2BE",
+        "#10040A"
+      ],
+      "tolerance": 40,
+      "within": [
+        455,
+        15,
+        700,
+        92
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "tortoiseshell far tip (seen through the right lens)",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840",
+        "#8D7E83",
+        "#847B80",
+        "#7E747C",
+        "#C29F90",
+        "#DCC2BE",
+        "#10040A"
+      ],
+      "tolerance": 40,
+      "within": [
+        690,
+        85,
+        870,
+        240
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "tortoiseshell near tip",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840",
+        "#8D7E83",
+        "#847B80",
+        "#7E747C",
+        "#C29F90",
+        "#DCC2BE",
+        "#10040A"
+      ],
+      "tolerance": 40,
+      "within": [
+        1470,
+        75,
+        1570,
+        290
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        455,
+        15,
+        700,
+        92
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "honey parts of the far tip (mustard-like)"
+    },
+    {
+      "rect": [
+        690,
+        85,
+        870,
+        240
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "honey parts of the far tip in the lens"
+    },
+    {
+      "rect": [
+        1470,
+        75,
+        1570,
+        290
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "honey parts of the near tip"
+    }
+  ]
+}

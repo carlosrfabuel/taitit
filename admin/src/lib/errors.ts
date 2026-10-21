@@ -22,6 +22,7 @@ export const PUBLISH_PROBLEM_LABEL: Record<string, string> = {
   no_zones: 'Añade al menos una zona.',
   zone_without_layer: 'Hay zonas sin capa.',
   layer_size_mismatch: 'Alguna capa no mide lo mismo que la imagen base.',
+  pattern_size_mismatch: 'Algún patrón de carey no mide lo mismo que la imagen base.',
   zone_without_default_color: 'Hay zonas sin color por defecto.',
   default_color_inactive: 'Hay zonas con un color por defecto desactivado.',
 };
@@ -44,6 +45,11 @@ export function dbMessage(error: ErrorLike): string {
     return 'Ya existe un color con esa referencia.';
   if (message.includes('own_account')) return 'No puedes cambiar el estado de tu propia cuenta.';
   if (message.includes('account_not_found')) return 'Esta cuenta ya no existe.';
+  if (message.includes('admin_account')) return 'Las cuentas de administrador no se eliminan desde aquí.';
+  if (error?.code === '23505' && message.includes('model_zones_one_role'))
+    return 'Este modelo ya tiene una zona con ese papel.';
+  if (message.includes('model_zones_role_material'))
+    return 'El metal principal tiene que ser de metal y los terminales de acetato.';
   if (error?.code === '23505' && message.includes('model_zones_unique_name'))
     return 'Ya hay una zona con ese nombre en este modelo.';
   if (error?.code === '23505') return 'Ya existe un modelo con ese nombre.';

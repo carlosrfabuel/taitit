@@ -4,12 +4,37 @@ import type { Finish, SwatchKind } from './types';
  * Recolor recipe shared by every renderer (app: Skia; admin: Canvas 2D; tools/zones: preview).
  * Per zone, over the base image:
  *   1. fill = swatch color, or its tortoiseshell texture
- *   2. multiply by the layer's gray shading (the photo's light and shadow)
- *   3. gloss finish: screen a soft white band (see GLOSS)
- *   4. clip to the layer's alpha (the zone's shape)
- *   5. draw with the swatch opacity (translucent acetate shows the base through)
- * Pixel math: lit = c·s + (1 − c·s)·g ; out = out + (lit − out)·alpha·opacity
+ *   2. multiply by the layer's shading (the photo's shadows): gray × SHADE_GAIN, capped at 1
+ *   3. screen the layer's highlight (the photo's light parts: lit faces, a temple seen through the
+ *      lens): highlightOf(gray), toward white
+ *   4. gloss finish: screen a soft white band (see GLOSS)
+ *   5. clip to the layer's alpha (the zone's shape)
+ *   6. draw with the swatch opacity (translucent acetate shows the base through)
+ * Pixel math (0..1): f = c·min(1, gray·SHADE_GAIN) ; f = f + (1 − f)·highlightOf(gray) ;
+ *   lit = f + (1 − f)·gloss ; out = out + (lit − out)·alpha·opacity
+ *
+ * Havana colors on a zone with a tortoiseshell pattern replace steps 1-3: fill = the pattern image
+ * through patternMatrix(color). The pattern stores, per pixel, how the real tortoiseshell differs from
+ * its average color: brightness ratio (red) and colorfulness ratio (green), both ÷ PATTERN_SCALE, light
+ * and shadow included. The color is drawn as  luma(c)·brightness + (c − luma(c))·colorfulness : dark
+ * spots become a dark, duller c, honey areas a light, richer c, and the hue is always c's.
  */
+
+/**
+ * A zone layer's gray holds two things (tools/zones/src/layers.ts). From 0 to SHADE_TOP: the shading;
+ * SHADE_TOP is the zone's typical brightness (the color drawn as itself), darker is the photo's shadows.
+ * Above SHADE_TOP: the highlight, how far toward white (0 at SHADE_TOP, 1 at white).
+ * A renderer without the highlight step (app builds before 2026-10-20) still draws such a layer
+ * sensibly: light parts somewhat brighter than the color.
+ */
+export const SHADE_TOP = 0.86;
+
+/** Shading multiplier: gray × SHADE_GAIN, capped at 1 (the color as itself at the typical brightness). */
+export const SHADE_GAIN = 1 / SHADE_TOP;
+
+/** Highlight amount (0..1, toward white) of a layer gray (0..1). */
+export const highlightOf = (gray: number): number =>
+  Math.max(0, Math.min(1, (gray - SHADE_TOP) / (1 - SHADE_TOP)));
 
 /** Gloss highlight: a soft horizontal band, strongest at `center` (fraction of image height). */
 export const GLOSS = { strength: 0.35, center: 0.2, halfWidth: 0.12 } as const;
@@ -42,6 +67,10 @@ export type RenderZone = {
   defaultSwatchId: string | null;
   defaultFinish: Finish | null;
   sortOrder: number;
+  /** Public URL of the zone's tortoiseshell pattern (acetate zones). */
+  patternUrl: string | null;
+  /** The pattern is the zone's own, from the photo (else a real one borrowed from another photo). */
+  patternOwn: boolean;
 };
 
 export type RenderPick = { swatchId: string | null; finish: Finish | null };
@@ -51,10 +80,37 @@ export type RenderLayer = {
   layerUrl: string;
   hex: string;
   textureUrl: string | null;
+  /** Havana on a zone with a pattern: the pattern image and the color matrix that draws it. */
+  patternUrl: string | null;
+  patternMatrix: number[] | null;
   /** 0..1; below 1 only for translucent acetate. */
   opacity: number;
   gloss: boolean;
 };
+
+const rgb = (hex: string): [number, number, number] => [
+  parseInt(hex.slice(1, 3), 16),
+  parseInt(hex.slice(3, 5), 16),
+  parseInt(hex.slice(5, 7), 16),
+];
+
+/** Brightness and colorfulness ratios in pattern images are stored divided by this (0..4 fits 0..1). */
+export const PATTERN_SCALE = 4;
+
+export const luma = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
+
+/**
+ * 4×5 color matrix (Skia's layout, 0..1 values) that draws a pattern image in the havana color `hex`:
+ * out = luma·S·red + (channel − luma)·S·green. Rounded so every renderer sees the same numbers.
+ */
+export function patternMatrix(hex: string): number[] {
+  const [r, g, b] = rgb(hex).map((v) => v / 255) as [number, number, number];
+  const y = luma(r, g, b);
+  const k = PATTERN_SCALE;
+  const round = (v: number) => Math.round(v * 1e4) / 1e4;
+  const row = (c: number) => [round(k * y), round(k * (c - y)), 0, 0, 0];
+  return [...row(r), ...row(g), ...row(b), 0, 0, 0, 1, 0];
+}
 
 export type RenderPlan = { baseUrl: string; width: number; height: number; layers: RenderLayer[] };
 
@@ -82,11 +138,19 @@ export function buildRenderPlan(input: {
     const swatch = byId.get((pick ? pick.swatchId : zone.defaultSwatchId) ?? '');
     if (!zone.layerUrl || !swatch) continue;
     const finish = pick ? pick.finish : zone.defaultFinish;
+    // Havana: the zone's own photo pattern first, then the color's texture, then a borrowed pattern.
+    const havana = swatch.kind === 'havana';
+    const pattern =
+      havana && zone.patternUrl && (zone.patternOwn || !swatch.textureUrl)
+        ? { url: zone.patternUrl, matrix: patternMatrix(swatch.hex) }
+        : null;
     layers.push({
       zoneId: zone.id,
       layerUrl: zone.layerUrl,
       hex: swatch.hex,
-      textureUrl: swatch.kind === 'havana' ? swatch.textureUrl : null,
+      textureUrl: havana && !pattern ? swatch.textureUrl : null,
+      patternUrl: pattern?.url ?? null,
+      patternMatrix: pattern?.matrix ?? null,
       opacity: swatch.kind === 'translucent' ? (swatch.alpha ?? 1) : 1,
       // Gloss only when the color offers it (a stored finish the color doesn't have is ignored).
       gloss: finish === 'gloss' && swatch.finishes.includes('gloss'),
@@ -111,7 +175,16 @@ export function renderKey(plan: RenderPlan): string {
     rel(plan.baseUrl),
     plan.width,
     plan.height,
-    plan.layers.map((l) => [rel(l.layerUrl), l.hex.toUpperCase(), rel(l.textureUrl), l.opacity, l.gloss]),
+    // Pattern fields only when used: plans without patterns keep the keys they had before.
+    plan.layers.map((l) => [
+      rel(l.layerUrl),
+      l.hex.toUpperCase(),
+      rel(l.textureUrl),
+      l.opacity,
+      l.gloss,
+      // (the pattern's matrix comes from the color, already in the key)
+      ...(l.patternUrl ? [rel(l.patternUrl)] : []),
+    ]),
   ]);
   // Two 32-bit FNV-1a-style hashes (different seeds, odd multipliers): short, stable on every JS
   // engine, plenty for a cache key. The multipliers must be odd, or bits are lost at every step.
@@ -122,5 +195,7 @@ export function renderKey(plan: RenderPlan): string {
     a = Math.imul(a ^ c, 0x01000193);
     b = Math.imul(b ^ c, 0x5bd1e995);
   }
-  return `v3-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
+  // v5: highlight step (v4: shading × SHADE_GAIN; both 2026-10-20). Thumbnails drawn before no longer
+  // match and are redrawn.
+  return `v5-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
 }

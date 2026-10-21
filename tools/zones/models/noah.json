@@ -1,0 +1,94 @@
+{
+  "name": "NOAH",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/noah.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M12",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M13",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A01"
+    }
+  ],
+  "groups": [
+    {
+      "name": "dark green metal (front body and temples)",
+      "colors": [
+        "#2C7F6E",
+        "#2C8169",
+        "#23835D",
+        "#418B86",
+        "#025A27"
+      ],
+      "tolerance": 34,
+      "zone": "metal"
+    },
+    {
+      "name": "far temple seen through the left lens",
+      "colors": [
+        "#A8B1C3",
+        "#8499B2",
+        "#7896B2"
+      ],
+      "tolerance": 22,
+      "zone": "metal"
+    },
+    {
+      "name": "light green metal (outer layer of the front)",
+      "colors": [
+        "#42DA64",
+        "#11C74E",
+        "#2FD058",
+        "#5FE37A"
+      ],
+      "tolerance": 36,
+      "zone": "frente"
+    },
+    {
+      "name": "yellow-green acetate tips",
+      "colors": [
+        "#91EA5F",
+        "#A1F16C",
+        "#8CE358",
+        "#90E077"
+      ],
+      "tolerance": 30,
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        110,
+        110,
+        165,
+        300
+      ],
+      "from": "terminales",
+      "to": "none",
+      "piecesInside": true,
+      "note": "light green reflections on the left lens bevel"
+    }
+  ]
+}

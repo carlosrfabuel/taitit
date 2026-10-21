@@ -1,0 +1,311 @@
+{
+  "name": "KARL",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/karl.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M06",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M01",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A16",
+      "smooth": 6,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "gold metal (front)",
+      "colors": [
+        "#AC8C5D",
+        "#BEA78A",
+        "#9C7C4E",
+        "#C8B08A"
+      ],
+      "tolerance": 32,
+      "zone": "metal"
+    },
+    {
+      "name": "black metal (outer layer of the front, end pieces; the temples too in this photo, gold in production)",
+      "colors": [
+        "#454144",
+        "#2B2829",
+        "#6E645E",
+        "#1E1C1D"
+      ],
+      "tolerance": 32,
+      "ownShading": true,
+      "zone": "frente"
+    },
+    {
+      "name": "tortoiseshell far tip",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840"
+      ],
+      "tolerance": 36,
+      "within": [
+        462,
+        10,
+        640,
+        80
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "tortoiseshell far tip (seen through the right lens)",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840"
+      ],
+      "tolerance": 36,
+      "within": [
+        676,
+        112,
+        782,
+        198
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "tortoiseshell near tip",
+      "colors": [
+        "#493934",
+        "#2E211C",
+        "#5A3020",
+        "#8A5A35",
+        "#A06030",
+        "#CC9B5F",
+        "#E0B070",
+        "#F0C878",
+        "#F2D49A",
+        "#B07840"
+      ],
+      "tolerance": 36,
+      "within": [
+        1462,
+        80,
+        1575,
+        284
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "clear grey part of the near tip, by the joint",
+      "colors": [
+        "#D1CED1",
+        "#DCD3D2",
+        "#918080",
+        "#EAE1E0",
+        "#CDC3C2",
+        "#9E8482",
+        "#E1CEC2",
+        "#E1DEE0"
+      ],
+      "tolerance": 16,
+      "within": [
+        1462,
+        80,
+        1575,
+        284
+      ],
+      "attach": true
+    },
+    {
+      "name": "clear parts of the far tip",
+      "colors": [
+        "#E0DFE0",
+        "#D2CFCF",
+        "#F3E2D0",
+        "#D0C1BF",
+        "#E1DFDF",
+        "#DAD5D2",
+        "#FDDFA0",
+        "#FBD49E",
+        "#FEE3A9",
+        "#FBD292"
+      ],
+      "tolerance": 14,
+      "within": [
+        462,
+        10,
+        775,
+        262
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        352,
+        15,
+        462,
+        52
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "far temple: black in this photo, but the temples go with the main metal (Carlos)"
+    },
+    {
+      "rect": [
+        1048,
+        80,
+        1462,
+        225
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "near temple, from the hinge at x 1048 to the tip joint at x 1462 (the end piece stays with the front)"
+    },
+    {
+      "rect": [
+        138,
+        55,
+        308,
+        118
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "far temple seen through the left lens (temples go with the main metal)"
+    },
+    {
+      "rect": [
+        462,
+        10,
+        640,
+        80
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "dark spots of the far tip"
+    },
+    {
+      "rect": [
+        462,
+        10,
+        640,
+        80
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "honey parts of the far tip"
+    },
+    {
+      "rect": [
+        676,
+        112,
+        782,
+        198
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "dark spots of the far tip in the lens"
+    },
+    {
+      "rect": [
+        676,
+        112,
+        782,
+        198
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "honey parts of the far tip in the lens"
+    },
+    {
+      "rect": [
+        1462,
+        80,
+        1575,
+        284
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "dark spots of the near tip"
+    },
+    {
+      "rect": [
+        1462,
+        80,
+        1575,
+        284
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "honey parts of the near tip"
+    },
+    {
+      "rect": [
+        470,
+        220,
+        500,
+        272
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "clear nose pad and its arm (were taking the front color)"
+    },
+    {
+      "poly": [
+        [
+          925,
+          183
+        ],
+        [
+          957,
+          183
+        ],
+        [
+          974,
+          258
+        ],
+        [
+          950,
+          258
+        ]
+      ],
+      "from": "frente",
+      "to": "metal",
+      "shadeAsZone": true,
+      "note": "gold end piece at the right hinge (main metal), not the black front"
+    }
+  ]
+}

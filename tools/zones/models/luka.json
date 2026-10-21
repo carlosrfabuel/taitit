@@ -1,0 +1,93 @@
+{
+  "name": "LUKA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/luka.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M09",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M10",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A05"
+    }
+  ],
+  "groups": [
+    {
+      "name": "orange metal (rims) and orange acetate tips",
+      "colors": [
+        "#FE8654",
+        "#FEA78D",
+        "#F7743F",
+        "#FDB08A"
+      ],
+      "tolerance": 42,
+      "zone": "metal"
+    },
+    {
+      "name": "blue metal (bridge, end pieces, temples)",
+      "colors": [
+        "#41457B",
+        "#5A567C",
+        "#8D80A8",
+        "#2E3570"
+      ],
+      "tolerance": 38,
+      "zone": "frente"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        455,
+        15,
+        662,
+        80
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip, from the joint at x 455 to where it crosses the right rim (about x 670, y 85)"
+    },
+    {
+      "rect": [
+        680,
+        100,
+        775,
+        220
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip seen through the right lens, past the crossing"
+    },
+    {
+      "rect": [
+        1445,
+        80,
+        1570,
+        285
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "near tip, from the joint at x 1445"
+    }
+  ]
+}

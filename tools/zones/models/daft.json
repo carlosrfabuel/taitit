@@ -1,0 +1,141 @@
+{
+  "name": "DAFT",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/daft.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M06",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A15",
+      "smooth": 8,
+      "pattern": "own"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A15",
+      "smooth": 6,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "mustard metal (top bar and temples)",
+      "colors": [
+        "#EEB76F",
+        "#C5893B",
+        "#D9A050",
+        "#F3C98A"
+      ],
+      "tolerance": 45,
+      "zone": "metal"
+    },
+    {
+      "name": "mustard metal strip under the tortoiseshell, along the bottom of the front (darker than the lit metal; the attach group gave it to the front)",
+      "colors": [
+        "#A16821",
+        "#A66F2C",
+        "#9D6623",
+        "#99682E",
+        "#996529",
+        "#6A451B"
+      ],
+      "tolerance": 14,
+      "within": [
+        0,
+        380,
+        1110,
+        545
+      ],
+      "zone": "metal"
+    },
+    {
+      "name": "mustard metal in shadow (underside of the rim outline)",
+      "colors": [
+        "#8F5C1F",
+        "#9B6821",
+        "#B3762E"
+      ],
+      "tolerance": 24,
+      "minSaturation": 40,
+      "attach": true
+    },
+    {
+      "name": "amber tortoiseshell spots and the grey inner bevel of the acetate rims",
+      "colors": [
+        "#8D4813",
+        "#80361D",
+        "#8F8182",
+        "#5E524C"
+      ],
+      "tolerance": 24,
+      "attach": true
+    },
+    {
+      "name": "dark tortoiseshell acetate: the 2 largest regions are the front, the rest the tips",
+      "colors": [
+        "#362C2D",
+        "#694E40",
+        "#4A3A33",
+        "#241C1C",
+        "#7E6352"
+      ],
+      "tolerance": 45,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        415,
+        10,
+        655,
+        117
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far temple tip: long and tortoiseshell (behind the bridge); it is a tip, not the secondary front"
+    },
+    {
+      "rect": [
+        100,
+        118,
+        635,
+        540
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "dark slivers along the left rim are tortoiseshell, not tips (the far tip starts at x 640)"
+    },
+    {
+      "rect": [
+        635,
+        380,
+        1100,
+        540
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "note": "dark slivers along the bottom of the right rim"
+    }
+  ]
+}

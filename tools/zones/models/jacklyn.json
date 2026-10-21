@@ -1,0 +1,187 @@
+{
+  "name": "JACKLYN",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/jacklyn.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M07",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "PH-A02"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A02"
+    }
+  ],
+  "groups": [
+    {
+      "name": "pink metal (front and temples); grey floor reflections are not",
+      "colors": [
+        "#9B6D7D",
+        "#BF8FA0",
+        "#D7A7B7",
+        "#E2B9C6"
+      ],
+      "tolerance": 36,
+      "minSaturation": 20,
+      "zone": "metal"
+    },
+    {
+      "name": "black acetate: the 2 largest regions are the brows, the rest the tips",
+      "colors": [
+        "#2F2C2F",
+        "#3E4D4B",
+        "#4A4648",
+        "#1E1C1E"
+      ],
+      "tolerance": 36,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "glossy grey highlights of the near tip",
+      "colors": [
+        "#726E72",
+        "#BFBDC1",
+        "#817C81",
+        "#CFCCD1",
+        "#B0ACB1",
+        "#918C91",
+        "#A09CA2",
+        "#B3B2BD"
+      ],
+      "tolerance": 16,
+      "within": [
+        1455,
+        110,
+        1570,
+        370
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        640,
+        202,
+        712,
+        245
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens touches the brow"
+    },
+    {
+      "rect": [
+        560,
+        322,
+        640,
+        420
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "dark inner bevel of the right rim (joined to the brow by color)"
+    },
+    {
+      "rect": [
+        630,
+        280,
+        700,
+        385
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "pink reflections on the right nose pad"
+    },
+    {
+      "rect": [
+        598,
+        285,
+        630,
+        330
+      ],
+      "from": "metal",
+      "to": "none",
+      "note": "right nose pad arm"
+    },
+    {
+      "rect": [
+        650,
+        495,
+        960,
+        570
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor reflection of the right brow"
+    },
+    {
+      "rect": [
+        120,
+        105,
+        145,
+        155
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "piecesInside": true,
+      "note": "left end of the left brow"
+    },
+    {
+      "rect": [
+        270,
+        415,
+        335,
+        440
+      ],
+      "from": "terminales",
+      "to": "none",
+      "piecesInside": true,
+      "note": "floor reflection of the left brow"
+    },
+    {
+      "rect": [
+        1160,
+        240,
+        1180,
+        275
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "dark line at the hinge"
+    },
+    {
+      "rect": [
+        112,
+        152,
+        135,
+        195
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "dark line under the left brow, on the pink rim (joined to the brow by color)"
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "name": "LETER",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/leter.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "PH-M03",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "PH-M15",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "PH-A06"
+    }
+  ],
+  "groups": [
+    {
+      "name": "grey metal (top bar, bridge and temples)",
+      "colors": [
+        "#7A6C6E",
+        "#AB9293",
+        "#8E8A8C",
+        "#6A6466"
+      ],
+      "tolerance": 30,
+      "zone": "metal"
+    },
+    {
+      "name": "red: the largest region is the lower rims (metal), the rest the translucent tips",
+      "colors": [
+        "#F90F2A",
+        "#F04F5C",
+        "#921420",
+        "#C8102A",
+        "#E85A6A"
+      ],
+      "tolerance": 45,
+      "split": {
+        "largest": 1,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "pale highlights on the translucent tips",
+      "colors": [
+        "#EECDD1",
+        "#F5B5C0",
+        "#E59AA0"
+      ],
+      "tolerance": 18,
+      "minSaturation": 20,
+      "attach": true
+    },
+    {
+      "name": "deep and dark red reflections inside the far tip (holes in the tip otherwise)",
+      "colors": [
+        "#E00000",
+        "#D00010",
+        "#900000",
+        "#700000",
+        "#600000",
+        "#A04050"
+      ],
+      "tolerance": 30,
+      "within": [
+        437,
+        12,
+        681,
+        66
+      ],
+      "attach": true
+    },
+    {
+      "name": "deep and dark red reflections inside the far tip seen through the lens (holes in the tip otherwise)",
+      "colors": [
+        "#E00000",
+        "#D00010",
+        "#900000",
+        "#700000",
+        "#600000",
+        "#A04050"
+      ],
+      "tolerance": 30,
+      "within": [
+        660,
+        78,
+        790,
+        202
+      ],
+      "attach": true
+    },
+    {
+      "name": "deep and dark red reflections inside the near tip (holes in the tip otherwise)",
+      "colors": [
+        "#E00000",
+        "#D00010",
+        "#900000",
+        "#700000",
+        "#600000",
+        "#A04050"
+      ],
+      "tolerance": 30,
+      "within": [
+        1448,
+        38,
+        1543,
+        235
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        470,
+        200,
+        540,
+        320
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "red reflection on the left nose pad"
+    },
+    {
+      "rect": [
+        625,
+        205,
+        720,
+        330
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "red reflection on the right nose pad"
+    },
+    {
+      "rect": [
+        652,
+        205,
+        720,
+        297
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "right nose pad outline joined to the lower rim (the rim is left of x 650 here)"
+    },
+    {
+      "rect": [
+        668,
+        298,
+        720,
+        330
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "lower end of the pad (the rim reaches x 667 here)"
+    },
+    {
+      "rect": [
+        1462,
+        40,
+        1545,
+        240
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "grey-matched highlight on the near tip"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
-import { GLOSS_STOPS, type RenderPlan } from '@taitit/shared';
+import { GLOSS_STOPS, SHADE_GAIN, highlightOf, type RenderPlan } from '@taitit/shared';
 
 // Canvas 2D implementation of the shared recolor recipe (shared/src/render.ts). Same math as the
-// app's Skia renderer and the tools/zones preview: fill → multiply shading → screen gloss → clip to
-// the layer shape → draw with the swatch opacity.
+// app's Skia renderer and the tools/zones preview: fill → multiply shading → screen highlight → screen
+// gloss → clip to the layer shape → draw with the swatch opacity. A havana with a tortoiseshell pattern
+// fills with the pattern through its color matrix instead of fill + shading + highlight (the pattern
+// holds the photo's light).
 
 // Small caches (most recently used kept): full-size images and canvases are large, and browsing many
 // models must not keep all of them in memory.
@@ -45,21 +47,35 @@ const canvas = (w: number, h: number) => {
   return c;
 };
 
-// The layer's shading with alpha forced opaque: canvas "multiply" blends partially transparent
-// pixels with the fill, so the shape (alpha) is applied separately, exactly like the recipe.
-const shades = new Map<string, Promise<HTMLCanvasElement>>();
+// The layer's shading × SHADE_GAIN (capped at 255) and its highlight, each with alpha forced opaque:
+// canvas "multiply" and "screen" blend partially transparent pixels with the fill, so the shape (alpha)
+// is applied separately, exactly like the recipe.
+const shades = new Map<string, Promise<{ shade: HTMLCanvasElement; highlight: HTMLCanvasElement }>>();
 function opaqueShade(url: string, w: number, h: number) {
   const key = `${url}@${w}x${h}`;
   let p = recall(shades, key);
   if (!p) {
     p = loadImage(url).then((img) => {
-      const c = canvas(w, h);
-      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      const shade = canvas(w, h);
+      const ctx = shade.getContext('2d', { willReadFrequently: true })!;
       ctx.drawImage(img, 0, 0, w, h);
       const data = ctx.getImageData(0, 0, w, h);
-      for (let i = 3; i < data.data.length; i += 4) data.data[i] = 255;
+      const light = new ImageData(w, h);
+      for (let i = 0; i < data.data.length; i += 4) {
+        const v = 255 * highlightOf(data.data[i]! / 255);
+        light.data[i] = v; // Uint8ClampedArray: rounds
+        light.data[i + 1] = v;
+        light.data[i + 2] = v;
+        light.data[i + 3] = 255;
+        data.data[i] = data.data[i]! * SHADE_GAIN; // rounds and caps at 255
+        data.data[i + 1] = data.data[i + 1]! * SHADE_GAIN;
+        data.data[i + 2] = data.data[i + 2]! * SHADE_GAIN;
+        data.data[i + 3] = 255;
+      }
       ctx.putImageData(data, 0, 0);
-      return c;
+      const highlight = canvas(w, h);
+      highlight.getContext('2d')!.putImageData(light, 0, 0);
+      return { shade, highlight };
     });
     const mine = p;
     p.catch(() => shades.get(key) === mine && shades.delete(key));
@@ -72,8 +88,8 @@ function opaqueShade(url: string, w: number, h: number) {
  * Draws the plan into `target` at the plan's full resolution (scale it with CSS). `isCurrent` is
  * checked before the canvas is touched: a render that finishes after a newer one started (e.g. a slow
  * texture) must not overwrite it. `degraded` is true when a texture could not be loaded and its
- * plain color was used instead: fine for a preview, but such a render must not be saved as the
- * catalog thumbnail.
+ * plain color was used instead (or a pattern could not, and color + shading was used): fine for a
+ * preview, but such a render must not be saved as the catalog thumbnail.
  */
 export async function drawPlan(
   target: HTMLCanvasElement,
@@ -87,8 +103,9 @@ export async function drawPlan(
     plan.layers.map(async (l) => ({
       ...l,
       shape: await loadImage(l.layerUrl),
-      shade: await opaqueShade(l.layerUrl, w, h),
+      shading: await opaqueShade(l.layerUrl, w, h),
       texture: l.textureUrl ? await loadImage(l.textureUrl).catch(() => null) : null,
+      pattern: l.patternUrl ? await loadImage(l.patternUrl).catch(() => null) : null,
     })),
   );
 
@@ -96,22 +113,39 @@ export async function drawPlan(
   const ctx = out.getContext('2d')!;
   ctx.drawImage(base, 0, 0, w, h);
   const zone = canvas(w, h);
-  const z = zone.getContext('2d')!;
+  const z = zone.getContext('2d', { willReadFrequently: true })!;
   for (const l of layers) {
     z.globalCompositeOperation = 'source-over';
     z.clearRect(0, 0, w, h);
-    if (l.texture) {
-      // Tortoiseshell: the texture covers the whole image (scaled to fill, centered).
-      const s = Math.max(w / l.texture.width, h / l.texture.height);
-      const tw = l.texture.width * s;
-      const th = l.texture.height * s;
-      z.drawImage(l.texture, (w - tw) / 2, (h - th) / 2, tw, th);
+    if (l.pattern && l.patternMatrix) {
+      // Tortoiseshell pattern through the havana color's matrix (no shading step), like Skia's ColorMatrix.
+      z.drawImage(l.pattern, 0, 0, w, h);
+      const px = z.getImageData(0, 0, w, h);
+      const m = l.patternMatrix;
+      for (let i = 0; i < px.data.length; i += 4) {
+        const r = px.data[i]! / 255;
+        const g = px.data[i + 1]! / 255;
+        const b = px.data[i + 2]! / 255;
+        for (let c = 0; c < 3; c++)
+          px.data[i + c] = 255 * (m[c * 5]! * r + m[c * 5 + 1]! * g + m[c * 5 + 2]! * b + m[c * 5 + 4]!);
+      }
+      z.putImageData(px, 0, 0);
     } else {
-      z.fillStyle = l.hex;
-      z.fillRect(0, 0, w, h);
+      if (l.texture) {
+        // Tortoiseshell: the texture covers the whole image (scaled to fill, centered).
+        const s = Math.max(w / l.texture.width, h / l.texture.height);
+        const tw = l.texture.width * s;
+        const th = l.texture.height * s;
+        z.drawImage(l.texture, (w - tw) / 2, (h - th) / 2, tw, th);
+      } else {
+        z.fillStyle = l.hex;
+        z.fillRect(0, 0, w, h);
+      }
+      z.globalCompositeOperation = 'multiply';
+      z.drawImage(l.shading.shade, 0, 0);
+      z.globalCompositeOperation = 'screen';
+      z.drawImage(l.shading.highlight, 0, 0);
     }
-    z.globalCompositeOperation = 'multiply';
-    z.drawImage(l.shade, 0, 0);
     if (l.gloss) {
       // screen with gray g: x + (1 − x)·g, the recipe's gloss.
       const grad = z.createLinearGradient(
@@ -135,7 +169,7 @@ export async function drawPlan(
     ctx.globalAlpha = 1;
   }
 
-  const degraded = layers.some((l) => l.textureUrl && !l.texture);
+  const degraded = layers.some((l) => (l.textureUrl && !l.texture) || (l.patternUrl && !l.pattern));
   if (!isCurrent()) return { degraded };
   // Swap in one step: the visible canvas never shows a partial render.
   target.width = w;

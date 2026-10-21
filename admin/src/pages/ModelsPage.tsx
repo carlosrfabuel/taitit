@@ -1,33 +1,16 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Glasses, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Glasses, Plus } from 'lucide-react';
 import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
 import { PageHeader } from '../components/PageHeader';
 import { Button, EmptyState, Spinner, Table, Tag, type Column } from '../components/ui';
-import { listModels, modelKeys, reorder, saveOrder, type ModelRow } from '../lib/models';
-import { dbMessage, readMessage } from '../lib/errors';
+import { listModels, modelKeys, type ModelRow } from '../lib/models';
+import { readMessage } from '../lib/errors';
 import { publicUrl } from '../lib/images';
 
 export function ModelsPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
-  const [orderError, setOrderError] = useState<string | null>(null);
-
-  const move = useMutation({
-    mutationFn: ({ before, after }: { before: ModelRow[]; after: ModelRow[] }) =>
-      saveOrder('models', before, after),
-    // Optimistic: the row moves at once; on failure the list goes back to what the database has.
-    onMutate: async ({ after }) => {
-      setOrderError(null);
-      await queryClient.cancelQueries({ queryKey: modelKeys.all }); // a refetch in flight would undo the move
-      queryClient.setQueryData(modelKeys.all, after);
-    },
-    onError: (error) => setOrderError(`No se pudo guardar el orden. ${dbMessage(error)}`),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: modelKeys.all }),
-  });
-
   const newButton = (
     <Button icon={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/models/new')}>
       Nuevo modelo
@@ -36,37 +19,6 @@ export function ModelsPage() {
 
   const rows = models.data ?? [];
   const columns: Column<ModelRow>[] = [
-    {
-      key: 'order',
-      header: 'Orden',
-      className: 'w-24',
-      render: (row) => {
-        const i = rows.indexOf(row);
-        const arrow = (direction: -1 | 1, label: string, Icon: typeof ChevronUp) => (
-          <button
-            type="button"
-            aria-label={`${label}: ${row.name}`}
-            disabled={i + direction < 0 || i + direction >= rows.length}
-            // aria-disabled while saving (not disabled), so keyboard focus stays on the button.
-            aria-disabled={move.isPending || undefined}
-            onClick={(e) => {
-              e.stopPropagation(); // don't open the model
-              if (move.isPending) return;
-              move.mutate({ before: rows, after: reorder(rows, i, direction) });
-            }}
-            className="rounded p-1 text-muted hover:bg-bg hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent aria-disabled:opacity-50"
-          >
-            <Icon className="size-4" aria-hidden />
-          </button>
-        );
-        return (
-          <div className="flex items-center gap-0.5">
-            {arrow(-1, 'Subir', ChevronUp)}
-            {arrow(1, 'Bajar', ChevronDown)}
-          </div>
-        );
-      },
-    },
     {
       key: 'photo',
       header: 'Foto',
@@ -127,7 +79,7 @@ export function ModelsPage() {
     <>
       <PageHeader
         title="Modelos"
-        note="Los modelos publicados aparecen en la app en este orden."
+        note="Los modelos publicados aparecen en la app por orden alfabético."
         actions={rows.length > 0 ? newButton : undefined}
       />
       {models.isPending ? (
@@ -140,11 +92,6 @@ export function ModelsPage() {
         />
       ) : (
         <>
-          {orderError && (
-            <p role="alert" className="mb-3 text-sm text-danger">
-              {orderError}
-            </p>
-          )}
           <Table
             columns={columns}
             rows={rows}

@@ -119,7 +119,7 @@ export function OrderDetailPage() {
       {back}
       <PageHeader
         title={`Pedido #${o.number}`}
-        note={`${formatOrderDate(o.created_at)} · ${o.model_name}`}
+        note={`${formatOrderDate(o.created_at)} · ${o.model_name} · ${o.quantity} ${o.quantity === 1 ? 'unidad' : 'unidades'}`}
         actions={
           // Not printed: the printed page is the technical sheet itself.
           <div className="flex gap-2 print:hidden">

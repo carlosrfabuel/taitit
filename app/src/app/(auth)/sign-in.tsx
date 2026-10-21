@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -62,9 +63,12 @@ export default function SignInScreen() {
 
   return (
     <Screen>
-      <AppText variant="label" color={tokens.colors.primary} style={styles.wordmark}>
-        TAITIT
-      </AppText>
+      <Image
+        source={require('../../../assets/images/logo.png')}
+        style={styles.logo}
+        contentFit="contain"
+        accessibilityLabel="TAITIT"
+      />
       <AppText variant="title">Welcome</AppText>
       <AppText variant="small">Sign in to save your designs and place orders.</AppText>
 
@@ -122,7 +126,8 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  wordmark: { letterSpacing: 3, fontWeight: tokens.weight.heavy },
+  // Carlos's logo (black on white, 2026-10-20); 600×140 source, shown at 1/4.
+  logo: { width: 150, height: 35, marginBottom: tokens.spacing.sm },
   form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
   links: { gap: tokens.spacing.sm, marginTop: tokens.spacing.md },
 });

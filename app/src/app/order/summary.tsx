@@ -18,6 +18,7 @@ import { parseSelection } from '@/designs/designs';
 import {
   NOTES_MAX,
   ORDER_IMAGE_WIDTH,
+  QUANTITY_MAX,
   linesToSelection,
   orderErrorMessage,
   orderContentKey,
@@ -37,6 +38,7 @@ import {
   Loader,
   PhotoStage,
   PHOTO_STAGE_INSET,
+  QuantityStepper,
   Screen,
   Swatch,
   TextField,
@@ -120,6 +122,7 @@ function Summary({
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const [notes, setNotes] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [errors, setErrors] = useState<{ notes?: string }>({});
   const [busy, setBusy] = useState(false);
   // Guards a second tap before the re-render (the button's own disabled state comes one frame later).
@@ -157,7 +160,7 @@ function Summary({
     // The key belongs to what is ordered (model + every line as shown): a retry of the same content,
     // even from a new screen or after a restart, gets the same key and so the same order. Changed
     // content gets a new key, so its image is uploaded fresh and always matches the order.
-    const content = orderContentKey(userId, model.id, lines, input.notes);
+    const content = orderContentKey(userId, model.id, lines, input.notes, quantity);
     try {
       const key = await orderKeyFor(content);
       // 1. The image, uploaded first (the order points to it). 2. The order, in one transaction.
@@ -168,6 +171,7 @@ function Summary({
         modelId: model.id,
         selection: linesToSelection(lines),
         notes: input.notes,
+        quantity,
       });
       await orderPlaced(content);
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
@@ -316,6 +320,13 @@ function Summary({
             </AppText>
           ))}
         </Card>
+        <QuantityStepper
+          label="Frames"
+          value={quantity}
+          onChange={setQuantity}
+          max={QUANTITY_MAX}
+          disabled={busy}
+        />
         <TextField
           label="Notes (optional)"
           value={notes}

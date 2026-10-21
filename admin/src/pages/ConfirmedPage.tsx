@@ -1,4 +1,5 @@
 import { CheckCircle2, CircleAlert } from 'lucide-react';
+import { useDocumentLang } from '../lib/useDocumentLang';
 
 // Public landing page of the sign-up confirmation email (the app's emailRedirectTo). Supabase marks
 // the email as confirmed when the link is opened, before redirecting here, so this page only shows
@@ -20,10 +21,11 @@ function linkError(): string | null {
 export function ConfirmedPage({ kind = 'signup' }: { kind?: 'signup' | 'other' }) {
   const error = linkError();
   const signup = kind === 'signup';
+  useDocumentLang('en');
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg p-6">
       <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-8 text-center">
-        <div className="mb-4 text-lg font-extrabold tracking-wider text-brand">TAITIT</div>
+        <img src="/logo.svg" alt="TAITIT" className="mx-auto mb-6 h-7 w-auto" />
         {error ? (
           <>
             <CircleAlert className="mx-auto mb-3 size-12 text-danger" aria-hidden />
