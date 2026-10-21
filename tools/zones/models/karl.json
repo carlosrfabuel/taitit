@@ -20,7 +20,7 @@
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
-      "defaultRef": "67",
+      "defaultRef": "7",
       "defaultFinish": "matte"
     },
     {
@@ -174,15 +174,27 @@
   ],
   "fixes": [
     {
-      "rect": [
-        352,
-        15,
-        462,
-        52
+      "poly": [
+        [
+          338,
+          15
+        ],
+        [
+          462,
+          15
+        ],
+        [
+          462,
+          66
+        ],
+        [
+          389,
+          66
+        ]
       ],
       "from": "frente",
       "to": "metal",
-      "note": "far temple: black in this photo, but the temples go with the main metal (Carlos)"
+      "note": "far temple, from the end piece (its right edge runs down-right, x = 323 + y) to the tip at x 462; the full height of the temple (a rect to y 52 left its lower edge black)"
     },
     {
       "rect": [
@@ -230,6 +242,68 @@
       "note": "honey parts of the far tip"
     },
     {
+      "poly": [
+        [
+          640,
+          24
+        ],
+        [
+          680,
+          51
+        ],
+        [
+          680,
+          55
+        ],
+        [
+          660,
+          57
+        ],
+        [
+          650,
+          60
+        ],
+        [
+          640,
+          62
+        ]
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "end of the far tip past x 640, up to where it goes behind the rim (was taking the front color)"
+    },
+    {
+      "poly": [
+        [
+          640,
+          24
+        ],
+        [
+          680,
+          51
+        ],
+        [
+          680,
+          55
+        ],
+        [
+          660,
+          57
+        ],
+        [
+          650,
+          60
+        ],
+        [
+          640,
+          62
+        ]
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "its honey edge"
+    },
+    {
       "rect": [
         676,
         112,
@@ -250,6 +324,111 @@
       "from": "metal",
       "to": "terminales",
       "note": "honey parts of the far tip in the lens"
+    },
+    {
+      "poly": [
+        [
+          694,
+          104
+        ],
+        [
+          700,
+          100
+        ],
+        [
+          726,
+          98
+        ],
+        [
+          740,
+          112
+        ],
+        [
+          740,
+          120
+        ],
+        [
+          694,
+          120
+        ]
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "top of the far tip in the lens, just under the rim (its honey and brown took the gold)"
+    },
+    {
+      "poly": [
+        [
+          740,
+          186
+        ],
+        [
+          750,
+          186
+        ],
+        [
+          751,
+          190
+        ],
+        [
+          753,
+          193
+        ],
+        [
+          756,
+          196
+        ],
+        [
+          760,
+          199
+        ],
+        [
+          766,
+          199
+        ],
+        [
+          770,
+          196
+        ],
+        [
+          773,
+          193
+        ],
+        [
+          775,
+          190
+        ],
+        [
+          777,
+          186
+        ],
+        [
+          790,
+          186
+        ],
+        [
+          790,
+          206
+        ],
+        [
+          740,
+          206
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "lens shadow line under the rounded end of the far tip (it took the clear tip color)"
+    },
+    {
+      "rect": [
+        752,
+        198,
+        782,
+        204
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "lens shadow line under the end of the far tip"
     },
     {
       "rect": [
@@ -283,6 +462,17 @@
       "from": "frente",
       "to": "none",
       "note": "clear nose pad and its arm (were taking the front color)"
+    },
+    {
+      "rect": [
+        603,
+        258,
+        632,
+        282
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "arm of the right nose pad, like the left one"
     },
     {
       "poly": [

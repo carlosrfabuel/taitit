@@ -13,7 +13,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "2",
+      "defaultRef": "44B",
       "defaultFinish": "matte"
     },
     {
@@ -249,6 +249,18 @@
       "to": "none",
       "piecesInside": true,
       "note": "white bevel inside the right lens"
+    },
+    {
+      "rect": [
+        965,
+        330,
+        995,
+        385
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "pinkish anti-aliased outer edge of the right rim (took the light secondary color)"
     }
   ]
 }

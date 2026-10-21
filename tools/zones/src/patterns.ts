@@ -5,9 +5,9 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import sharp from 'sharp';
-import { PATTERN_SCALE, SHADE_GAIN, highlightOf } from '@taitit/shared/src/render.ts';
+import { PATTERN_LIGHT, PATTERN_SCALE, SHADE_GAIN, highlightOf, patternSoft } from '@taitit/shared/src/render.ts';
 import { luminance, type Raster } from './image.ts';
-import type { Segmentation } from './segment.ts';
+import { connectedRegions, type Segmentation } from './segment.ts';
 
 export const TEXTURE = resolve(import.meta.dirname, '..', 'textures', 'tortoise.jpg');
 
@@ -33,6 +33,33 @@ const chroma = (r: number, g: number, b: number) => {
   return Math.hypot(r - y, g - y, b - y);
 };
 
+/**
+ * Contrast for a light havana (blue channel): dark spots half as deep, honey patches soft (patternSoft).
+ * A tortoiseshell's spots at full depth were near black on a cream (2026-10-21).
+ */
+const lightContrast = (a: number) => (a < 1 ? 1 - (1 - a) / 2 : patternSoft(a));
+
+/**
+ * Per pixel of zone `id`: 1 / the average of `f` over the pixel's piece (interior pixels), so each piece
+ * averages 1. Without it a tip lying on a darker stretch came out darker than the color (MIKA, OLIVIA).
+ */
+function pieceNorm(seg: Segmentation, id: number, width: number, height: number, f: (i: number) => number) {
+  const n = width * height;
+  const pieces = connectedRegions(Uint8Array.from(seg.zone, (z) => (z === id ? 1 : 0)), width, height);
+  const sum = new Float64Array(pieces.sizes.length);
+  const cnt = new Float64Array(pieces.sizes.length);
+  for (let i = 0; i < n; i++) {
+    if (!interior(seg, id, i)) continue;
+    const l = pieces.labels[i]!;
+    sum[l]! += f(i);
+    cnt[l]!++;
+  }
+  return (i: number) => {
+    const l = pieces.labels[i]!;
+    return l >= 0 && cnt[l]! && sum[l]! ? cnt[l]! / sum[l]! : 1;
+  };
+}
+
 /** Ratios are stored ÷ PATTERN_SCALE in 0..255: 1 (the average) is 64. */
 const encode = (ratio: number) =>
   Math.round((Math.max(0, Math.min(PATTERN_SCALE - 0.01, ratio)) / PATTERN_SCALE) * 255);
@@ -40,9 +67,10 @@ const encode = (ratio: number) =>
 /**
  * The pattern image for zone `id` (1-based, as in the segmentation), full size: per pixel the
  * tortoiseshell's brightness (red) and colorfulness (green) relative to its average color, light and
- * shadow included (shared/src/render.ts draws it). Outside the zone both are 1 (never shown; keeps the
- * file small). `hex` is that average color: a havana of exactly that color shows the pattern as
- * photographed (own) or as the TAITIT sample chip (borrowed).
+ * shadow included, and the brightness for a light havana (blue, see PATTERN_LIGHT; shared/src/render.ts
+ * draws it). Outside the zone all are 1 (never shown; keeps the file small). `hex` is that average
+ * color: a havana of exactly that color shows the pattern as photographed (own) or as the TAITIT sample
+ * chip (borrowed).
  */
 export function zonePattern(
   photo: Raster,
@@ -56,6 +84,7 @@ export function zonePattern(
   const n = width * height;
   const ky = new Float32Array(n).fill(1);
   const kc = new Float32Array(n).fill(1);
+  const kb = new Float32Array(n).fill(1); // brightness for a light havana (shared PATTERN_LIGHT)
   let avg: number[];
   if (mode === 'own') {
     // The photo against its own average color (over the zone, away from its anti-aliased border).
@@ -86,6 +115,8 @@ export function zonePattern(
       const cap = vals.length ? vals[Math.floor(vals.length * 0.97)]! : PATTERN_SCALE;
       for (let i = 0; i < n; i++) if (seg.zone[i] === id && k[i]! > cap) k[i] = cap;
     }
+    const norm = pieceNorm(seg, id, width, height, (i) => lightContrast(ky[i]!));
+    for (let i = 0; i < n; i++) if (seg.zone[i] === id) kb[i] = lightContrast(ky[i]!) * norm(i);
   } else {
     if (!texture)
       throw new Error(`No tortoiseshell texture at ${TEXTURE}: run "npm run zones -- texture" first.`);
@@ -135,6 +166,9 @@ export function zonePattern(
     // highlight toward white. Exact for a havana as light as the texture's average; patterns have no
     // separate highlight step.
     const yRef = my / 255;
+    const norm = pieceNorm(seg, id, width, height, (i) =>
+      lightContrast(ratios(at(i % width, (i / width) | 0, best.ox, best.oy))[0]),
+    );
     for (let i = 0; i < n; i++) {
       if (seg.zone[i] !== id) continue;
       const [a, b] = ratios(at(i % width, (i / width) | 0, best.ox, best.oy));
@@ -143,18 +177,21 @@ export function zonePattern(
       const h = highlightOf(gray);
       ky[i] = a * s + h * (1 / yRef - a * s);
       kc[i] = b * s * (1 - h);
+      // Lit like a flat color (highlight toward white, as for PATTERN_LIGHT).
+      kb[i] = lightContrast(a) * norm(i) * s * (1 - h) + h / PATTERN_LIGHT;
     }
   }
   const data = new Uint8Array(n * 4);
   for (let i = 0; i < n; i++) {
     data[i * 4] = encode(ky[i]!);
     data[i * 4 + 1] = encode(kc[i]!);
+    data[i * 4 + 2] = encode(kb[i]!);
     data[i * 4 + 3] = 255;
   }
   return { raster: { width, height, data }, hex: toHex(avg), own: mode === 'own' };
 }
 
-/** Pattern images keep full color resolution (4:4:4): the two ratios live in separate channels. */
+/** Pattern images keep full color resolution (4:4:4): the ratios live in separate channels. */
 export function writePattern(raster: Raster, file: string) {
   return sharp(Buffer.from(raster.data), { raw: { width: raster.width, height: raster.height, channels: 4 } })
     .removeAlpha()

@@ -97,6 +97,40 @@
         300
       ],
       "attach": true
+    },
+    {
+      "name": "grey glints in the far tip seen through the right lens (a dark C-shaped hole showed the photo in light colors)",
+      "colors": [
+        "#4C514D",
+        "#7C7F79",
+        "#A8AAA5",
+        "#DDDDD8"
+      ],
+      "tolerance": 16,
+      "within": [
+        710,
+        168,
+        744,
+        206
+      ],
+      "attach": true
+    },
+    {
+      "name": "orange glint in the right tortoiseshell rim (a hole that showed the photo; too small for a region of its own)",
+      "colors": [
+        "#B6652F",
+        "#C87731",
+        "#D07E39"
+      ],
+      "tolerance": 18,
+      "within": [
+        1018,
+        402,
+        1038,
+        422
+      ],
+      "zone": "frente",
+      "minRegion": 1
     }
   ],
   "fixes": [

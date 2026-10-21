@@ -13,7 +13,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "67",
+      "defaultRef": "7",
       "defaultFinish": "matte"
     },
     {

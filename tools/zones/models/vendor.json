@@ -104,6 +104,43 @@
         270
       ],
       "zone": "terminales"
+    },
+    {
+      "name": "dark joint, lavender top and shades of the near tip that the group above misses (they showed the photo: a black mark at the joint)",
+      "colors": [
+        "#232233",
+        "#3E3945",
+        "#53505F",
+        "#86818C",
+        "#B5AEB6",
+        "#D3CCCF"
+      ],
+      "tolerance": 18,
+      "within": [
+        1462,
+        68,
+        1560,
+        256
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "hole in the tips that showed the photo in other colors (62 px at 1530,102)",
+      "colors": [
+        "#7B7C9C",
+        "#9EA2C2",
+        "#BAC1E1",
+        "#D5D9F0"
+      ],
+      "tolerance": 18,
+      "within": [
+        1529,
+        101,
+        1539,
+        112
+      ],
+      "zone": "terminales",
+      "minRegion": 1
     }
   ],
   "fixes": [

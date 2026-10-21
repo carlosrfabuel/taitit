@@ -20,7 +20,7 @@
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
-      "defaultRef": "R",
+      "defaultRef": "6",
       "defaultFinish": "matte"
     },
     {
@@ -30,6 +30,7 @@
       "role": "tips",
       "defaultRef": "1",
       "defaultFinish": "matte",
+      "smooth": 6,
       "pattern": "own"
     }
   ],
@@ -135,6 +136,24 @@
         125
       ],
       "zone": "frente"
+    },
+    {
+      "name": "hole in the main metal that showed the photo in other colors (103 px at 1058,208)",
+      "colors": [
+        "#334A9E",
+        "#394FA3",
+        "#3A54A9",
+        "#3F5CB0"
+      ],
+      "tolerance": 18,
+      "within": [
+        1057,
+        207,
+        1087,
+        215
+      ],
+      "zone": "metal",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -247,6 +266,17 @@
       "from": "frente",
       "to": "terminales",
       "note": "near tip highlights"
+    },
+    {
+      "rect": [
+        640,
+        58,
+        700,
+        74
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "lower edge of the far tip above the grey bar (the bar starts at y 75; its grey took the front)"
     }
   ]
 }

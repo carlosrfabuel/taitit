@@ -72,6 +72,7 @@ export function RecolorDemo() {
       sortOrder: z.sort_order,
       patternUrl: z.pattern_path ? storageUrl('models', z.pattern_path) : null,
       patternOwn: z.pattern_own,
+      patternHex: z.pattern_hex,
     })),
     swatches: swatches.map((s) => ({
       id: s.id,

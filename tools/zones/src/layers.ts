@@ -70,6 +70,55 @@ function edgeAlpha(photo: Raster, seg: Segmentation, id: number, i: number, glob
   return 1 - (1 - mix) * trust;
 }
 
+/** Per pixel of `mask`: the largest value among mask pixels within `r` (square window, separable). */
+function maskedMax(values: Float32Array, mask: Uint8Array, width: number, height: number, r: number) {
+  const rows = new Float32Array(values.length);
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (!mask[i]) continue;
+      let m = -Infinity;
+      for (let d = Math.max(0, x - r); d <= Math.min(width - 1, x + r); d++)
+        if (mask[y * width + d]) m = Math.max(m, values[y * width + d]!);
+      rows[i] = m;
+    }
+  const out = new Float32Array(values.length);
+  for (let x = 0; x < width; x++)
+    for (let y = 0; y < height; y++) {
+      const i = y * width + x;
+      if (!mask[i]) continue;
+      let m = -Infinity;
+      for (let d = Math.max(0, y - r); d <= Math.min(height - 1, y + r); d++)
+        if (mask[d * width + x]) m = Math.max(m, rows[d * width + x]!);
+      out[i] = m;
+    }
+  return out;
+}
+
+/** Gaussian blur of `values` within `mask` only (normalized): nothing outside the mask bleeds in. */
+async function maskedBlur(
+  values: Float32Array,
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  sigma: number,
+) {
+  const masked = new Float32Array(values.length);
+  const weight = new Float32Array(values.length);
+  for (let i = 0; i < values.length; i++)
+    if (mask[i]) {
+      masked[i] = values[i]!;
+      weight[i] = 255;
+    }
+  const [num, den] = await Promise.all([
+    blurChannel(masked, width, height, sigma),
+    blurChannel(weight, width, height, sigma),
+  ]);
+  const out = new Float32Array(values);
+  for (let i = 0; i < values.length; i++) if (mask[i] && den[i]) out[i] = (num[i]! / den[i]!) * 255;
+  return out;
+}
+
 const percentile = (sorted: Float32Array, p: number) =>
   sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))]!;
 
@@ -100,7 +149,6 @@ export async function buildLayers(
   }
   const bg = bgN ? [bgR / bgN, bgG / bgN, bgB / bgN] : [255, 255, 255];
 
-  const blurred = new Map<number, Float32Array>();
   const out: Raster[] = [];
 
   for (let k = 0; k < zones.length; k++) {
@@ -108,8 +156,22 @@ export async function buildLayers(
     const id = k + 1;
     let source: Float32Array<ArrayBufferLike> = lum;
     if (z.smooth && z.smooth > 0) {
-      if (!blurred.has(z.smooth)) blurred.set(z.smooth, await blurChannel(lum, width, height, z.smooth));
-      source = blurred.get(z.smooth)!;
+      // Patterned original (tortoiseshell): its dark spots are the material, not shadows, and its honey
+      // patches are lighter by nature, not lit. The light on the part is what the honey shows: bright
+      // reflections capped at the zone's 90th percentile, each pixel takes the brightest within reach
+      // (filling the spots), then a blur; all within the zone, so the background never bleeds in.
+      // Before (2026-10-21) the photo was only blurred: a solid color showed the patches as blotches.
+      const inZone = new Uint8Array(n);
+      const vals: number[] = [];
+      for (let i = 0; i < n; i++)
+        if (seg.zone[i] === id) {
+          inZone[i] = 1;
+          if (!seg.edge[i]) vals.push(lum[i]!);
+        }
+      const cap = vals.length ? Float32Array.from(vals).sort()[Math.floor(vals.length * 0.9)]! : 255;
+      const capped = lum.map((v) => Math.min(v, cap));
+      const envelope = maskedMax(capped, inZone, width, height, Math.round(z.smooth * 2.5));
+      source = await maskedBlur(envelope, inZone, width, height, z.smooth);
     }
 
     // Robust stats from interior pixels only (edges are mixed with the background). Groups with
@@ -290,7 +352,7 @@ export function composite(
     if (!pick) return;
     const rgb = hexToRgb(pick.hex);
     const pattern = pick.pattern ? layers.patterns[k] : null;
-    const m = pattern ? patternMatrix(pick.hex) : null;
+    const m = pattern ? patternMatrix(pick.hex, pattern.hex) : null;
     const opacity = pick.alpha ?? 1;
     for (let y = 0; y < height; y++) {
       // Gloss: brighter band near the top third, like a studio light reflection.

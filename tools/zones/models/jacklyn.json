@@ -80,6 +80,24 @@
         370
       ],
       "attach": true
+    },
+    {
+      "name": "hole in the main metal that showed the photo in other colors (45 px at 282,426)",
+      "colors": [
+        "#4C2E39",
+        "#51343F",
+        "#583944",
+        "#61434E"
+      ],
+      "tolerance": 18,
+      "within": [
+        281,
+        425,
+        325,
+        431
+      ],
+      "zone": "metal",
+      "minRegion": 1
     }
   ],
   "fixes": [

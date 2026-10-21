@@ -47,13 +47,27 @@ For each model it produces, in `out/<model>/`:
    - `edgeGrow` (model option, default 1): passes of growth into anti-aliased edge pixels. 3 also
      closes the dark 3-4 px seams between two zones, which otherwise keep the photo's color as a thin
      line in light colorways.
-   - `smooth` (zone option): blur sigma for patterned originals (tortoiseshell), so the pattern
-     doesn't show through new colors. `shadow` (default 0.8): how much of the photo's shadows shows
+   - `smooth` (zone option, patterned originals such as tortoiseshell): the light on the part is taken
+     from its light patches only (bright reflections capped, dark spots filled from the brightest pixels
+     nearby, then a blur of this sigma), so the pattern doesn't show through solid colors as blotches. `shadow` (default 0.8): how much of the photo's shadows shows
      (exponent of the darkness ratio; 1 = as photographed). Highlights always show as photographed.
      (`contrast`, the earlier linear model, was replaced by it on 2026-10-20.)
    - Edges: a pixel at a part's border is partly clear only where it mixes with the background or a
      clear lens; between two parts, or next to something dark outside the zones, it is opaque (else
-     the background shows through as dotted lines in other colors).
+     the background shows through as dotted lines in other colors). Gaps of 1-3 px between two
+     different parts (a bright bevel line where they meet) join the nearer part.
+   - `crossings` (model option): where two parts of the same color cross (LUKA's orange tip behind its
+     orange rim), color can't tell which is in front. `{ "box": [x1, y1, x2, y2], "front": "metal",
+     "behind": "terminales" }`: inside the box, the front part keeps its straight band and the part
+     behind it stops at the band's edges.
+   - Automatic, after the fixes (pixels a fix or a crossing changed are left alone):
+     anti-aliased rims: a thin strip of one zone along the background whose color is only the blend
+     of the background and the zone next to it joins that zone (a light outline around a mint tip
+     that matched the white metal would show as a black line in black metal); holes up to 60 px
+     enclosed by one part join it, before and again after edge growth (highlight dots, the core of
+     an unmatched shade). A hole next to an area a fix took out (a clear nose pad) stays out.
+   - To check a model for boundary errors: render it with strong, different colors per zone (main
+     white, secondary red or blue, tips black, and the reverse) and look where two zones meet.
 4. Build and check `debug.png` and `preview.jpg`; adjust the config and rebuild until clean:
 
    ```bash

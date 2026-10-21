@@ -103,6 +103,59 @@
         "zone": "frente",
         "rest": "terminales"
       }
+    },
+    {
+      "name": "translucent lavender edge and bend of the near tip (left out: the tip drew in two pieces with a gap at the bend)",
+      "colors": [
+        "#9C9299",
+        "#ACA3A9",
+        "#BBB5BB",
+        "#CBC7CC"
+      ],
+      "tolerance": 14,
+      "within": [
+        1460,
+        70,
+        1565,
+        290
+      ],
+      "attach": true
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (36 px at 282,394)",
+      "colors": [
+        "#675E5D",
+        "#827977",
+        "#9E9493",
+        "#CCC7C6"
+      ],
+      "tolerance": 18,
+      "within": [
+        281,
+        393,
+        295,
+        400
+      ],
+      "zone": "frente",
+      "minRegion": 1
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (33 px at 355,401)",
+      "colors": [
+        "#786E6D",
+        "#7E7373",
+        "#9D9494",
+        "#B0A9A9"
+      ],
+      "tolerance": 18,
+      "within": [
+        354,
+        400,
+        370,
+        404
+      ],
+      "zone": "frente",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -138,6 +191,51 @@
       "from": "terminales",
       "to": "frente",
       "note": "dark slivers along the bottom of the right rim"
+    },
+    {
+      "rect": [
+        800,
+        505,
+        900,
+        532
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "band under the bottom of the right rim"
+    },
+    {
+      "rect": [
+        1049,
+        214,
+        1086,
+        226
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "sliver at the right hinge"
+    },
+    {
+      "rect": [
+        74,
+        128,
+        102,
+        140
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "sliver at the left hinge"
+    },
+    {
+      "rect": [
+        99,
+        138,
+        126,
+        146
+      ],
+      "from": "metal",
+      "to": "frente",
+      "note": "top corner of the tortoiseshell end piece at the left hinge, under the gold edge (y 137)"
     }
   ]
 }

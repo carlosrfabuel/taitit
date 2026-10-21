@@ -355,6 +355,45 @@
       "from": "terminales",
       "to": "none",
       "note": "floor shadow right of the near tip end (light, joined the white tip)"
+    },
+    {
+      "poly": [
+        [
+          780,
+          231
+        ],
+        [
+          800,
+          230
+        ],
+        [
+          808,
+          225
+        ],
+        [
+          814,
+          218
+        ],
+        [
+          818,
+          212
+        ],
+        [
+          832,
+          212
+        ],
+        [
+          832,
+          246
+        ],
+        [
+          780,
+          246
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow under the rounded end of the far tip in the right lens (the tip drew ~5 px past its end)"
     }
   ]
 }

@@ -23,6 +23,7 @@ export function defaultPlan(model: ModelRow, zones: ZoneRow[], swatches: SwatchR
         sortOrder: z.sort_order,
         patternUrl: z.pattern_path ? publicUrl(z.pattern_path) : null,
         patternOwn: z.pattern_own,
+        patternHex: z.pattern_hex,
       })),
     swatches: swatches.map(toRenderSwatch),
   });

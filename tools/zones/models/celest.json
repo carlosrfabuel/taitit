@@ -238,6 +238,52 @@
       "from": "metal",
       "to": "terminales",
       "note": "white highlight along the top of the near tip"
+    },
+    {
+      "rect": [
+        110,
+        182,
+        134,
+        270
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "teal reflection in the left lens edge, inside the white rim (it matched the teal front)"
+    },
+    {
+      "poly": [
+        [
+          604,
+          300
+        ],
+        [
+          665,
+          300
+        ],
+        [
+          665,
+          372
+        ],
+        [
+          627,
+          372
+        ]
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "mint reflections in the clear right nose pad, right of the rim edge (were dotted front color)"
+    },
+    {
+      "rect": [
+        180,
+        368,
+        233,
+        408
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "teal reflection line in the lens groove, lower left rim (as fix [110,182,134,270] higher up)"
     }
   ]
 }

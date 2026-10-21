@@ -73,6 +73,24 @@
       ],
       "tolerance": 42,
       "zone": "frente"
+    },
+    {
+      "name": "hole in the main metal that showed the photo in other colors (107 px at 457,163)",
+      "colors": [
+        "#004643",
+        "#004B47",
+        "#02514D",
+        "#035C55"
+      ],
+      "tolerance": 18,
+      "within": [
+        456,
+        162,
+        466,
+        183
+      ],
+      "zone": "metal",
+      "minRegion": 1
     }
   ],
   "fixes": [

@@ -3,7 +3,7 @@ import type { Finish, SwatchKind } from './types';
 /**
  * Recolor recipe shared by every renderer (app: Skia; admin: Canvas 2D; tools/zones: preview).
  * Per zone, over the base image:
- *   1. fill = swatch color, or its tortoiseshell texture
+ *   1. fill = swatch color as photographed (photographed(), see PHOTO_BLACK), or its tortoiseshell texture
  *   2. multiply by the layer's shading (the photo's shadows): gray × SHADE_GAIN, capped at 1
  *   3. screen the layer's highlight (the photo's light parts: lit faces, a temple seen through the
  *      lens): highlightOf(gray), toward white
@@ -17,7 +17,9 @@ import type { Finish, SwatchKind } from './types';
  * through patternMatrix(color). The pattern stores, per pixel, how the real tortoiseshell differs from
  * its average color: brightness ratio (red) and colorfulness ratio (green), both ÷ PATTERN_SCALE, light
  * and shadow included. The color is drawn as  luma(c)·brightness + (c − luma(c))·colorfulness : dark
- * spots become a dark, duller c, honey areas a light, richer c, and the hue is always c's.
+ * spots become a dark, duller c, honey areas a light, richer c, and the hue is always c's. A c lighter
+ * than the pattern's average draws more and more from the blue channel, made for a light havana
+ * (PATTERN_LIGHT, patternMatrix).
  */
 
 /**
@@ -35,6 +37,35 @@ export const SHADE_GAIN = 1 / SHADE_TOP;
 /** Highlight amount (0..1, toward white) of a layer gray (0..1). */
 export const highlightOf = (gray: number): number =>
   Math.max(0, Math.min(1, (gray - SHADE_TOP) / (1 - SHADE_TOP)));
+
+/**
+ * A swatch's HEX is its nominal color (Carlos's chart: 0 = #FFFFFF, 7 = #000000). In the photos real
+ * materials under studio light never reach those: white metal comes out about #E5E5E5 (CELEST), black
+ * about #2F2F2F (PHILEAS, DONA). Renderers draw a color as photographed: in linear light, nominal
+ * black..white maps to PHOTO_BLACK..PHOTO_WHITE. Without it a white frame vanished into the white
+ * background and a black one was a flat silhouette (2026-10-21). The swatch chips keep the nominal HEX.
+ */
+export const PHOTO_BLACK = 0.0284; // linear light, sRGB 47
+export const PHOTO_WHITE = 0.7835; // linear light, sRGB 229
+
+const toLinear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+const toSrgb = (v: number) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+
+/** The color a renderer draws for a swatch HEX (see PHOTO_BLACK), as #RRGGBB. */
+export function photographed(hex: string): string {
+  return (
+    '#' +
+    rgb(hex)
+      .map((v) => {
+        const lin = PHOTO_BLACK + (PHOTO_WHITE - PHOTO_BLACK) * toLinear(v / 255);
+        return Math.round(255 * toSrgb(lin))
+          .toString(16)
+          .padStart(2, '0');
+      })
+      .join('')
+      .toUpperCase()
+  );
+}
 
 /** Gloss highlight: a soft horizontal band, strongest at `center` (fraction of image height). */
 export const GLOSS = { strength: 0.35, center: 0.2, halfWidth: 0.12 } as const;
@@ -71,6 +102,8 @@ export type RenderZone = {
   patternUrl: string | null;
   /** The pattern is the zone's own, from the photo (else a real one borrowed from another photo). */
   patternOwn: boolean;
+  /** The pattern's average color (see patternMatrix); without it light havanas may reach white. */
+  patternHex?: string | null;
 };
 
 export type RenderPick = { swatchId: string | null; finish: Finish | null };
@@ -78,6 +111,7 @@ export type RenderPick = { swatchId: string | null; finish: Finish | null };
 export type RenderLayer = {
   zoneId: string;
   layerUrl: string;
+  /** The color as drawn: the swatch's HEX as photographed (photographed()). */
   hex: string;
   textureUrl: string | null;
   /** Havana on a zone with a pattern: the pattern image and the color matrix that draws it. */
@@ -100,15 +134,43 @@ export const PATTERN_SCALE = 4;
 export const luma = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
 
 /**
- * 4×5 color matrix (Skia's layout, 0..1 values) that draws a pattern image in the havana color `hex`:
- * out = luma·S·red + (channel − luma)·S·green. Rounded so every renderer sees the same numbers.
+ * Soft tortoiseshell contrast: a brightness ratio as is up to the average (1), above it compressed toward
+ * 1 + PATTERN_KNEE (honey patches; darker spots unchanged).
  */
-export function patternMatrix(hex: string): number[] {
+export const PATTERN_KNEE = 0.3;
+export const patternSoft = (ratio: number): number =>
+  ratio <= 1 ? ratio : 1 + PATTERN_KNEE * (1 - Math.exp(-(ratio - 1) / PATTERN_KNEE));
+
+/**
+ * The light havana the blue channel of pattern images is made for (luma as drawn: cream marble 11 is
+ * 0.70). Blue holds the brightness for such a color: the zone's light as on flat colors (shading, then
+ * the highlight toward white) times the soft contrast (borrowed patterns), or the photo's brightness with
+ * soft contrast (own patterns). Red is exact for the pattern's own average color and darker; a light
+ * color drawn from red alone turned honey patches and the light, see-through parts of tips white (cream
+ * marble 11, 2026-10-21).
+ */
+export const PATTERN_LIGHT = 0.7;
+
+/**
+ * 4×5 color matrix (Skia's layout, 0..1 values) that draws a pattern image in the havana color `hex`:
+ * out = luma·S·((1 − w)·red + w·blue) + (channel − luma)·((1 − w)·S·green + w). Rounded so every
+ * renderer sees the same numbers.
+ * w goes from 0 for colors no lighter than the pattern's average `patternHex` (drawn exactly as before,
+ * the average itself as photographed) to 1 at PATTERN_LIGHT and lighter. On the blue side the color keeps
+ * its own colorfulness (honey patches are several times more colorful than a dark pattern's average:
+ * a cream would turn yellow).
+ */
+export function patternMatrix(hex: string, patternHex?: string | null): number[] {
   const [r, g, b] = rgb(hex).map((v) => v / 255) as [number, number, number];
   const y = luma(r, g, b);
+  let w = 0;
+  if (patternHex) {
+    const yp = luma(...(rgb(patternHex).map((v) => v / 255) as [number, number, number]));
+    if (y > yp) w = yp >= PATTERN_LIGHT ? 1 : Math.min(1, (y - yp) / (PATTERN_LIGHT - yp));
+  }
   const k = PATTERN_SCALE;
   const round = (v: number) => Math.round(v * 1e4) / 1e4;
-  const row = (c: number) => [round(k * y), round(k * (c - y)), 0, 0, 0];
+  const row =(c: number) => [round(k * y * (1 - w)), round(k * (c - y) * (1 - w)), round(k * y * w), 0, round((c - y) * w)];
   return [...row(r), ...row(g), ...row(b), 0, 0, 0, 1, 0];
 }
 
@@ -140,14 +202,15 @@ export function buildRenderPlan(input: {
     const finish = pick ? pick.finish : zone.defaultFinish;
     // Havana: the zone's own photo pattern first, then the color's texture, then a borrowed pattern.
     const havana = swatch.kind === 'havana';
+    const hex = photographed(swatch.hex);
     const pattern =
       havana && zone.patternUrl && (zone.patternOwn || !swatch.textureUrl)
-        ? { url: zone.patternUrl, matrix: patternMatrix(swatch.hex) }
+        ? { url: zone.patternUrl, matrix: patternMatrix(hex, zone.patternHex) }
         : null;
     layers.push({
       zoneId: zone.id,
       layerUrl: zone.layerUrl,
-      hex: swatch.hex,
+      hex,
       textureUrl: havana && !pattern ? swatch.textureUrl : null,
       patternUrl: pattern?.url ?? null,
       patternMatrix: pattern?.matrix ?? null,
@@ -195,7 +258,8 @@ export function renderKey(plan: RenderPlan): string {
     a = Math.imul(a ^ c, 0x01000193);
     b = Math.imul(b ^ c, 0x5bd1e995);
   }
-  // v5: highlight step (v4: shading × SHADE_GAIN; both 2026-10-20). Thumbnails drawn before no longer
-  // match and are redrawn.
-  return `v5-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
+  // v8: light havanas drawn from the pattern's light-color channel (2026-10-21; v7: their honey
+  // patches capped below white; v6: colors drawn as photographed; v5: highlight step; v4: shading ×
+  // SHADE_GAIN). Thumbnails drawn before no longer match and are redrawn.
+  return `v8-${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
 }

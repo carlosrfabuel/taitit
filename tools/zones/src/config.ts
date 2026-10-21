@@ -70,6 +70,19 @@ export type FixConfig = {
   note?: string;
 };
 
+/**
+ * Two parts of the same color crossing in the photo (a far tip passing behind a rim): color can't tell
+ * them apart, so inside `box` both are taken as straight bands, fitted from the pixels already sure
+ * (`behind`'s visible pieces, `front`'s pixels off that band). Pixels on the behind band and off the
+ * front band become `behind`; the crossing itself stays `front` (it is in front).
+ */
+export type CrossingConfig = {
+  box: [x1: number, y1: number, x2: number, y2: number];
+  front: string;
+  behind: string;
+  note?: string;
+};
+
 export type ModelConfig = {
   name: string;
   category?: string;
@@ -86,6 +99,8 @@ export type ModelConfig = {
   zones: ZoneConfig[];
   groups: GroupConfig[];
   fixes?: FixConfig[];
+  /** Same-color crossings to separate, after the fixes. */
+  crossings?: CrossingConfig[];
 };
 
 export function loadConfig(file: string): { config: ModelConfig; inputPath: string } {
@@ -139,6 +154,12 @@ export function loadConfig(file: string): { config: ModelConfig; inputPath: stri
         g.within[1] > g.within[3])
     )
       errors.push(`group "${g.name}": within must be [x1, y1, x2, y2]`);
+  }
+  for (const c of config.crossings ?? []) {
+    if (!ids.has(c.front) || !ids.has(c.behind) || c.front === c.behind)
+      errors.push(`crossing ${JSON.stringify(c.box)}: front and behind must be two different zones`);
+    if (!(Array.isArray(c.box) && c.box.length === 4 && c.box.every((v) => typeof v === 'number')))
+      errors.push(`crossing ${JSON.stringify(c.box)}: box must be [x1, y1, x2, y2]`);
   }
   for (const f of config.fixes ?? []) {
     const where = JSON.stringify(f.rect ?? f.poly);

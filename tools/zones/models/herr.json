@@ -68,6 +68,42 @@
         "zone": "terminales",
         "rest": "frente"
       }
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (82 px at 155,263)",
+      "colors": [
+        "#58727C",
+        "#607B87",
+        "#6C848F",
+        "#CFE9F0"
+      ],
+      "tolerance": 18,
+      "within": [
+        154,
+        262,
+        185,
+        309
+      ],
+      "zone": "frente",
+      "minRegion": 1
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (41 px at 117,83)",
+      "colors": [
+        "#151A04",
+        "#171F0B",
+        "#122416",
+        "#0F2A23"
+      ],
+      "tolerance": 18,
+      "within": [
+        116,
+        82,
+        127,
+        88
+      ],
+      "zone": "frente",
+      "minRegion": 1
     }
   ]
 }

@@ -72,6 +72,18 @@
       "from": "frente",
       "to": "terminales",
       "note": "far tip seen through the right lens, below the inner rim it crosses"
+    },
+    {
+      "rect": [
+        745,
+        144,
+        790,
+        155
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "piecesInside": true,
+      "note": "blend of the mint front and the background along its lower edge (matched the clear tips)"
     }
   ]
 }

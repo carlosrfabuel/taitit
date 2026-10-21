@@ -117,7 +117,15 @@ async function build(configFile: string) {
   const crop = !config.crop || config.crop === 'auto' ? await autoCrop(inputPath, threshold) : config.crop;
   const raster = await loadCropped(inputPath, crop, config.outputWidth ?? 1600);
 
-  const seg = segment(raster, config.zones, config.groups, config.fixes ?? [], threshold, config.edgeGrow);
+  const seg = segment(
+    raster,
+    config.zones,
+    config.groups,
+    config.fixes ?? [],
+    threshold,
+    config.edgeGrow,
+    config.crossings ?? [],
+  );
   const layers = await buildLayers(raster, seg, config.zones, config.groups, await loadTexture());
 
   const modelSlug = slug(config.name);
@@ -215,7 +223,15 @@ async function texture(configFile: string, zoneId: string, patch: number) {
   const threshold = config.backgroundThreshold ?? 235;
   const crop = !config.crop || config.crop === 'auto' ? await autoCrop(inputPath, threshold) : config.crop;
   const raster = await loadCropped(inputPath, crop, config.outputWidth ?? 1600);
-  const seg = segment(raster, config.zones, config.groups, config.fixes ?? [], threshold, config.edgeGrow);
+  const seg = segment(
+    raster,
+    config.zones,
+    config.groups,
+    config.fixes ?? [],
+    threshold,
+    config.edgeGrow,
+    config.crossings ?? [],
+  );
   const index = config.zones.findIndex((z) => z.id === zoneId) + 1;
   if (!index) throw new Error(`No zone "${zoneId}" in ${configFile}.`);
   const t = await buildTexture(raster, (i) => seg.zone[i] === index && !seg.edge[i], 1600, 720, patch);

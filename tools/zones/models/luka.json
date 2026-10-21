@@ -54,6 +54,42 @@
       ],
       "tolerance": 38,
       "zone": "frente"
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (21 px at 132,141)",
+      "colors": [
+        "#621F36",
+        "#532946",
+        "#5F2A3F",
+        "#A12A26"
+      ],
+      "tolerance": 18,
+      "within": [
+        131,
+        140,
+        138,
+        146
+      ],
+      "zone": "frente",
+      "minRegion": 1
+    },
+    {
+      "name": "hole in the secondary front that showed the photo in other colors (59 px at 128,149)",
+      "colors": [
+        "#632435",
+        "#582C42",
+        "#573047",
+        "#6E303F"
+      ],
+      "tolerance": 18,
+      "within": [
+        127,
+        148,
+        136,
+        162
+      ],
+      "zone": "frente",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -89,6 +125,19 @@
       "from": "metal",
       "to": "terminales",
       "note": "near tip, from the joint at x 1445"
+    }
+  ],
+  "crossings": [
+    {
+      "box": [
+        630,
+        40,
+        730,
+        120
+      ],
+      "front": "metal",
+      "behind": "terminales",
+      "note": "far tip passing behind the right rim, both orange in the photo"
     }
   ]
 }

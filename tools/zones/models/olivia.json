@@ -71,6 +71,24 @@
         300
       ],
       "zone": "terminales"
+    },
+    {
+      "name": "hole in the main metal that showed the photo in other colors (174 px at 138,76)",
+      "colors": [
+        "#F399A2",
+        "#F09FAA",
+        "#ECB0B5",
+        "#EFD5D6"
+      ],
+      "tolerance": 18,
+      "within": [
+        137,
+        75,
+        181,
+        139
+      ],
+      "zone": "metal",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -95,6 +113,17 @@
       "from": "frente",
       "to": "terminales",
       "note": "near tip, from the joint at x 1488"
+    },
+    {
+      "rect": [
+        1478,
+        104,
+        1490,
+        114
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "light orange edge of the near tip at the joint (matched the front)"
     }
   ]
 }

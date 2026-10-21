@@ -12,7 +12,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "80",
+      "defaultRef": "8F",
       "defaultFinish": "matte"
     },
     {
@@ -28,7 +28,7 @@
       "label": "Tips",
       "material": "acetate",
       "role": "tips",
-      "defaultRef": "0",
+      "defaultRef": "6",
       "defaultFinish": "matte"
     }
   ],
@@ -134,6 +134,26 @@
         240
       ],
       "zone": "terminales"
+    },
+    {
+      "name": "dark navy edge and dark green core of the near tip at the joint (holes in the tip otherwise)",
+      "colors": [
+        "#2E3140",
+        "#313447",
+        "#363C4A",
+        "#0E442C",
+        "#054127",
+        "#254945",
+        "#405558"
+      ],
+      "tolerance": 22,
+      "within": [
+        1405,
+        115,
+        1435,
+        150
+      ],
+      "zone": "terminales"
     }
   ],
   "fixes": [
@@ -180,6 +200,33 @@
       "from": "metal",
       "to": "terminales",
       "note": "near tip: green reflections"
+    },
+    {
+      "poly": [
+        [
+          1410,
+          119
+        ],
+        [
+          1417,
+          128
+        ],
+        [
+          1418,
+          134
+        ],
+        [
+          1417,
+          142
+        ],
+        [
+          1410,
+          155
+        ]
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "rounded end of the green temple, a few px past x 1410 (fix 3 had made it part of the tip: a light strip in a dark tip)"
     }
   ]
 }

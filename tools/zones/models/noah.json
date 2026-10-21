@@ -20,7 +20,7 @@
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
-      "defaultRef": "80",
+      "defaultRef": "8F",
       "defaultFinish": "matte"
     },
     {
@@ -67,6 +67,23 @@
       "zone": "frente"
     },
     {
+      "name": "pale green inner edge of the left rim (the front layer, as on the right rim)",
+      "colors": [
+        "#80DC8F",
+        "#88E194",
+        "#92E29B",
+        "#9EDBA2"
+      ],
+      "tolerance": 16,
+      "within": [
+        110,
+        110,
+        165,
+        300
+      ],
+      "zone": "frente"
+    },
+    {
       "name": "yellow-green acetate tips",
       "colors": [
         "#91EA5F",
@@ -76,6 +93,24 @@
       ],
       "tolerance": 30,
       "zone": "terminales"
+    },
+    {
+      "name": "hole in the main metal that showed the photo in other colors (106 px at 115,67)",
+      "colors": [
+        "#7ACB87",
+        "#7CCF8C",
+        "#81D28F",
+        "#B6D9B8"
+      ],
+      "tolerance": 18,
+      "within": [
+        114,
+        66,
+        133,
+        117
+      ],
+      "zone": "metal",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -87,9 +122,9 @@
         300
       ],
       "from": "terminales",
-      "to": "none",
+      "to": "frente",
       "piecesInside": true,
-      "note": "light green reflections on the left lens bevel"
+      "note": "light green inner edge of the left rim (matched the tips): the front layer, as on the right rim (was cleared as a lens reflection, which left a broken line)"
     }
   ]
 }

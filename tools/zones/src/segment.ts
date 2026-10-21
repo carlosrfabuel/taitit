@@ -1,4 +1,10 @@
-import { hexToRgb, type FixConfig, type GroupConfig, type ZoneConfig } from './config.ts';
+import {
+  hexToRgb,
+  type CrossingConfig,
+  type FixConfig,
+  type GroupConfig,
+  type ZoneConfig,
+} from './config.ts';
 import { isBackground, luminance, type Raster } from './image.ts';
 
 export const NONE = 0; // not part of any zone (background, lenses, nose pads, screws…)
@@ -93,6 +99,51 @@ function fixArea(f: FixConfig): {
   };
 }
 
+/** A straight band through points: center, unit direction, half-width (99th percentile of the offsets + 1 px: soft edges included). */
+function band(points: [number, number][]) {
+  const n = points.length;
+  const mx = points.reduce((a, p) => a + p[0], 0) / n;
+  const my = points.reduce((a, p) => a + p[1], 0) / n;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  for (const [x, y] of points) {
+    sxx += (x - mx) ** 2;
+    syy += (y - my) ** 2;
+    sxy += (x - mx) * (y - my);
+  }
+  const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+  const offset = (x: number, y: number) => Math.abs(-(x - mx) * uy + (y - my) * ux);
+  const offs = points.map(([x, y]) => offset(x, y)).sort((a, b) => a - b);
+  return { offset, half: (offs[Math.floor(offs.length * 0.99)] ?? 0) + 1 };
+}
+
+function separateCrossing(zone: Uint8Array, width: number, c: CrossingConfig, front: number, behind: number) {
+  const [x1, y1, x2, y2] = c.box;
+  const at = (x: number, y: number) => zone[y * width + x]!;
+  const behindPts: [number, number][] = [];
+  for (let y = y1; y <= y2; y++)
+    for (let x = x1; x <= x2; x++) if (at(x, y) === behind) behindPts.push([x, y]);
+  if (behindPts.length < 20)
+    throw new Error(`crossing ${JSON.stringify(c.box)}: too few pixels of "${c.behind}" to fit its band`);
+  const b = band(behindPts);
+  const frontPts: [number, number][] = [];
+  for (let y = y1; y <= y2; y++)
+    for (let x = x1; x <= x2; x++)
+      if (at(x, y) === front && b.offset(x, y) > b.half + 2) frontPts.push([x, y]);
+  if (frontPts.length < 20)
+    throw new Error(`crossing ${JSON.stringify(c.box)}: too few pixels of "${c.front}" off the other band`);
+  const f = band(frontPts);
+  for (let y = y1; y <= y2; y++)
+    for (let x = x1; x <= x2; x++) {
+      const i = y * width + x;
+      if (zone[i] === front && b.offset(x, y) <= b.half + 1 && f.offset(x, y) > f.half) zone[i] = behind;
+      else if (zone[i] === behind && f.offset(x, y) <= f.half) zone[i] = front;
+    }
+}
+
 export function segment(
   raster: Raster,
   zones: ZoneConfig[],
@@ -100,6 +151,7 @@ export function segment(
   fixes: FixConfig[],
   backgroundThreshold: number,
   edgeGrow = 1,
+  crossings: CrossingConfig[] = [],
 ): Segmentation {
   const { width, height, data } = raster;
   const n = width * height;
@@ -199,6 +251,8 @@ export function segment(
 
   // 3. Manual corrections for cases color + regions can't resolve. Pixels a fix takes out of every
   //    zone ("none") stay out: hole filling and edge growth below never bring them back.
+  const beforeFixes = zone.slice();
+  const touched = new Uint8Array(n);
   const cleared = new Uint8Array(n);
   for (const f of fixes) {
     const from = zoneIndex(f.from);
@@ -236,13 +290,96 @@ export function segment(
     }
   }
 
-  // 3b. Fill small holes (glare specks) completely enclosed by a single zone. Large unassigned
+  // 3a. Same-color crossings (see CrossingConfig).
+  for (const c of crossings) separateCrossing(zone, width, c, zoneIndex(c.front), zoneIndex(c.behind));
+  for (let i = 0; i < n; i++) if (zone[i] !== beforeFixes[i] || cleared[i]) touched[i] = 1;
+
+  // 3b. Anti-aliased rims. Where a part meets the studio background its outer pixels are a blend of the
+  //     part and the background, and a light blend can match another zone's colors: CELEST's mint tips
+  //     had a 1 px white-metal outline (a black line around them in black metal), EMILIA's red rim a
+  //     pink edge in the light front color (2026-10-21). A pixel of a thin strip (no inner pixel of its
+  //     zone next to it) by the background, whose color is the blend of the background and a zone next
+  //     to it (in linear light), joins that zone as an edge pixel. Thin parts in a color of their own (a
+  //     black outer layer along a gold rim) are no such blend and stay. Pixels a fix or a crossing moved
+  //     are left as they are (a floor shadow a fix took out must not come back in a part, RACER).
+  const rim = new Uint8Array(n);
+  {
+    const lin = Float32Array.from({ length: 256 }, (_, v) => {
+      const s = v / 255;
+      return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    const srgb = (l: number) => 255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * Math.max(0, l) ** (1 / 2.4) - 0.055);
+    // The studio background and what shows through the lenses; not a highlight dot or streak on a part.
+    const open = new Uint8Array(n);
+    {
+      const { labels, sizes } = connectedRegions(background, width, height);
+      for (let i = 0; i < n; i++) if (labels[i]! >= 0 && sizes[labels[i]!]! >= 200) open[i] = 1;
+    }
+    const inner = new Uint8Array(n);
+    for (let y = 1; y < height - 1; y++)
+      for (let x = 1; x < width - 1; x++) {
+        const i = y * width + x;
+        if (zone[i] === NONE) continue;
+        inner[i] = NEIGHBORS8.every(([dx, dy]) => zone[i + dx + dy * width] === zone[i]) ? 1 : 0;
+      }
+    const moves: [number, number][] = [];
+    for (let y = 3; y < height - 3; y++)
+      for (let x = 3; x < width - 3; x++) {
+        const i = y * width + x;
+        const a = zone[i]!;
+        if (a === NONE || touched[i] || NEIGHBORS8.some(([dx, dy]) => inner[i + dx + dy * width] && zone[i + dx + dy * width] === a))
+          continue;
+        const back = [0, 0, 0];
+        let nb = 0;
+        const others = new Map<number, number[]>(); // zone -> summed linear color + count
+        for (let dy = -3; dy <= 3; dy++)
+          for (let dx = -3; dx <= 3; dx++) {
+            const q = i + dx + dy * width;
+            if (Math.abs(dx) <= 2 && Math.abs(dy) <= 2 && open[q]) {
+              for (let c = 0; c < 3; c++) back[c]! += lin[data[q * 4 + c]!]!;
+              nb++;
+            }
+            const z = zone[q]!;
+            if (z === NONE || z === a || !inner[q]) continue;
+            const s = others.get(z) ?? [0, 0, 0, 0];
+            for (let c = 0; c < 3; c++) s[c]! += lin[data[q * 4 + c]!]!;
+            s[3]!++;
+            others.set(z, s);
+          }
+        if (!nb || !others.size) continue;
+        const b = back.map((v) => v / nb);
+        const px = [0, 1, 2].map((c) => lin[data[i * 4 + c]!]!);
+        // The blend must explain the color better than the pixel's own group colors do (a light gray
+        // part next to a dark one is also a blend of dark and white, but it has its own color).
+        const own = group[i]! >= 0 ? groupColors[group[i]!]!.rgb : [];
+        let best: { z: number; r: number } | null = own.length
+          ? { z: a, r: Math.min(...own.map((o) => Math.hypot(o[0] - data[i * 4]!, o[1] - data[i * 4 + 1]!, o[2] - data[i * 4 + 2]!))) }
+          : null;
+        for (const [z, s] of others) {
+          const p = [0, 1, 2].map((c) => s[c]! / s[3]!);
+          const d = p.map((v, c) => v - b[c]!);
+          if (Math.hypot(...[0, 1, 2].map((c) => srgb(p[c]!) - srgb(b[c]!))) < 40) continue;
+          const t = (d[0]! * (px[0]! - b[0]!) + d[1]! * (px[1]! - b[1]!) + d[2]! * (px[2]! - b[2]!)) / (d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2);
+          if (t < 0.15 || t > 1) continue;
+          const r = Math.hypot(...[0, 1, 2].map((c) => srgb(b[c]! + t * d[c]!) - data[i * 4 + c]!));
+          if (r <= 10 && (!best || r < best.r)) best = { z, r };
+        }
+        if (best && best.z !== a) moves.push([i, best.z]);
+      }
+    for (const [i, z] of moves) {
+      zone[i] = z;
+      group[i] = -1;
+      rim[i] = 1;
+    }
+  }
+
+  // 3c. Fill small holes (glare specks) completely enclosed by a single zone. Large unassigned
   //     areas (lenses, nose pads) are never touched because of the size limit.
+  const maxHole = 60;
   {
     const holeMask = new Uint8Array(n);
     for (let i = 0; i < n; i++) if (zone[i] === NONE && !cleared[i]) holeMask[i] = 1;
     const { labels, sizes } = connectedRegions(holeMask, width, height);
-    const maxHole = 60;
     const neighborZone = new Int16Array(sizes.length).fill(-1); // -1 unknown, 0 mixed/border, z = single zone
     for (let i = 0; i < n; i++) {
       const l = labels[i]!;
@@ -254,8 +391,13 @@ export function segment(
         continue;
       }
       for (const [dx, dy] of NEIGHBORS8) {
-        const z = zone[(y + dy) * width + (x + dx)]!;
-        if (z === NONE) continue;
+        const q = (y + dy) * width + (x + dx);
+        const z = zone[q]!;
+        if (z === NONE) {
+          // Next to an area a fix took out (a clear nose pad): not a hole in a part (CELEST, 2026-10-21).
+          if (cleared[q]) neighborZone[l] = 0;
+          continue;
+        }
         if (neighborZone[l] === -1) neighborZone[l] = z;
         else if (neighborZone[l] !== z) neighborZone[l] = 0;
       }
@@ -268,7 +410,7 @@ export function segment(
 
   // 4. Grow each zone 1px per pass into anti-aliased edge pixels that are neither background nor
   //    another zone (more passes also close the seams between two zones).
-  const edge = new Uint8Array(n);
+  const edge = rim.slice();
   const grown = zone.slice();
   const grownGroup = group.slice();
   for (let pass = 0; pass < Math.max(1, edgeGrow); pass++) {
@@ -292,6 +434,87 @@ export function segment(
           }
         }
       }
+    }
+  }
+
+  // 5. Close thin gaps (1-3 px) between two different parts, across or along: a bright bevel line where
+  //    two parts meet is as light as the background and stayed out in places, a dotted line between them
+  //    in any color (RACER's top bar, 2026-10-21). The pixel joins the nearer part (the upper / left one
+  //    when both are as near). Gaps within one part (a nose pad by a rim, a lens bevel), wider gaps and
+  //    pixels a fix cleared stay out.
+  const gap = 3;
+  const filled = grown.slice();
+  const filledGroup = grownGroup.slice();
+  for (let y = gap; y < height - gap; y++) {
+    for (let x = gap; x < width - gap; x++) {
+      const i = y * width + x;
+      if (grown[i] !== NONE || cleared[i]) continue;
+      let best: { z: number; q: number; d: number } | null = null;
+      for (const [dx, dy] of [
+        [0, 1],
+        [1, 0],
+      ] as const) {
+        let before: { q: number; d: number } | null = null;
+        let after: { q: number; d: number } | null = null;
+        for (let d = 1; d <= gap && !before; d++) {
+          const q = i - d * (dx + dy * width);
+          if (grown[q] !== NONE) before = { q, d };
+        }
+        for (let d = 1; d <= gap && !after; d++) {
+          const q = i + d * (dx + dy * width);
+          if (grown[q] !== NONE) after = { q, d };
+        }
+        if (!before || !after || before.d + after.d - 1 > gap || grown[before.q] === grown[after.q]) continue;
+        const near = after.d < before.d ? after : before;
+        if (!best || near.d < best.d) best = { z: grown[near.q]!, q: near.q, d: near.d };
+      }
+      if (!best) continue;
+      filled[i] = best.z;
+      filledGroup[i] = grownGroup[best.q]!;
+      edge[i] = 1;
+    }
+  }
+  grown.set(filled);
+  grownGroup.set(filledGroup);
+
+  // 6. Holes left inside one part after growing, as small as in 3c, with that one part all around join
+  //    it: bright highlight dots (as light as the background, they showed as dotted lines on CHRISTIE's
+  //    rim) and the core of a larger unmatched shade the growing didn't reach (a dark spot on KARL's
+  //    hinge), 2026-10-21. Pixels a fix cleared stay out.
+  {
+    const speck = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (grown[i] === NONE && !cleared[i]) speck[i] = 1;
+    const { labels, sizes } = connectedRegions(speck, width, height);
+    const around = new Int16Array(sizes.length).fill(-1); // -1 unknown, 0 mixed or border, z = one zone
+    const from = new Int32Array(sizes.length).fill(-1);
+    for (let i = 0; i < n; i++) {
+      const l = labels[i]!;
+      if (l < 0 || sizes[l]! > maxHole || around[l] === 0) continue;
+      const x = i % width;
+      const y = (i / width) | 0;
+      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) {
+        around[l] = 0;
+        continue;
+      }
+      for (const [dx, dy] of NEIGHBORS8) {
+        const q = (y + dy) * width + (x + dx);
+        const z = grown[q]!;
+        if (z === NONE) {
+          if (cleared[q]) around[l] = 0; // as in 3c
+          continue;
+        }
+        if (around[l] === -1) {
+          around[l] = z;
+          from[l] = q;
+        } else if (around[l] !== z) around[l] = 0;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const l = labels[i]!;
+      if (l < 0 || sizes[l]! > maxHole || around[l]! <= 0) continue;
+      grown[i] = around[l]!;
+      grownGroup[i] = grownGroup[from[l]!]!;
+      edge[i] = 1;
     }
   }
 

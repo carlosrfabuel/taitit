@@ -274,6 +274,29 @@
       "to": "none",
       "piecesInside": true,
       "note": "top edge of the right nose pad (light grey like the tip spots)"
+    },
+    {
+      "rect": [
+        1058,
+        155,
+        1078,
+        172
+      ],
+      "from": "metal",
+      "to": "frente",
+      "piecesInside": true,
+      "note": "shadow of the hinge on the gold end piece (matched the grey front)"
+    },
+    {
+      "rect": [
+        1525,
+        279,
+        1555,
+        287
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "round end of the near tip below y 278 (took the grey front)"
     }
   ]
 }

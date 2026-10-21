@@ -12,7 +12,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "81",
+      "defaultRef": "80",
       "defaultFinish": "matte"
     },
     {
@@ -112,6 +112,44 @@
         120
       ],
       "attach": true
+    },
+    {
+      "name": "clear inner bevel of the tortoiseshell rings (left out in places: light patches along the lenses in other colors)",
+      "colors": [
+        "#6E6B6C",
+        "#817976",
+        "#A19182",
+        "#AC9F95",
+        "#B3A493",
+        "#C2B5A9"
+      ],
+      "tolerance": 14,
+      "within": [
+        40,
+        40,
+        1080,
+        565
+      ],
+      "zone": "frente",
+      "minRegion": 1
+    },
+    {
+      "name": "hole in the tips that showed the photo in other colors (48 px at 1467,156)",
+      "colors": [
+        "#CCB6A8",
+        "#DDC6B7",
+        "#E5CBBB",
+        "#E2DAD6"
+      ],
+      "tolerance": 18,
+      "within": [
+        1466,
+        155,
+        1479,
+        166
+      ],
+      "zone": "terminales",
+      "minRegion": 1
     }
   ],
   "fixes": [
@@ -180,6 +218,17 @@
       "from": "frente",
       "to": "terminales",
       "note": "far tip just below the inner rim it crosses"
+    },
+    {
+      "rect": [
+        1029,
+        243,
+        1070,
+        250
+      ],
+      "from": "frente",
+      "to": "metal",
+      "note": "dark seam across the green end piece (matched the dark front: a line of front color across the main)"
     }
   ]
 }
