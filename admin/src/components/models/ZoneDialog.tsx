@@ -4,6 +4,7 @@ import { type Finish, type Material, type ZoneRole } from '@taitit/shared';
 import {
   FINISH_LABEL,
   MATERIAL_LABEL,
+  swatchLabel,
   ZONE_ROLE_APP_NAME,
   ZONE_ROLE_LABEL,
   ZONE_ROLE_MATERIAL,
@@ -204,7 +205,7 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
                 { value: '', label: '— Sin color —' },
                 ...options.map((s) => ({
                   value: s.id,
-                  label: `${s.name} · ${s.ref}${s.active ? '' : ' (inactivo)'}`,
+                  label: `${swatchLabel(s)}${s.active ? '' : ' (inactivo)'}`,
                 })),
               ]}
               onChange={(e) => pickSwatch(e.target.value || null)}

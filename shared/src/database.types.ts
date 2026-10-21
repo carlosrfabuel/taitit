@@ -241,14 +241,25 @@ export type Database = {
       orders: {
         Row: {
           address: string | null
+          bank_account: string | null
           business_name: string | null
           city: string | null
+          commercial_address: string | null
+          commercial_city: string | null
+          commercial_postal_code: string | null
+          commercial_province: string | null
+          contact_email: string | null
           created_at: string
           customer_email: string | null
           customer_name: string | null
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_postal_code: string | null
+          delivery_province: string | null
           id: string
           idempotency_key: string
           image_path: string | null
+          labeling: string | null
           legal_name: string | null
           model_id: string | null
           model_name: string
@@ -264,14 +275,25 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bank_account?: string | null
           business_name?: string | null
           city?: string | null
+          commercial_address?: string | null
+          commercial_city?: string | null
+          commercial_postal_code?: string | null
+          commercial_province?: string | null
+          contact_email?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
           id?: string
           idempotency_key: string
           image_path?: string | null
+          labeling?: string | null
           legal_name?: string | null
           model_id?: string | null
           model_name: string
@@ -287,14 +309,25 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bank_account?: string | null
           business_name?: string | null
           city?: string | null
+          commercial_address?: string | null
+          commercial_city?: string | null
+          commercial_postal_code?: string | null
+          commercial_province?: string | null
+          contact_email?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
           id?: string
           idempotency_key?: string
           image_path?: string | null
+          labeling?: string | null
           legal_name?: string | null
           model_id?: string | null
           model_name?: string
@@ -328,12 +361,23 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          bank_account: string | null
           business_name: string | null
           city: string | null
+          commercial_address: string | null
+          commercial_city: string | null
+          commercial_postal_code: string | null
+          commercial_province: string | null
+          contact_email: string | null
           created_at: string
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_postal_code: string | null
+          delivery_province: string | null
           email: string | null
           full_name: string | null
           id: string
+          labeling: string | null
           legal_name: string | null
           phone: string | null
           postal_code: string | null
@@ -348,12 +392,23 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bank_account?: string | null
           business_name?: string | null
           city?: string | null
+          commercial_address?: string | null
+          commercial_city?: string | null
+          commercial_postal_code?: string | null
+          commercial_province?: string | null
+          contact_email?: string | null
           created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          labeling?: string | null
           legal_name?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -368,12 +423,23 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bank_account?: string | null
           business_name?: string | null
           city?: string | null
+          commercial_address?: string | null
+          commercial_city?: string | null
+          commercial_postal_code?: string | null
+          commercial_province?: string | null
+          contact_email?: string | null
           created_at?: string
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          labeling?: string | null
           legal_name?: string | null
           phone?: string | null
           postal_code?: string | null

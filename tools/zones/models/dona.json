@@ -1,0 +1,360 @@
+{
+  "name": "DONA",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/dona.jpg",
+  "crop": {
+    "left": 663,
+    "top": 1223,
+    "width": 4659,
+    "height": 1567
+  },
+  "outputWidth": 1600,
+  "backgroundThreshold": 248,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "7",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "6",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "Q0",
+      "defaultFinish": "matte"
+    }
+  ],
+  "groups": [
+    {
+      "name": "black metal (left rim, right brow, bridge, temples)",
+      "colors": [
+        "#342E34",
+        "#2A2429",
+        "#4D474E",
+        "#3E383E",
+        "#221D22"
+      ],
+      "tolerance": 30,
+      "zone": "metal"
+    },
+    {
+      "name": "brushed silver metal (left brow, right lower rim, nose bridge piece)",
+      "colors": [
+        "#C3C0C4",
+        "#9F9A9E",
+        "#B2AFB4",
+        "#D2D0D5",
+        "#8E898E"
+      ],
+      "tolerance": 24,
+      "zone": "frente"
+    },
+    {
+      "name": "white acetate far tip",
+      "colors": [
+        "#E4E3EC",
+        "#EEEEF6",
+        "#D8D7E2",
+        "#F6F6FB",
+        "#F0F0FC",
+        "#F0EAFC",
+        "#EAEAFC"
+      ],
+      "tolerance": 16,
+      "within": [
+        445,
+        30,
+        830,
+        235
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "white acetate near tip",
+      "colors": [
+        "#E4E3EC",
+        "#EEEEF6",
+        "#D8D7E2",
+        "#F6F6FB",
+        "#F0F0FC",
+        "#F0EAFC",
+        "#EAEAFC"
+      ],
+      "tolerance": 16,
+      "within": [
+        1460,
+        75,
+        1575,
+        280
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "rect": [
+        110,
+        160,
+        250,
+        410
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "lens bevel along the inner edge of the left black rim (grey, matched the silver)"
+    },
+    {
+      "rect": [
+        445,
+        240,
+        485,
+        365
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "lens bevel, right side of the left rim"
+    },
+    {
+      "rect": [
+        505,
+        250,
+        560,
+        335
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "left nose pad"
+    },
+    {
+      "rect": [
+        195,
+        430,
+        410,
+        462
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "floor shadow under the left rim"
+    },
+    {
+      "rect": [
+        1178,
+        195,
+        1208,
+        210
+      ],
+      "from": "frente",
+      "to": "none",
+      "piecesInside": true,
+      "note": "hinge screw"
+    },
+    {
+      "rect": [
+        645,
+        250,
+        675,
+        340
+      ],
+      "from": "metal",
+      "to": "none",
+      "piecesInside": true,
+      "note": "right nose pad arm"
+    },
+    {
+      "rect": [
+        435,
+        40,
+        452,
+        66
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "far temple end, where the tip begins"
+    },
+    {
+      "rect": [
+        1476,
+        108,
+        1490,
+        132
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "near temple end, where the tip begins"
+    },
+    {
+      "rect": [
+        800,
+        74,
+        856,
+        81
+      ],
+      "from": "frente",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "light line along the top edge of the right brow"
+    },
+    {
+      "rect": [
+        598,
+        174,
+        660,
+        192
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "piecesInside": true,
+      "note": "highlight on the silver nose bridge piece"
+    },
+    {
+      "rect": [
+        442,
+        120,
+        468,
+        146
+      ],
+      "from": "terminales",
+      "to": "frente",
+      "piecesInside": true,
+      "note": "highlight at the end of the silver left brow"
+    },
+    {
+      "rect": [
+        662,
+        245,
+        728,
+        345
+      ],
+      "from": "frente",
+      "to": "none",
+      "note": "right nose pad (its wire touches the silver rim, so not a separate piece)"
+    },
+    {
+      "poly": [
+        [
+          738,
+          218
+        ],
+        [
+          781,
+          218
+        ],
+        [
+          792,
+          233
+        ],
+        [
+          792,
+          244
+        ],
+        [
+          738,
+          244
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow left of the far tip end (light, joined the white tip)"
+    },
+    {
+      "poly": [
+        [
+          813,
+          216
+        ],
+        [
+          848,
+          216
+        ],
+        [
+          848,
+          244
+        ],
+        [
+          805,
+          244
+        ],
+        [
+          811,
+          232
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow right of the far tip end (light, joined the white tip)"
+    },
+    {
+      "poly": [
+        [
+          1458,
+          255
+        ],
+        [
+          1513,
+          255
+        ],
+        [
+          1517,
+          272
+        ],
+        [
+          1517,
+          280
+        ],
+        [
+          1458,
+          280
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow left of the near tip end (light, joined the white tip)"
+    },
+    {
+      "poly": [
+        [
+          1539,
+          255
+        ],
+        [
+          1572,
+          255
+        ],
+        [
+          1572,
+          280
+        ],
+        [
+          1535,
+          280
+        ],
+        [
+          1537,
+          272
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor shadow right of the near tip end (light, joined the white tip)"
+    }
+  ]
+}

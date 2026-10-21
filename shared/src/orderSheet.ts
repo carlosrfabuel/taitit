@@ -3,8 +3,9 @@ import type { Finish, ZoneRole } from './types.ts';
 import { buildXlsx, type Cell } from './xlsx.ts';
 
 // The order as a spreadsheet for TAITIT's accounting. One row per order with the columns Carlos
-// listed (2026-10-20): model, main colour, secondary colour, end tips colour, quantity; headers in
-// his words. Order number, date and optician go first so rows can be matched; notes last. The same
+// listed (2026-10-20), headers in his words: the optician's details from registration (company name
+// … single labeling, in his order), then the order's (model, main colour, secondary colour, end tips
+// colour, quantity). Order number and date go first so rows can be matched; notes last. The same
 // file is downloaded in the admin panel and attached to the order email.
 
 export type SheetOrder = {
@@ -13,8 +14,19 @@ export type SheetOrder = {
   modelName: string;
   quantity: number;
   notes: string | null;
-  businessName: string | null;
+  /** The optician as copied into the order (orders before 2026-10-21 have no delivery, commercial
+   * address, bank account or labeling: those cells stay empty). */
+  legalName: string | null;
   taxId: string | null;
+  address: string | null;
+  deliveryAddress: string | null;
+  bankAccount: string | null;
+  businessName: string | null;
+  commercialAddress: string | null;
+  phone: string | null;
+  email: string | null;
+  contact: string | null;
+  labeling: string | null;
   items: {
     /** Null on orders placed before zones had roles: then the part's position decides. */
     zoneRole: ZoneRole | null;
@@ -30,8 +42,17 @@ const FINISH: Record<Finish, string> = { gloss: 'gloss', matte: 'matte' };
 export const ORDER_SHEET_COLUMNS = [
   'Order',
   'Date',
-  'Optician',
+  'Company name',
   'VAT number',
+  'Address',
+  'Delivery address',
+  'Bank account',
+  'Commercial name',
+  'Commercial address',
+  'Phone',
+  'Email',
+  'Contact',
+  'Single labeling for entire order',
   'Model',
   'Main colour',
   'Secondary colour',
@@ -49,9 +70,10 @@ export const sheetDate = (iso: string) =>
     year: 'numeric',
   });
 
-/** A part's colour in one cell: reference, name and finish, e.g. "PH-M06 Gold (gloss)". */
+/** A part's colour in one cell: the number and finish, e.g. "38 (gloss)". Colours have no names
+ * (Carlos, 2026-10-21): each client and sales rep has a sample set with the numbers. */
 export const sheetColour = (i: SheetOrder['items'][number]) =>
-  `${i.ref} ${i.swatchName}${i.finish ? ` (${FINISH[i.finish]})` : ''}`;
+  `${i.ref}${i.finish ? ` (${FINISH[i.finish]})` : ''}`;
 
 const ROLES: ZoneRole[] = ['main', 'secondary', 'tips'];
 
@@ -75,8 +97,17 @@ export function orderSheetRows(orders: SheetOrder[]): Cell[][] {
     rows.push([
       o.number,
       sheetDate(o.createdAt),
-      o.businessName,
+      o.legalName,
       o.taxId,
+      o.address,
+      o.deliveryAddress,
+      o.bankAccount,
+      o.businessName,
+      o.commercialAddress,
+      o.phone,
+      o.email,
+      o.contact,
+      o.labeling,
       o.modelName,
       colour('main'),
       colour('secondary'),

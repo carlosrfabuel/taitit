@@ -24,3 +24,10 @@ export const KIND_LABEL: Record<SwatchKind, string> = {
   translucent: 'Translúcido',
   havana: 'Carey',
 };
+
+/**
+ * A color as the panel shows it: its number, and the name only when it has one of its own. TAITIT's
+ * colors have no names (Carlos, 2026-10-21): the name is the number and the app shows only that.
+ */
+export const swatchLabel = (s: { name: string; ref: string }) =>
+  s.name && s.name !== s.ref ? `${s.ref} · ${s.name}` : s.ref;

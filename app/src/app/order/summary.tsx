@@ -12,7 +12,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
-import { businessComplete } from '@/auth/business';
+import { addressLine, businessComplete } from '@/auth/business';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import { parseSelection } from '@/designs/designs';
 import {
@@ -275,12 +275,26 @@ function Summary({
                   .filter(Boolean)
                   .join(' · ')}
               </AppText>
+              {profile.labeling ? (
+                <AppText variant="small">Name on the glasses: {profile.labeling}</AppText>
+              ) : null}
+              <AppText variant="small">
+                Delivery:{' '}
+                {profile.delivery_address
+                  ? addressLine(
+                      profile.delivery_address,
+                      profile.delivery_postal_code,
+                      profile.delivery_city,
+                      profile.delivery_province,
+                    )
+                  : addressLine(profile.address, profile.postal_code, profile.city, profile.province)}
+              </AppText>
             </>
           ) : null}
           {profile && !hasBusiness ? (
             <AppText variant="small" color={tokens.colors.danger}>
-              Add your business details (business name, tax ID, phone, address, postal code and city) to send
-              orders.
+              Add your business details (business name, tax ID, phone, address, postal code, city and the name
+              on the glasses) to send orders.
             </AppText>
           ) : null}
           <Button
@@ -300,17 +314,16 @@ function Summary({
                 alpha={l.alpha}
                 texture={l.textureUrl}
                 size={tokens.swatch.md}
-                accessibilityLabel={l.swatchName}
+                accessibilityLabel={`Color ${l.ref}`}
               />
               <View style={styles.lineText}>
                 <AppText variant="label">
                   {l.zoneName} · {MATERIAL_LABEL[l.material]}
                 </AppText>
                 <AppText>
-                  {l.swatchName}
+                  Color {l.ref}
                   {l.finish ? ` · ${FINISH_LABEL[l.finish]}` : ''}
                 </AppText>
-                <AppText variant="small">Ref. {l.ref}</AppText>
               </View>
             </View>
           ))}

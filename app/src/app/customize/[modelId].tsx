@@ -368,9 +368,8 @@ function Customizer({
         ) : null}
         {selected ? (
           <View style={styles.selection}>
-            <AppText variant="subheading">
-              {selected.name} · {selected.ref}
-            </AppText>
+            {/* Only the number (Carlos, 2026-10-21): every client and sales rep has a sample set numbered the same. */}
+            <AppText variant="subheading">Color {selected.ref}</AppText>
             {selected.finishes.length > 1 ? (
               <View style={styles.finishes}>
                 {selected.finishes.map((f) => (
@@ -411,7 +410,7 @@ function Customizer({
                       onPress={() =>
                         change((h) => commit(h, chooseSwatch(h.picks, model.zones, zone, swatches, s)))
                       }
-                      accessibilityLabel={`${s.name}, ${s.ref}`}
+                      accessibilityLabel={`Color ${s.ref}`}
                     />
                   ))}
                 </View>

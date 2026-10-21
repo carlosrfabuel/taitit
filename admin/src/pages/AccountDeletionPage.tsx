@@ -1,4 +1,4 @@
-// Public page: how to delete a Taitit tool account (Google Play asks for a web link that works
+// Public page: how to delete a TAITIT tool account (Google Play asks for a web link that works
 // without the app). English, like the app. What is deleted and kept matches delete_my_account()
 // and the privacy policy (accounting records are kept).
 
@@ -14,13 +14,13 @@ export function AccountDeletionPage() {
         <header className="flex flex-col gap-3">
           <img src="/logo.svg" alt="TAITIT" className="h-7 w-auto self-start" />
           <h1 className="text-3xl font-extrabold text-ink">Delete your account</h1>
-          <p className="text-sm text-muted">Taitit tool · ANATASA DESIGN SL</p>
+          <p className="text-sm text-muted">TAITIT tool · ANATASA DESIGN SL</p>
         </header>
 
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-extrabold text-ink">In the app</h2>
           <ol className="list-decimal space-y-1 pl-5 text-ink">
-            <li>Open Taitit tool and sign in.</li>
+            <li>Open TAITIT tool and sign in.</li>
             <li>Go to Account and tap “Delete account”.</li>
             <li>Enter your password and tap “Delete my account”.</li>
           </ol>

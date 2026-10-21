@@ -1,0 +1,154 @@
+{
+  "name": "VENDOR",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/vendor.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "3B",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "metal",
+      "role": "secondary",
+      "defaultRef": "33B",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "3F",
+      "defaultFinish": "matte"
+    }
+  ],
+  "groups": [
+    {
+      "name": "navy metal (lower rims, bridge) and navy translucent tips: the largest region is the front, the rest the tips",
+      "colors": [
+        "#1D306C",
+        "#45558A",
+        "#2A3A78",
+        "#16285E",
+        "#33437C"
+      ],
+      "tolerance": 32,
+      "split": {
+        "largest": 1,
+        "zone": "metal",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "light blue metal (top bar and temples: the temples go with the secondary front on this model, Carlos)",
+      "colors": [
+        "#0297EB",
+        "#07ABF9",
+        "#1A8FD8",
+        "#3AB5F5",
+        "#0A7FC8"
+      ],
+      "tolerance": 34,
+      "zone": "frente"
+    },
+    {
+      "name": "translucent blue of the far tip (above the bar and through the right lens)",
+      "colors": [
+        "#003084",
+        "#003C90",
+        "#2454A8",
+        "#3060B4",
+        "#1854A8",
+        "#0C4890",
+        "#306CC0",
+        "#0C3C90"
+      ],
+      "tolerance": 24,
+      "within": [
+        478,
+        8,
+        880,
+        215
+      ],
+      "zone": "terminales"
+    },
+    {
+      "name": "grey-lavender light and dark joint of the near tip",
+      "colors": [
+        "#8484A8",
+        "#8490B4",
+        "#7884A8",
+        "#A8A8C0",
+        "#9090C0",
+        "#84849C",
+        "#9C9CB4",
+        "#202040",
+        "#2A2A50",
+        "#5A5A80"
+      ],
+      "tolerance": 16,
+      "within": [
+        1462,
+        70,
+        1558,
+        270
+      ],
+      "zone": "terminales"
+    }
+  ],
+  "fixes": [
+    {
+      "poly": [
+        [
+          760,
+          97
+        ],
+        [
+          786,
+          96
+        ],
+        [
+          878,
+          192
+        ],
+        [
+          872,
+          212
+        ],
+        [
+          846,
+          212
+        ],
+        [
+          758,
+          110
+        ]
+      ],
+      "from": "metal",
+      "to": "terminales",
+      "note": "far tip seen through the right lens (it came out from behind the bar touching the front)"
+    },
+    {
+      "rect": [
+        100,
+        80,
+        116,
+        112
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "piecesInside": true,
+      "note": "navy piece of the left hinge"
+    }
+  ]
+}

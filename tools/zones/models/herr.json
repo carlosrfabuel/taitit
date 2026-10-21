@@ -11,7 +11,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "PH-M06",
+      "defaultRef": "15B",
       "defaultFinish": "matte"
     },
     {
@@ -19,7 +19,7 @@
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
-      "defaultRef": "PH-M10",
+      "defaultRef": "3F",
       "defaultFinish": "matte"
     },
     {
@@ -27,25 +27,41 @@
       "label": "Tips",
       "material": "acetate",
       "role": "tips",
-      "defaultRef": "PH-A12"
+      "defaultRef": "38",
+      "defaultFinish": "matte"
     }
   ],
   "groups": [
     {
       "name": "mustard metal (top bar and temples)",
-      "colors": ["#DDA13B", "#E7B25E", "#C98E2E", "#B87C22"],
+      "colors": [
+        "#DDA13B",
+        "#E7B25E",
+        "#C98E2E",
+        "#B87C22"
+      ],
       "tolerance": 48,
       "zone": "metal"
     },
     {
       "name": "petrol blue metal (lower rims)",
-      "colors": ["#047083", "#385453", "#0A5C6B", "#1E8A9B"],
+      "colors": [
+        "#047083",
+        "#385453",
+        "#0A5C6B",
+        "#1E8A9B"
+      ],
       "tolerance": 45,
       "zone": "frente"
     },
     {
       "name": "mint acetate tips (3 largest regions: near tip, far tip in 2 pieces behind the rim; light slivers on the rims and the pad arms go to the front)",
-      "colors": ["#6BC0B8", "#8ED3CC", "#4FA9A0", "#A9E0DA"],
+      "colors": [
+        "#6BC0B8",
+        "#8ED3CC",
+        "#4FA9A0",
+        "#A9E0DA"
+      ],
       "tolerance": 42,
       "split": {
         "largest": 3,

@@ -35,7 +35,7 @@ export function PrivacyPage() {
         <header className="flex flex-col gap-3">
           <img src="/logo.svg" alt="TAITIT" className="h-7 w-auto self-start" />
           <h1 className="text-3xl font-extrabold text-ink">Privacy policy</h1>
-          <p className="text-sm text-muted">Taitit tool · Last updated 20 October 2026</p>
+          <p className="text-sm text-muted">TAITIT tool · Last updated 20 October 2026</p>
         </header>
 
         <Section title="Data controller" question="Who is responsible for processing your data?">

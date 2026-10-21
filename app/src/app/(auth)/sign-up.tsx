@@ -139,6 +139,7 @@ export default function SignUpScreen() {
             setBusiness((b) => ({ ...b, [key]: v }));
             clearError(key);
           }}
+          onSame={(key, same) => setBusiness((b) => ({ ...b, same: { ...b.same, [key]: same } }))}
         />
         <Pressable
           accessibilityRole="checkbox"

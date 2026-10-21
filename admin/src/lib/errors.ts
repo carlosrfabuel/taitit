@@ -42,7 +42,7 @@ export function dbMessage(error: ErrorLike): string {
   if (problems)
     return `El modelo publicado no puede quedar incompleto: ${problems.map(problemLabel).join(' ')} Despublícalo primero o corrígelo.`;
   if (error?.code === '23505' && message.includes('swatches_ref_key'))
-    return 'Ya existe un color con esa referencia.';
+    return 'Ya existe un color de este material con esa referencia.';
   if (message.includes('own_account')) return 'No puedes cambiar el estado de tu propia cuenta.';
   if (message.includes('account_not_found')) return 'Esta cuenta ya no existe.';
   if (message.includes('admin_account')) return 'Las cuentas de administrador no se eliminan desde aquí.';

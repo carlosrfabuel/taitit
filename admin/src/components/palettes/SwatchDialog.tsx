@@ -129,8 +129,14 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
     if (busy) return;
     const next: SwatchErrors & { texture?: string } = validateSwatch({ ...values, kind });
     const ref = values.ref.trim().toLowerCase();
-    if (!next.ref && swatches.some((s) => s.id !== swatch?.id && s.ref.toLowerCase() === ref))
-      next.ref = 'Ya existe un color con esa referencia.';
+    // Unique within the material: metal 2F and acetate 2F are different colors (database rule).
+    if (
+      !next.ref &&
+      swatches.some(
+        (s) => s.id !== swatch?.id && s.material === values.material && s.ref.toLowerCase() === ref,
+      )
+    )
+      next.ref = 'Ya existe un color de este material con esa referencia.';
     // A texture error only counts while the color is tortoiseshell and that texture is being added.
     if (kind === 'havana' && texture !== 'remove' && errors.texture) next.texture = errors.texture;
     setErrors(next);

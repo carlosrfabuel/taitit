@@ -1,0 +1,226 @@
+{
+  "name": "CHRISTIE",
+  "category": "Optical",
+  "published": true,
+  "input": "../input/christie.jpg",
+  "crop": "auto",
+  "outputWidth": 1600,
+  "edgeGrow": 3,
+  "zones": [
+    {
+      "id": "metal",
+      "label": "Main metal",
+      "material": "metal",
+      "role": "main",
+      "defaultRef": "81",
+      "defaultFinish": "matte"
+    },
+    {
+      "id": "frente",
+      "label": "Secondary front",
+      "material": "acetate",
+      "role": "secondary",
+      "defaultRef": "1",
+      "defaultFinish": "matte",
+      "smooth": 8,
+      "pattern": "own"
+    },
+    {
+      "id": "terminales",
+      "label": "Tips",
+      "material": "acetate",
+      "role": "tips",
+      "defaultRef": "11",
+      "defaultFinish": "matte",
+      "smooth": 6,
+      "pattern": "own"
+    }
+  ],
+  "groups": [
+    {
+      "name": "green metal (outer rims, bridge, temples)",
+      "colors": [
+        "#6C9B54",
+        "#92AF76",
+        "#5E8A48",
+        "#7FA866",
+        "#4F7A3C"
+      ],
+      "tolerance": 32,
+      "minSaturation": 18,
+      "zone": "metal"
+    },
+    {
+      "name": "tortoiseshell acetate: the 2 largest regions are the inner rims, the rest the tips",
+      "colors": [
+        "#39322B",
+        "#2E241C",
+        "#4A3A2C",
+        "#78603E",
+        "#9A7A48",
+        "#D1A660",
+        "#E4C07A",
+        "#E4D3B0",
+        "#F0D89C",
+        "#B8904E"
+      ],
+      "tolerance": 36,
+      "split": {
+        "largest": 2,
+        "zone": "frente",
+        "rest": "terminales"
+      }
+    },
+    {
+      "name": "clear grey part, mauve shadows and pale gloss of the near tip",
+      "colors": [
+        "#A29B9F",
+        "#9D959A",
+        "#9C9394",
+        "#ADA0A1",
+        "#DAD5DB",
+        "#6F5E61",
+        "#7C6E71",
+        "#746A6D",
+        "#635354",
+        "#EFE4E0",
+        "#F0DDD0",
+        "#E1DEE2",
+        "#8F7F86",
+        "#B5A8AE"
+      ],
+      "tolerance": 18,
+      "within": [
+        1440,
+        95,
+        1575,
+        300
+      ],
+      "attach": true
+    }
+  ],
+  "fixes": [
+    {
+      "poly": [
+        [
+          688,
+          163
+        ],
+        [
+          700,
+          152
+        ],
+        [
+          718,
+          142
+        ],
+        [
+          762,
+          204
+        ],
+        [
+          756,
+          230
+        ],
+        [
+          724,
+          232
+        ],
+        [
+          684,
+          170
+        ]
+      ],
+      "from": "frente",
+      "to": "terminales",
+      "note": "far tip seen through the right lens, below the inner rim it passes behind"
+    },
+    {
+      "rect": [
+        500,
+        235,
+        535,
+        285
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "left nose pad wire (honey colored, matched the tortoiseshell)"
+    },
+    {
+      "rect": [
+        650,
+        250,
+        715,
+        332
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "right nose pad wire"
+    },
+    {
+      "rect": [
+        1220,
+        195,
+        1245,
+        230
+      ],
+      "from": "terminales",
+      "to": "metal",
+      "note": "speck on the right hinge"
+    },
+    {
+      "poly": [
+        [
+          1488,
+          281
+        ],
+        [
+          1519,
+          281
+        ],
+        [
+          1520,
+          296
+        ],
+        [
+          1520,
+          302
+        ],
+        [
+          1488,
+          302
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor reflection left of the near tip end (matched the light tortoiseshell)"
+    },
+    {
+      "poly": [
+        [
+          1541,
+          281
+        ],
+        [
+          1568,
+          281
+        ],
+        [
+          1568,
+          302
+        ],
+        [
+          1539,
+          302
+        ],
+        [
+          1540,
+          296
+        ]
+      ],
+      "from": "terminales",
+      "to": "none",
+      "note": "floor reflection right of the near tip end"
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
-import { FINISH_LABEL, MATERIAL_LABEL, ZONE_ROLE_LABEL } from '../../lib/labels';
+import { FINISH_LABEL, MATERIAL_LABEL, swatchLabel, ZONE_ROLE_LABEL } from '../../lib/labels';
 import { Button, Card, Modal, Spinner, Swatch } from '../ui';
 import { publicUrl } from '../../lib/images';
 import { modelKeys, reorder, saveOrder, type ModelRow } from '../../lib/models';
@@ -142,7 +142,7 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                     {swatch ? (
                       <>
                         <Swatch hex={swatch.hex} alpha={swatch.alpha} title={swatch.name} size={16} />
-                        {swatch.name} · {swatch.ref}
+                        {swatchLabel(swatch)}
                         {zone.default_finish && ` · ${FINISH_LABEL[zone.default_finish]}`}
                         {!swatch.active && ' (color inactivo)'}
                       </>

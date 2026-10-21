@@ -14,9 +14,10 @@ import {
   orderKeys,
   type OrderItemRow,
 } from '../lib/orders';
+import { addressLine } from '../lib/customers';
 import { textureUrl } from '../lib/swatches';
 import { readMessage } from '../lib/errors';
-import { FINISH_LABEL, KIND_LABEL, MATERIAL_LABEL } from '../lib/labels';
+import { FINISH_LABEL, KIND_LABEL, MATERIAL_LABEL, swatchLabel } from '../lib/labels';
 
 // One order, exactly as it was sent: image, part sheet, notes, and the optician's details at that
 // moment. Downloads: the image and the Excel sheet (the same file the order email carries).
@@ -77,10 +78,10 @@ export function OrderDetailPage() {
             hex={i.hex}
             alpha={i.kind === 'translucent' ? i.alpha : null}
             textureUrl={i.texture_path ? textureUrl(i) : null}
-            title={i.swatch_name}
+            title={swatchLabel({ name: i.swatch_name, ref: i.ref })}
             size={24}
           />
-          {i.swatch_name}
+          {swatchLabel({ name: i.swatch_name, ref: i.ref })}
         </span>
       ),
     },
@@ -194,15 +195,30 @@ export function OrderDetailPage() {
             {field('Nombre comercial', o.business_name)}
             {field('Razón social', o.legal_name)}
             {field('CIF/NIF', o.tax_id)}
+            {field('Nombre en las gafas', o.labeling)}
             {field('Contacto', o.customer_name)}
             {field('Email', o.customer_email)}
+            {o.contact_email &&
+              o.contact_email !== o.customer_email &&
+              field('Email de contacto', o.contact_email)}
             {field('Teléfono', o.phone)}
-            {field(
-              'Dirección',
-              [o.address, [o.postal_code, o.city].filter(Boolean).join(' '), o.province]
-                .filter(Boolean)
-                .join(', '),
-            )}
+            {field('Dirección', addressLine(o.address, o.postal_code, o.city, o.province))}
+            {o.delivery_address &&
+              field(
+                'Dirección de entrega',
+                addressLine(o.delivery_address, o.delivery_postal_code, o.delivery_city, o.delivery_province),
+              )}
+            {o.commercial_address &&
+              field(
+                'Dirección comercial',
+                addressLine(
+                  o.commercial_address,
+                  o.commercial_postal_code,
+                  o.commercial_city,
+                  o.commercial_province,
+                ),
+              )}
+            {o.bank_account && field('Cuenta bancaria', o.bank_account)}
           </dl>
           <p className="mt-4 text-xs text-muted">Datos en el momento del pedido.</p>
         </Card>

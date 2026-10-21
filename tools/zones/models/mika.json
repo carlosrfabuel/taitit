@@ -12,7 +12,7 @@
       "label": "Main metal",
       "material": "metal",
       "role": "main",
-      "defaultRef": "PH-M06",
+      "defaultRef": "15B",
       "defaultFinish": "matte"
     },
     {
@@ -20,7 +20,7 @@
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
-      "defaultRef": "PH-M16",
+      "defaultRef": "90",
       "defaultFinish": "matte"
     },
     {
@@ -28,7 +28,8 @@
       "label": "Tips",
       "material": "acetate",
       "role": "tips",
-      "defaultRef": "PH-A12"
+      "defaultRef": "3F",
+      "defaultFinish": "matte"
     }
   ],
   "groups": [

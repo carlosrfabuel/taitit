@@ -111,6 +111,7 @@ function BusinessForm({
             setValues((b) => ({ ...b, [key]: v }));
             setErrors((e) => ({ ...e, [key]: null }));
           }}
+          onSame={(key, same) => setValues((b) => ({ ...b, same: { ...b.same, [key]: same } }))}
         />
         {needsReview ? (
           <AppText variant="small" color={tokens.colors.danger}>

@@ -18,7 +18,26 @@ export type CustomerRow = {
   postal_code: string | null;
   city: string | null;
   province: string | null;
+  labeling: string | null;
+  contact_email: string | null;
+  bank_account: string | null;
+  delivery_address: string | null;
+  delivery_postal_code: string | null;
+  delivery_city: string | null;
+  delivery_province: string | null;
+  commercial_address: string | null;
+  commercial_postal_code: string | null;
+  commercial_city: string | null;
+  commercial_province: string | null;
 };
+
+/** An address as one line: "street, postal code city, province" (null when there is none). */
+export const addressLine = (
+  address: string | null,
+  postalCode: string | null,
+  city: string | null,
+  province: string | null,
+) => [address, [postalCode, city].filter(Boolean).join(' '), province].filter(Boolean).join(', ') || null;
 
 export const customerKeys = { all: ['customers'] as const, pending: ['customers', 'pending'] as const };
 
@@ -37,7 +56,7 @@ export async function listCustomers(): Promise<CustomerRow[]> {
     const { data, error } = await supabase
       .from('profiles')
       .select(
-        'id, email, full_name, status, created_at, reviewed_at, business_name, legal_name, tax_id, phone, address, postal_code, city, province',
+        'id, email, full_name, status, created_at, reviewed_at, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province',
       )
       .eq('role', 'customer')
       .order('created_at', { ascending: false })

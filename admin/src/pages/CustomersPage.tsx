@@ -4,6 +4,7 @@ import { Check, RotateCcw, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Button, EmptyState, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
+  addressLine,
   deleteCustomerAccount,
   customerKeys,
   listCustomers,
@@ -78,6 +79,8 @@ export function CustomersPage() {
             <span className="text-xs text-muted">{row.legal_name}</span>
           )}
           {row.tax_id && <span className="text-xs text-muted">CIF/NIF {row.tax_id}</span>}
+          {row.labeling && <span className="text-xs text-muted">Nombre en las gafas: {row.labeling}</span>}
+          {row.bank_account && <span className="text-xs text-muted">Cuenta: {row.bank_account}</span>}
         </div>
       ),
     },
@@ -89,6 +92,9 @@ export function CustomersPage() {
           <span>{row.full_name || '—'}</span>
           <span className="text-xs text-muted">{row.email ?? '—'}</span>
           {row.phone && <span className="text-xs text-muted">{row.phone}</span>}
+          {row.contact_email && row.contact_email !== row.email && (
+            <span className="text-xs text-muted">Contacto: {row.contact_email}</span>
+          )}
         </div>
       ),
     },
@@ -96,11 +102,33 @@ export function CustomersPage() {
       key: 'address',
       header: 'Dirección',
       render: (row) => (
-        <span className="text-sm">
-          {[row.address, [row.postal_code, row.city].filter(Boolean).join(' '), row.province]
-            .filter(Boolean)
-            .join(', ') || '—'}
-        </span>
+        <div className="flex flex-col">
+          <span className="text-sm">
+            {addressLine(row.address, row.postal_code, row.city, row.province) ?? '—'}
+          </span>
+          {row.delivery_address && (
+            <span className="text-xs text-muted">
+              Entrega:{' '}
+              {addressLine(
+                row.delivery_address,
+                row.delivery_postal_code,
+                row.delivery_city,
+                row.delivery_province,
+              )}
+            </span>
+          )}
+          {row.commercial_address && (
+            <span className="text-xs text-muted">
+              Comercial:{' '}
+              {addressLine(
+                row.commercial_address,
+                row.commercial_postal_code,
+                row.commercial_city,
+                row.commercial_province,
+              )}
+            </span>
+          )}
+        </div>
       ),
     },
     { key: 'created', header: 'Registro', render: (row) => formatDate(row.created_at) },

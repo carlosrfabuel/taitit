@@ -1,4 +1,5 @@
 import { orderSheet, orderSheetName, type SheetOrder } from '@taitit/shared';
+import { addressLine } from './customers';
 import type { Database } from '@taitit/shared';
 import { supabase } from './supabase';
 
@@ -37,6 +38,17 @@ export type OrderRow = {
   postal_code: string | null;
   city: string | null;
   province: string | null;
+  labeling: string | null;
+  contact_email: string | null;
+  bank_account: string | null;
+  delivery_address: string | null;
+  delivery_postal_code: string | null;
+  delivery_city: string | null;
+  delivery_province: string | null;
+  commercial_address: string | null;
+  commercial_postal_code: string | null;
+  commercial_city: string | null;
+  commercial_province: string | null;
   order_items: OrderItemRow[];
 };
 
@@ -46,7 +58,7 @@ export const orderKeys = {
 };
 
 const COLUMNS =
-  'id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -107,8 +119,28 @@ export const toSheetOrder = (o: OrderRow): SheetOrder => ({
   modelName: o.model_name,
   quantity: o.quantity,
   notes: o.notes,
-  businessName: o.business_name,
+  legalName: o.legal_name,
   taxId: o.tax_id,
+  address: addressLine(o.address, o.postal_code, o.city, o.province),
+  deliveryAddress: addressLine(
+    o.delivery_address,
+    o.delivery_postal_code,
+    o.delivery_city,
+    o.delivery_province,
+  ),
+  bankAccount: o.bank_account,
+  businessName: o.business_name,
+  commercialAddress: addressLine(
+    o.commercial_address,
+    o.commercial_postal_code,
+    o.commercial_city,
+    o.commercial_province,
+  ),
+  phone: o.phone,
+  // Older orders have no contact email copy: the sign-in email was the contact then.
+  email: o.contact_email ?? o.customer_email,
+  contact: o.customer_name,
+  labeling: o.labeling,
   items: o.order_items.map((i) => ({
     zoneRole: i.zone_role,
     swatchName: i.swatch_name,

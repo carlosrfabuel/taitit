@@ -147,7 +147,7 @@ begin
   get diagnostics n = row_count;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer updated another profile'; end if;
   -- A edits their own business details; never someone else's; limits enforced.
-  update public.profiles set business_name = 'Optica A', tax_id = 'B12345678', phone = '600', address = 'Calle A', postal_code = '46001', city = 'Valencia' where id = a;
+  update public.profiles set business_name = 'Optica A', tax_id = 'B12345678', phone = '600', address = 'Calle A', postal_code = '46001', city = 'Valencia', labeling = 'OPTICA A' where id = a;
   get diagnostics n = row_count;
   if n = 1 then passed := passed + 1; else failed := failed || E'\n3 customer cannot edit own business details'; end if;
   select count(*) into n from public.profiles p where p.id = a and private.business_complete(p);
@@ -500,6 +500,83 @@ begin
   begin update public.models set published = true where id = m_new;
     failed := failed || E'\n5b a model with a pattern of another size was published';
   exception when check_violation then passed := passed + 1; end;
+
+  -- -------------------------------------------------------------------------
+  -- 5c. Registration fields (20261026120000): name for the glasses, contact email, bank account,
+  --     delivery and commercial addresses (none = same as the main address)
+  -- -------------------------------------------------------------------------
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values ('ffffffff-0000-4000-8000-000000000006', 'test-f@example.com',
+    jsonb_build_object('full_name', 'Fe', 'labeling', '  OPTICA FE  ', 'contact_email', ' facturas@optica-fe.es ',
+      'bank_account', 'ES12 3456 7890', 'delivery_address', 'Almacen 3', 'delivery_postal_code', '46980', 'delivery_city', 'Paterna',
+      'commercial_address', 'Gran Via 1', 'commercial_city', 'Madrid'),
+    'authenticated', 'authenticated');
+  select count(*) into n from public.profiles
+  where id = 'ffffffff-0000-4000-8000-000000000006' and labeling = 'OPTICA FE' and contact_email = 'facturas@optica-fe.es'
+    and bank_account = 'ES12 3456 7890' and delivery_address = 'Almacen 3' and delivery_postal_code = '46980'
+    and delivery_city = 'Paterna' and delivery_province is null
+    and commercial_address is null and commercial_postal_code is null and commercial_city is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5c sign-up: new fields not copied, or an incomplete commercial address kept'; end if;
+  -- Never a failed sign-up: an invalid contact email is dropped, a long value cut to the limit.
+  begin
+    insert into auth.users (id, email, raw_user_meta_data, aud, role)
+    values ('ffffffff-0000-4000-8000-000000000007', 'test-g@example.com',
+      jsonb_build_object('contact_email', 'not-an-email', 'labeling', repeat('x', 100)), 'authenticated', 'authenticated');
+    select count(*) into n from public.profiles
+    where id = 'ffffffff-0000-4000-8000-000000000007' and contact_email is null and char_length(labeling) = 60;
+    if n = 1 then passed := passed + 1; else failed := failed || E'\n5c sign-up: invalid contact email kept or long name for the glasses not cut'; end if;
+  exception when others then failed := failed || E'\n5c sign-up with an invalid contact email failed: ' || sqlerrm; end;
+  begin update public.profiles set contact_email = 'nope' where id = 'ffffffff-0000-4000-8000-000000000006';
+    failed := failed || E'\n5c invalid contact email accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.profiles set delivery_address = null where id = 'ffffffff-0000-4000-8000-000000000006';
+    failed := failed || E'\n5c delivery address without its street accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.profiles set commercial_city = 'Madrid' where id = 'ffffffff-0000-4000-8000-000000000006';
+    failed := failed || E'\n5c commercial address with only a city accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.profiles set delivery_city = U&'\00A0' where id = 'ffffffff-0000-4000-8000-000000000006';
+    failed := failed || E'\n5c delivery city of only a no-break space accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin update public.profiles set bank_account = repeat('1', 43) where id = 'ffffffff-0000-4000-8000-000000000006';
+    failed := failed || E'\n5c over-long bank account accepted';
+  exception when check_violation then passed := passed + 1; end;
+  update public.profiles set delivery_address = null, delivery_postal_code = null, delivery_city = null, delivery_province = null
+  where id = 'ffffffff-0000-4000-8000-000000000006';
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5c delivery address cannot go back to "same as the main one"'; end if;
+  -- Required to order: the name for the glasses, like the other required details.
+  update public.profiles set business_name = 'Optica Fe', tax_id = 'B22222222', phone = '600', address = 'Calle F',
+    postal_code = '46001', city = 'Valencia' where id = 'ffffffff-0000-4000-8000-000000000006';
+  select count(*) into n from public.profiles p where p.id = 'ffffffff-0000-4000-8000-000000000006' and private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5c complete details with a name for the glasses not recognized'; end if;
+  update public.profiles set labeling = '   ' where id = 'ffffffff-0000-4000-8000-000000000006';
+  select count(*) into n from public.profiles p where p.id = 'ffffffff-0000-4000-8000-000000000006' and not private.business_complete(p);
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5c details without a name for the glasses counted as complete'; end if;
+  -- The customer edits their own new fields (column grants), never someone else's.
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', 'ffffffff-0000-4000-8000-000000000006', 'role', 'authenticated')::text, true);
+  update public.profiles set labeling = 'OPTICA FE 2', contact_email = 'otro@optica-fe.es', bank_account = null,
+    commercial_address = 'Gran Via 1', commercial_postal_code = '28013', commercial_city = 'Madrid'
+  where id = 'ffffffff-0000-4000-8000-000000000006';
+  get diagnostics n = row_count;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n5c customer cannot edit own registration fields'; end if;
+  update public.profiles set labeling = 'robado' where id = a;
+  get diagnostics n = row_count;
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n5c customer edited another account''s name for the glasses'; end if;
+  perform set_config('role', 'postgres', true);
+
+  -- -------------------------------------------------------------------------
+  -- 5d. Color references are unique within their material (20261026130000): metal 2F and acetate 2F
+  -- -------------------------------------------------------------------------
+  begin
+    insert into public.swatches (material, name, hex, ref, kind) values ('acetate', 'T same ref', '#444444', 'T-M', 'solid');
+    passed := passed + 1;
+  exception when unique_violation then failed := failed || E'\n5d an acetate cannot reuse a metal''s reference'; end;
+  begin
+    insert into public.swatches (material, name, hex, ref, kind) values ('metal', 'T dup', '#555555', 'T-M', 'metal');
+    failed := failed || E'\n5d two metals with the same reference accepted';
+  exception when unique_violation then passed := passed + 1; end;
 
   -- -------------------------------------------------------------------------
   -- 6. Account deletion: from the app with delete_my_account() (Day 20), default rule for the data

@@ -201,7 +201,7 @@ export async function placeOrder(input: {
 export function orderErrorMessage(error: unknown): string {
   const message = (error as { message?: string } | null)?.message ?? '';
   if (message.includes('business_details_missing'))
-    return 'Add your business details (business name, tax ID, phone, address, postal code and city) before ordering.';
+    return 'Add your business details (business name, tax ID, phone, address, postal code, city and the name on the glasses) before ordering.';
   if (message.includes('account_not_approved'))
     return 'Your account is not approved for orders yet. TAITIT reviews new accounts; please contact them if this takes long.';
   if (message.includes('order_colors_changed'))
@@ -245,8 +245,15 @@ export type Order = {
   shopRef: string | null;
   createdAt: string;
   imagePath: string | null;
-  /** The business as it was when the order was sent. */
-  business: { name: string | null; taxId: string | null; phone: string | null; address: string | null };
+  /** The business as it was when the order was sent (delivery: their own, or the main address). */
+  business: {
+    name: string | null;
+    taxId: string | null;
+    phone: string | null;
+    address: string | null;
+    labeling: string | null;
+    delivery: string | null;
+  };
   /** Temporary link to the private image (valid for an hour), null if it can't be made. */
   imageUrl: string | null;
   items: OrderItem[];
@@ -259,7 +266,7 @@ export const orderKeys = {
 };
 
 const ORDER_COLUMNS =
-  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, labeling, delivery_address, delivery_postal_code, delivery_city, delivery_province, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 type OrderRow = {
   id: string;
@@ -276,6 +283,11 @@ type OrderRow = {
   address: string | null;
   postal_code: string | null;
   city: string | null;
+  labeling: string | null;
+  delivery_address: string | null;
+  delivery_postal_code: string | null;
+  delivery_city: string | null;
+  delivery_province: string | null;
   order_items: {
     zone_name: string;
     material: Material;
@@ -289,6 +301,10 @@ type OrderRow = {
     sort_order: number;
   }[];
 };
+
+/** An address as one line, e.g. "Calle Mayor 1, 46001 Valencia, Valencia". */
+const addressLine = (...parts: [string | null, string | null, string | null, string | null]) =>
+  [parts[0], [parts[1], parts[2]].filter(Boolean).join(' '), parts[3]].filter(Boolean).join(', ') || null;
 
 async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
   const paths = rows.map((r) => r.image_path).filter((p): p is string => !!p);
@@ -312,6 +328,11 @@ async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
       taxId: r.tax_id,
       phone: r.phone,
       address: [r.address, r.postal_code, r.city].filter(Boolean).join(', ') || null,
+      labeling: r.labeling,
+      // Orders before 2026-10-21 have no delivery copy (it was the main address then).
+      delivery: r.delivery_address
+        ? addressLine(r.delivery_address, r.delivery_postal_code, r.delivery_city, r.delivery_province)
+        : null,
     },
     imageUrl: r.image_path ? (urls.get(r.image_path) ?? null) : null,
     items: [...r.order_items]
@@ -375,10 +396,11 @@ export function orderText(
     ...(order.business.name
       ? [`From: ${order.business.name}${order.business.taxId ? ` (${order.business.taxId})` : ''}`]
       : []),
+    ...(order.business.labeling ? [`Name on the glasses: ${order.business.labeling}`] : []),
     `Model: ${order.modelName}`,
     `Quantity: ${order.quantity}`,
     ...order.items.map(
-      (i) => `• ${i.zoneName}: ${i.swatchName}${i.finish ? ` (${finishName[i.finish]})` : ''}, ref. ${i.ref}`,
+      (i) => `• ${i.zoneName}: color ${i.ref}${i.finish ? ` (${finishName[i.finish]})` : ''}`,
     ),
     ...(order.shopRef ? [`Reference: ${order.shopRef}`] : []),
     ...(order.notes ? [`Notes: ${order.notes}`] : []),

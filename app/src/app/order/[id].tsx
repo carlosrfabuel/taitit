@@ -98,17 +98,16 @@ export default function OrderDetailScreen() {
               alpha={i.alpha}
               texture={i.textureUrl}
               size={tokens.swatch.md}
-              accessibilityLabel={i.swatchName}
+              accessibilityLabel={`Color ${i.ref}`}
             />
             <View style={styles.lineText}>
               <AppText variant="label">
                 {i.zoneName} · {MATERIAL_LABEL[i.material]}
               </AppText>
               <AppText>
-                {i.swatchName}
+                Color {i.ref}
                 {i.finish ? ` · ${FINISH_LABEL[i.finish]}` : ''}
               </AppText>
-              <AppText variant="small">Ref. {i.ref}</AppText>
             </View>
           </View>
         ))}
@@ -120,6 +119,10 @@ export default function OrderDetailScreen() {
           <AppText variant="small">
             {[o.business.taxId, o.business.address, o.business.phone].filter(Boolean).join(' · ')}
           </AppText>
+          {o.business.labeling ? (
+            <AppText variant="small">Name on the glasses: {o.business.labeling}</AppText>
+          ) : null}
+          {o.business.delivery ? <AppText variant="small">Delivery: {o.business.delivery}</AppText> : null}
         </View>
       ) : null}
       {o.shopRef ? (

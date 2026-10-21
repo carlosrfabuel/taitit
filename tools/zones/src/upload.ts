@@ -55,22 +55,30 @@ export async function upload(dir: string, manifest: Manifest) {
     if (z.pattern && z.material !== 'acetate')
       throw new Error(`Zone ${z.label}: only acetate zones have a pattern.`);
   }
+  // A reference is unique within its material: Carlos numbers metals and acetates separately, so
+  // metal 2F and acetate 2F are different colors.
   const refs = manifest.zones.map((z) => z.defaultRef).filter((r): r is string => !!r);
   const swatches = refs.length
     ? await db.from('swatches').select('id, ref, active, material').in('ref', refs)
     : { data: [], error: null };
   if (swatches.error) throw new Error(swatches.error.message);
-  const swatchId = new Map((swatches.data ?? []).filter((s) => s.active).map((s) => [s.ref, s.id]));
-  const badRefs = refs.filter((r) => !swatchId.has(r));
-  if (badRefs.length)
-    throw new Error(`Default color(s) not found or inactive: ${badRefs.join(', ')}. Nothing was uploaded.`);
-  const material = new Map((swatches.data ?? []).map((s) => [s.ref, s.material]));
-  const wrongMaterial = manifest.zones.filter(
-    (z) => z.defaultRef && material.get(z.defaultRef) !== z.material,
+  const colorKey = (material: string, ref: string) => `${material}:${ref}`;
+  const swatchId = new Map(
+    (swatches.data ?? []).filter((s) => s.active).map((s) => [colorKey(s.material, s.ref), s.id]),
+  );
+  const missing = manifest.zones.filter(
+    (z) => z.defaultRef && !swatchId.has(colorKey(z.material, z.defaultRef)),
+  );
+  const wrongMaterial = missing.filter((z) =>
+    (swatches.data ?? []).some((s) => s.active && s.ref === z.defaultRef && s.material !== z.material),
   );
   if (wrongMaterial.length)
     throw new Error(
       `Default color of another material: ${wrongMaterial.map((z) => `${z.label} (${z.defaultRef})`).join(', ')}. Nothing was uploaded.`,
+    );
+  if (missing.length)
+    throw new Error(
+      `Default color(s) not found or inactive: ${missing.map((z) => z.defaultRef).join(', ')}. Nothing was uploaded.`,
     );
   // Every zone of a published model needs a default color (database rule): refuse now, not halfway.
   const complete = manifest.zones.every((z) => z.defaultRef);
@@ -163,7 +171,7 @@ export async function upload(dir: string, manifest: Manifest) {
         layer_path: stored.get(z.file)!,
         layer_width: base.width,
         layer_height: base.height,
-        default_swatch_id: z.defaultRef ? swatchId.get(z.defaultRef)! : null,
+        default_swatch_id: z.defaultRef ? swatchId.get(colorKey(z.material, z.defaultRef))! : null,
         default_finish: z.defaultFinish,
         sort_order: order,
         pattern_path: z.pattern ? stored.get(z.pattern.file)! : null,

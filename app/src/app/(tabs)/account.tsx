@@ -107,6 +107,9 @@ export default function AccountScreen() {
                   .filter(Boolean)
                   .join(' · ')}
               </AppText>
+              {profile.labeling ? (
+                <AppText variant="small">Name on the glasses: {profile.labeling}</AppText>
+              ) : null}
             </>
           ) : (
             <AppText color={tokens.colors.muted}>

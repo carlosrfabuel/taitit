@@ -8,7 +8,7 @@ import { modelKeys, type ModelRow } from '../../lib/models';
 import { listZones } from '../../lib/zones';
 import { listSwatches, swatchKeys, toRenderSwatch } from '../../lib/swatches';
 import { drawPlan } from '../../lib/render';
-import { FINISH_LABEL } from '../../lib/labels';
+import { FINISH_LABEL, swatchLabel } from '../../lib/labels';
 
 /**
  * Live recolor of the model with the same recipe as the app. Starts with each zone's default color;
@@ -130,7 +130,7 @@ export function PreviewCard({ model }: { model: ModelRow }) {
                   value={swatchId}
                   options={[
                     { value: '', label: '— Sin color —' },
-                    ...options.map((s) => ({ value: s.id, label: `${s.name} · ${s.ref}` })),
+                    ...options.map((s) => ({ value: s.id, label: swatchLabel(s) })),
                   ]}
                   onChange={(e) =>
                     setPicks((p) => ({ ...p, [z.id]: { swatchId: e.target.value || null, finish } }))
