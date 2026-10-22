@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, TextInput, TextInputProps, View } from 'react-na
 import { tokens } from '@taitit/shared';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { fonts } from './fonts';
 
 const { colors, spacing, radius, typography } = tokens;
 
@@ -72,5 +73,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
-  input: { flex: 1, fontSize: typography.body, color: colors.text, paddingVertical: spacing.md },
+  input: {
+    flex: 1,
+    fontSize: typography.body,
+    fontFamily: fonts.body,
+    color: colors.text,
+    paddingVertical: spacing.md,
+  },
 });

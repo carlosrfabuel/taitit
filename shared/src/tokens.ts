@@ -30,13 +30,14 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as cons
 
 export const radius = { sm: 8, md: 12, lg: 18, pill: 999 } as const;
 
+// Readable on real phones (2026-10-22): the two smallest sizes 1 px larger than before (13 / 11).
 export const typography = {
   title: 26,
   heading: 20,
   subheading: 17,
   body: 16,
-  small: 13,
-  tiny: 11,
+  small: 14,
+  tiny: 12,
 } as const;
 
 export const lineHeight = {
@@ -44,8 +45,8 @@ export const lineHeight = {
   heading: 26,
   subheading: 22,
   body: 22,
-  small: 18,
-  tiny: 14,
+  small: 20,
+  tiny: 16,
 } as const;
 
 export const weight = {

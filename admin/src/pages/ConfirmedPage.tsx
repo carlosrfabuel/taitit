@@ -25,7 +25,7 @@ export function ConfirmedPage({ kind = 'signup' }: { kind?: 'signup' | 'other' }
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg p-6">
       <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-8 text-center">
-        <img src="/logo.svg" alt="TAITIT" className="mx-auto mb-6 h-7 w-auto" />
+        <img src="/logo-full.svg" alt="TAITIT, tailored handcrafted eyewear" className="mx-auto mb-6 w-40" />
         {error ? (
           <>
             <CircleAlert className="mx-auto mb-3 size-12 text-danger" aria-hidden />

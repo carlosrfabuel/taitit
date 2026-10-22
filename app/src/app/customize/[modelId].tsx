@@ -45,6 +45,7 @@ import {
 
 const { spacing, colors } = tokens;
 const PAGE = spacing.xl;
+const SWATCH_GAP = spacing.sm;
 // The photo stage (PhotoStage), almost edge to edge.
 const STAGE_MARGIN = spacing.sm;
 // Fade over the right end of the zone chips while more are hidden there (opacity per 8 px strip).
@@ -153,6 +154,13 @@ function Customizer({
   design: Design | undefined;
 }) {
   const { width } = useWindowDimensions();
+  // Swatch rows fill the width: as many as fit at the minimum size, then grown to share it equally.
+  const paletteWidth = width - PAGE * 2;
+  const swatchColumns = Math.max(
+    1,
+    Math.floor((paletteWidth + SWATCH_GAP) / (tokens.swatch.lg + SWATCH_GAP)),
+  );
+  const swatchSize = Math.floor((paletteWidth - SWATCH_GAP * (swatchColumns - 1)) / swatchColumns);
   const { session } = useAuth();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -406,6 +414,7 @@ function Customizer({
                       hex={s.hex}
                       alpha={s.kind === 'translucent' ? s.alpha : null}
                       texture={s.kind === 'havana' ? s.textureUrl : null}
+                      size={swatchSize}
                       selected={s.id === selected?.id}
                       onPress={() =>
                         change((h) => commit(h, chooseSwatch(h.picks, model.zones, zone, swatches, s)))
@@ -478,7 +487,7 @@ const styles = StyleSheet.create({
   palette: { flex: 1 },
   paletteContent: { padding: PAGE, gap: spacing.xl },
   group: { gap: spacing.sm },
-  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: SWATCH_GAP },
   notice: {
     flexDirection: 'row',
     alignItems: 'center',

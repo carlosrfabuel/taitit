@@ -2,29 +2,29 @@ type ErrorLike =
   { code?: string; message?: string; name?: string; statusCode?: string | number } | null | undefined;
 
 const AUTH_MESSAGES: Record<string, string> = {
-  invalid_credentials: 'Email o contraseña incorrectos.',
-  email_not_confirmed: 'Confirma tu email antes de entrar.',
-  over_request_rate_limit: 'Demasiados intentos. Espera un momento y vuelve a probar.',
-  user_banned: 'Esta cuenta está bloqueada.',
+  invalid_credentials: 'Incorrect email or password.',
+  email_not_confirmed: 'Confirm your email before signing in.',
+  over_request_rate_limit: 'Too many attempts. Wait a moment and try again.',
+  user_banned: 'This account is blocked.',
 };
 
-/** Spanish message for a Supabase Auth error. */
+/** User-facing message for a Supabase Auth error. */
 export function authMessage(error: ErrorLike): string {
   if (error?.code && AUTH_MESSAGES[error.code]) return AUTH_MESSAGES[error.code]!;
-  if (isNetworkError(error)) return 'No se pudo conectar. Revisa tu conexión.';
-  return 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+  if (isNetworkError(error)) return 'Could not connect. Check your connection.';
+  return 'Could not sign in. Please try again.';
 }
 
 /** Codes returned by the database publishing check (publish_rules migration). */
 export const PUBLISH_PROBLEM_LABEL: Record<string, string> = {
-  no_base_image: 'Falta la imagen base.',
-  base_size_unknown: 'Vuelve a subir la imagen base (no se conoce su tamaño).',
-  no_zones: 'Añade al menos una zona.',
-  zone_without_layer: 'Hay zonas sin capa.',
-  layer_size_mismatch: 'Alguna capa no mide lo mismo que la imagen base.',
-  pattern_size_mismatch: 'Algún patrón de carey no mide lo mismo que la imagen base.',
-  zone_without_default_color: 'Hay zonas sin color por defecto.',
-  default_color_inactive: 'Hay zonas con un color por defecto desactivado.',
+  no_base_image: 'The base image is missing.',
+  base_size_unknown: 'Upload the base image again (its size is unknown).',
+  no_zones: 'Add at least one zone.',
+  zone_without_layer: 'Some zones have no layer.',
+  layer_size_mismatch: 'A layer is not the same size as the base image.',
+  pattern_size_mismatch: 'A tortoiseshell pattern is not the same size as the base image.',
+  zone_without_default_color: 'Some zones have no default color.',
+  default_color_inactive: 'Some zones have a deactivated default color.',
 };
 
 export const problemLabel = (code: string) => PUBLISH_PROBLEM_LABEL[code] ?? code;
@@ -35,48 +35,47 @@ export function publishProblemsIn(error: ErrorLike): string[] | null {
   return m ? m[1]!.split(',').map((c) => c.trim()) : null;
 }
 
-/** Spanish message for a database (PostgREST) or Storage error. */
+/** User-facing message for a database (PostgREST) or Storage error. */
 export function dbMessage(error: ErrorLike): string {
   const message = error?.message ?? '';
   const problems = publishProblemsIn(error);
   if (problems)
-    return `El modelo publicado no puede quedar incompleto: ${problems.map(problemLabel).join(' ')} Despublícalo primero o corrígelo.`;
+    return `A published model cannot be left incomplete: ${problems.map(problemLabel).join(' ')} Unpublish it first or fix it.`;
   if (error?.code === '23505' && message.includes('swatches_ref_key'))
-    return 'Ya existe un color de este material con esa referencia.';
-  if (message.includes('own_account')) return 'No puedes cambiar el estado de tu propia cuenta.';
-  if (message.includes('account_not_found')) return 'Esta cuenta ya no existe.';
-  if (message.includes('admin_account')) return 'Las cuentas de administrador no se eliminan desde aquí.';
+    return 'A color of this material with this reference already exists.';
+  if (message.includes('own_account')) return 'You cannot change the status of your own account.';
+  if (message.includes('account_not_found')) return 'This account no longer exists.';
+  if (message.includes('admin_account')) return 'Admin accounts cannot be deleted from here.';
   if (error?.code === '23505' && message.includes('model_zones_one_role'))
-    return 'Este modelo ya tiene una zona con ese papel.';
+    return 'This model already has a zone with that role.';
   if (message.includes('model_zones_role_material'))
-    return 'El metal principal tiene que ser de metal y los terminales de acetato.';
+    return 'The main metal must be metal and the tips must be acetate.';
   if (error?.code === '23505' && message.includes('model_zones_unique_name'))
-    return 'Ya hay una zona con ese nombre en este modelo.';
-  if (error?.code === '23505') return 'Ya existe un modelo con ese nombre.';
-  if (message.includes('at most 4 customizable zones')) return 'Un modelo puede tener como máximo 4 zonas.';
+    return 'This model already has a zone with that name.';
+  if (error?.code === '23505') return 'A model with that name already exists.';
+  if (message.includes('at most 4 customizable zones')) return 'A model can have at most 4 zones.';
   if (message.includes('Default swatch material must match'))
-    return 'El color por defecto debe ser del mismo material que la zona.';
+    return 'The default color must be of the same material as the zone.';
   if (message.includes('swatch_material_in_use'))
-    return 'Este color es el color por defecto de alguna zona: no se puede cambiar su material.';
+    return 'This color is the default color of a zone: its material cannot be changed.';
   if (error?.code === '23514' && message.includes('models_published_needs_image'))
-    return 'Para publicar, el modelo necesita la imagen base.';
-  if (error?.code === '23514') return 'Algún campo no es válido o es demasiado largo.';
+    return 'To publish, the model needs the base image.';
+  if (error?.code === '23514') return 'A field is not valid or is too long.';
   if (error?.code === '42501' || /row-level security|unauthorized/i.test(message))
-    return 'No tienes permiso para esta acción.';
-  if (error?.code === 'not_found') return 'Ya no existe: puede que se haya eliminado.';
-  if (/payload too large|maximum allowed size|exceeded/i.test(message))
-    return 'El archivo es demasiado grande.';
-  if (/mime type|invalid_mime/i.test(message)) return 'Formato de archivo no permitido.';
-  if (isNetworkError(error)) return 'No se pudo conectar. Revisa tu conexión.';
-  return 'No se pudo guardar. Inténtalo de nuevo.';
+    return 'You do not have permission for this action.';
+  if (error?.code === 'not_found') return 'It no longer exists: it may have been deleted.';
+  if (/payload too large|maximum allowed size|exceeded/i.test(message)) return 'The file is too large.';
+  if (/mime type|invalid_mime/i.test(message)) return 'File format not allowed.';
+  if (isNetworkError(error)) return 'Could not connect. Check your connection.';
+  return 'Could not save. Please try again.';
 }
 
-/** Spanish message for an error while loading or downloading (not saving). */
+/** User-facing message for an error while loading or downloading (not saving). */
 export function readMessage(error: ErrorLike): string {
-  if (isNetworkError(error)) return 'No se pudo conectar. Revisa tu conexión.';
+  if (isNetworkError(error)) return 'Could not connect. Check your connection.';
   if (/not found|object not found/i.test(error?.message ?? ''))
-    return 'Ya no existe: puede que se haya eliminado.';
-  return 'No se pudo cargar. Inténtalo de nuevo.';
+    return 'It no longer exists: it may have been deleted.';
+  return 'Could not load. Please try again.';
 }
 
 function isNetworkError(error: ErrorLike) {

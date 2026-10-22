@@ -33,7 +33,7 @@ export function OrdersPage() {
   const [period, setPeriod] = useState<OrderPeriod>('all');
   const shown = filterOrders(rows, query, period);
 
-  // Orders sent since this browser last opened the list are marked "Nuevo" during this visit; the list
+  // Orders sent since this browser last opened the list are marked "New" during this visit; the list
   // then counts as seen (the sidebar badge clears).
   const [seenBefore] = useState(ordersSeenAt);
   const newest = rows[0]?.created_at;
@@ -47,19 +47,19 @@ export function OrdersPage() {
   const columns: Column<OrderRow>[] = [
     {
       key: 'number',
-      header: 'Nº',
+      header: 'No.',
       className: 'w-24',
       render: (o) => (
         <span className="flex flex-col items-start gap-1">
           <span className="font-bold text-ink">#{o.number}</span>
-          {isNew(o) && <Tag tone="attention">Nuevo</Tag>}
+          {isNew(o) && <Tag tone="attention">New</Tag>}
         </span>
       ),
     },
-    { key: 'date', header: 'Fecha', render: (o) => formatOrderDate(o.created_at) },
+    { key: 'date', header: 'Date', render: (o) => formatOrderDate(o.created_at) },
     {
       key: 'business',
-      header: 'Óptica',
+      header: 'Optician',
       render: (o) => (
         <div className="flex flex-col">
           <span className="font-semibold text-ink">{o.business_name ?? o.customer_name ?? '—'}</span>
@@ -67,9 +67,9 @@ export function OrdersPage() {
         </div>
       ),
     },
-    { key: 'model', header: 'Modelo', render: (o) => o.model_name },
-    { key: 'colors', header: 'Colores', render: (o) => <OrderColors items={o.order_items} /> },
-    { key: 'quantity', header: 'Cantidad', className: 'w-24', render: (o) => o.quantity },
+    { key: 'model', header: 'Model', render: (o) => o.model_name },
+    { key: 'colors', header: 'Colors', render: (o) => <OrderColors items={o.order_items} /> },
+    { key: 'quantity', header: 'Quantity', className: 'w-24', render: (o) => o.quantity },
   ];
 
   const filtered = query.trim() !== '' || period !== 'all';
@@ -77,8 +77,8 @@ export function OrdersPage() {
   return (
     <>
       <PageHeader
-        title="Pedidos"
-        note="Pedidos enviados desde la app, del más reciente al más antiguo. Pulsa uno para ver la ficha y descargar la imagen y el Excel."
+        title="Orders"
+        note="Orders sent from the app, newest first. Click one to see its order sheet and download the image and the Excel."
         actions={
           shown.length > 0 ? (
             <Button
@@ -86,7 +86,9 @@ export function OrdersPage() {
               icon={<FileSpreadsheet className="size-4" aria-hidden />}
               onClick={() => downloadOrdersSheet(shown)}
             >
-              {filtered ? `Excel de estos ${shown.length}` : 'Excel de la lista'}
+              {filtered
+                ? `Excel for ${shown.length === 1 ? 'this order' : `these ${shown.length}`}`
+                : 'Excel for the list'}
             </Button>
           ) : undefined
         }
@@ -95,15 +97,15 @@ export function OrdersPage() {
         <Spinner />
       ) : orders.isError && !orders.data ? (
         <EmptyState
-          title="No se pudieron cargar los pedidos"
+          title="Couldn't load the orders"
           message={readMessage(orders.error)}
-          action={<Button onClick={() => void orders.refetch()}>Reintentar</Button>}
+          action={<Button onClick={() => void orders.refetch()}>Try again</Button>}
         />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<Receipt className="size-6" aria-hidden />}
-          title="Todavía no hay pedidos"
-          message="Los pedidos que envíen las ópticas desde la app aparecerán aquí."
+          title="No orders yet"
+          message="Orders that opticians send from the app will appear here."
         />
       ) : (
         <>
@@ -117,12 +119,12 @@ export function OrdersPage() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar nº, óptica, email, ciudad o modelo"
-                aria-label="Buscar pedidos"
+                placeholder="Search no., optician, email, city or model"
+                aria-label="Search orders"
                 className="pl-9"
               />
             </div>
-            <div role="group" aria-label="Periodo" className="flex gap-2">
+            <div role="group" aria-label="Period" className="flex gap-2">
               {PERIODS.map((p) => (
                 <button
                   key={p}
@@ -141,7 +143,7 @@ export function OrdersPage() {
             </div>
             {filtered && (
               <span className="text-sm text-muted">
-                {shown.length} de {rows.length}
+                {shown.length} of {rows.length}
               </span>
             )}
           </div>
@@ -153,8 +155,8 @@ export function OrdersPage() {
             empty={
               <EmptyState
                 icon={<Search className="size-6" aria-hidden />}
-                title="Ningún pedido coincide"
-                message="Prueba con otra búsqueda u otro periodo."
+                title="No orders match"
+                message="Try another search or period."
                 action={
                   <Button
                     variant="secondary"
@@ -163,7 +165,7 @@ export function OrdersPage() {
                       setPeriod('all');
                     }}
                   >
-                    Ver todos
+                    View all
                   </Button>
                 }
               />
@@ -171,8 +173,7 @@ export function OrdersPage() {
           />
           {rows.length === ORDERS_LIMIT && (
             <p className="mt-3 text-sm text-muted">
-              Se muestran los {ORDERS_LIMIT} pedidos más recientes; la búsqueda y el Excel incluyen solo
-              estos.
+              Showing the {ORDERS_LIMIT} most recent orders; the search and the Excel include only these.
             </p>
           )}
         </>

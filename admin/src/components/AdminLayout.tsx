@@ -7,24 +7,24 @@ import { useAuth } from '../auth/context';
 import { ThumbnailRefresher } from './ThumbnailRefresher';
 
 const NAV = [
-  { to: '/', label: 'Inicio' },
-  { to: '/models', label: 'Modelos' },
-  { to: '/palettes', label: 'Paletas' },
-  { to: '/orders', label: 'Pedidos' },
-  { to: '/customers', label: 'Clientes' },
+  { to: '/', label: 'Home' },
+  { to: '/models', label: 'Models' },
+  { to: '/palettes', label: 'Palettes' },
+  { to: '/orders', label: 'Orders' },
+  { to: '/customers', label: 'Customers' },
   ...(import.meta.env.DEV ? [{ to: '/dev/ui-kit', label: 'UI kit (dev)' }] : []),
 ];
 
 export function AdminLayout() {
   const { email, signOut } = useAuth();
-  // Accounts waiting for approval, shown next to Clientes (refreshed every minute).
+  // Accounts waiting for approval, shown next to Customers (refreshed every minute).
   const pendingQuery = useQuery({
     queryKey: customerKeys.pending,
     queryFn: countPending,
     refetchInterval: 60_000,
   });
   const pending = pendingQuery.data ?? 0;
-  // Orders sent since this browser last opened Pedidos, shown next to Pedidos.
+  // Orders sent since this browser last opened Orders, shown next to Orders.
   const seen = useQuery({ queryKey: orderKeys.seen, queryFn: ordersSeenAt, staleTime: Infinity });
   const seenAt = seen.data ?? null;
   const freshQuery = useQuery({
@@ -36,14 +36,18 @@ export function AdminLayout() {
   const fresh = seenAt ? (freshQuery.data ?? 0) : 0;
   const badge = (to: string) =>
     to === '/customers' && pending > 0
-      ? { n: pending, label: `${pending} pendientes`, tone: 'bg-danger text-white' }
+      ? { n: pending, label: `${pending} pending`, tone: 'bg-danger text-white' }
       : to === '/orders' && fresh > 0
-        ? { n: fresh, label: `${fresh} pedidos nuevos`, tone: 'bg-brand text-white' }
+        ? { n: fresh, label: `${fresh} new ${fresh === 1 ? 'order' : 'orders'}`, tone: 'bg-brand text-white' }
         : null;
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface p-4 print:hidden">
-        <img src="/logo.svg" alt="TAITIT" className="mb-8 h-6 w-auto self-start px-2" />
+        <img
+          src="/logo-full.svg"
+          alt="TAITIT, tailored handcrafted eyewear"
+          className="mb-8 w-40 self-start px-2"
+        />
         <nav className="flex flex-col gap-1">
           {NAV.map((n) => {
             const b = badge(n.to);
@@ -81,7 +85,7 @@ export function AdminLayout() {
             className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-bg"
           >
             <LogOut className="size-4" aria-hidden />
-            Cerrar sesión
+            Sign out
           </button>
         </div>
       </aside>

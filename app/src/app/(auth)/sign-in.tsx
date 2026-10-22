@@ -1,13 +1,13 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
 import { useCloseAuth } from '@/auth/navigation';
 import { WaitingForConfirmation } from '@/auth/WaitingForConfirmation';
 import { validateEmail } from '@/auth/validation';
 import { AppText, Button, Screen, TextField, useToast } from '@/ui';
+import { fonts } from '@/ui/fonts';
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
@@ -62,15 +62,11 @@ export default function SignInScreen() {
     );
 
   return (
-    <Screen>
-      <Image
-        source={require('../../../assets/images/logo.png')}
-        style={styles.logo}
-        contentFit="contain"
-        accessibilityLabel="TAITIT"
-      />
-      <AppText variant="title">Welcome</AppText>
-      <AppText variant="small">Sign in to save your designs and place orders.</AppText>
+    <Screen fill>
+      <View style={styles.intro}>
+        <AppText variant="title">Sign in</AppText>
+        <AppText variant="small">Welcome back to your TAITIT account.</AppText>
+      </View>
 
       <View style={styles.form}>
         <TextField
@@ -103,6 +99,17 @@ export default function SignInScreen() {
           returnKeyType="go"
           onSubmitEditing={submit}
         />
+        {/* Where people look for it: right under the password. */}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push('/forgot-password')}
+          hitSlop={10}
+          style={styles.forgot}
+        >
+          <AppText variant="small" color={tokens.colors.primary} style={styles.underline}>
+            Forgot password?
+          </AppText>
+        </Pressable>
         {formError ? (
           <AppText variant="small" color={tokens.colors.danger} accessibilityLiveRegion="polite">
             {formError}
@@ -112,13 +119,14 @@ export default function SignInScreen() {
       </View>
 
       <View style={styles.links}>
-        <Button
-          title="Create account"
-          variant="secondary"
-          onPress={() => router.push('/sign-up')}
-          fullWidth
-        />
-        <Button title="Forgot my password" variant="ghost" onPress={() => router.push('/forgot-password')} />
+        <Pressable accessibilityRole="link" onPress={() => router.push('/sign-up')} hitSlop={10}>
+          <AppText variant="body" align="center">
+            Don&apos;t have an account?{' '}
+            <AppText variant="body" color={tokens.colors.primary} style={[styles.underline, styles.strong]}>
+              Create account
+            </AppText>
+          </AppText>
+        </Pressable>
         <Button title="Continue as guest" variant="ghost" onPress={closeAuth} />
       </View>
     </Screen>
@@ -126,8 +134,11 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Carlos's logo (black on white, 2026-10-20); 600×140 source, shown at 1/4.
-  logo: { width: 150, height: 35, marginBottom: tokens.spacing.sm },
-  form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
-  links: { gap: tokens.spacing.sm, marginTop: tokens.spacing.md },
+  intro: { gap: tokens.spacing.sm, paddingTop: tokens.spacing.lg, marginBottom: tokens.spacing.xxl },
+  // Even, generous spacing inside the form (fields, the link, the button).
+  form: { gap: tokens.spacing.xl },
+  forgot: { alignSelf: 'flex-end', marginTop: -tokens.spacing.xs, marginBottom: tokens.spacing.sm },
+  underline: { textDecorationLine: 'underline' },
+  strong: { fontFamily: fonts.bodyBold },
+  links: { gap: tokens.spacing.md, marginTop: tokens.spacing.xl, alignItems: 'center' },
 });

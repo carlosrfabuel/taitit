@@ -42,9 +42,11 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <Screen>
-      <AppText variant="title">Reset password</AppText>
-      <AppText variant="small">We will send you a link to set a new password.</AppText>
+    <Screen fill>
+      <View style={styles.intro}>
+        <AppText variant="title">Reset password</AppText>
+        <AppText variant="small">We will send you a link to set a new password.</AppText>
+      </View>
       <View style={styles.form}>
         <TextField
           label="Email"
@@ -67,10 +69,15 @@ export default function ForgotPasswordScreen() {
         ) : null}
         <Button title="Send link" onPress={submit} loading={loading} fullWidth />
       </View>
+      <View style={styles.links}>
+        <Button title="Back to sign in" variant="ghost" onPress={() => router.back()} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
+  intro: { gap: tokens.spacing.sm, paddingTop: tokens.spacing.lg, marginBottom: tokens.spacing.xxl },
+  form: { gap: tokens.spacing.xl },
+  links: { alignItems: 'center', marginTop: tokens.spacing.lg },
 });

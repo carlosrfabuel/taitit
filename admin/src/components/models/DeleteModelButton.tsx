@@ -38,34 +38,35 @@ export function DeleteModelButton({ model }: { model: ModelRow }) {
           setOpen(true);
         }}
       >
-        Eliminar modelo
+        Delete model
       </Button>
       <Modal
         open={open}
-        title="Eliminar modelo"
+        title="Delete model"
         onClose={() => !remove.isPending && setOpen(false)}
         dismissible={!remove.isPending}
         footer={
           <>
             <Button variant="secondary" disabled={remove.isPending} onClick={() => setOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
             <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
-              Eliminar
+              Delete
             </Button>
           </>
         }
       >
         <div className="flex flex-col gap-2 text-sm text-ink">
           <p>
-            Se eliminará <strong>{model.name}</strong> con sus zonas e imágenes. No se puede deshacer.
+            <strong>{model.name}</strong> will be deleted along with its zones and images. This can't be
+            undone.
           </p>
           <p className="text-muted">
-            Los diseños que los clientes hayan guardado con este modelo también se eliminarán. Los pedidos ya
-            hechos se conservan con su resumen.
+            Designs that customers have saved with this model will also be deleted. Orders already placed are
+            kept with their summary.
           </p>
           {model.published && (
-            <p className="text-muted">Si solo quieres ocultarlo de la app, desmárcalo como publicado.</p>
+            <p className="text-muted">If you only want to hide it from the app, untick Published instead.</p>
           )}
           {remove.isError && (
             <p role="alert" className="text-danger">

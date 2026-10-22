@@ -12,7 +12,7 @@ export type AuthValue = {
 
 export const AuthContext = createContext<AuthValue | null>(null);
 
-export const NOT_ADMIN_MESSAGE = 'Esta cuenta no tiene acceso al panel.';
+export const NOT_ADMIN_MESSAGE = 'This account does not have access to the panel.';
 
 export function useAuth() {
   const value = use(AuthContext);

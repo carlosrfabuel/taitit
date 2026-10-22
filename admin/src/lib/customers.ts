@@ -42,9 +42,9 @@ export const addressLine = (
 export const customerKeys = { all: ['customers'] as const, pending: ['customers', 'pending'] as const };
 
 export const STATUS_LABEL: Record<AccountStatus, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
 };
 
 const PAGE = 1000; // the most rows the API returns per request

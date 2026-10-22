@@ -43,21 +43,21 @@ async function inspect(file: File) {
   return { width, height, transparent, visible };
 }
 
-/** Checks a base image; returns its size or a Spanish error. */
+/** Checks a base image; returns its size or a user-facing error. */
 export async function checkBaseImage(file: File): Promise<{ size: Size } | { error: string }> {
   if (!(IMAGE_RULES.baseTypes as readonly string[]).includes(file.type))
-    return { error: 'Formato no válido: usa JPG, PNG o WebP.' };
+    return { error: 'Invalid format: use JPG, PNG or WebP.' };
   if (file.size > IMAGE_RULES.maxBytes)
-    return { error: `La imagen pesa ${mb(file.size)}; el máximo es ${mb(IMAGE_RULES.maxBytes)}.` };
+    return { error: `The image is ${mb(file.size)}; the maximum is ${mb(IMAGE_RULES.maxBytes)}.` };
   const info = await inspect(file);
-  if (!info) return { error: 'No se pudo leer la imagen. ¿Está dañada?' };
+  if (!info) return { error: 'Could not read the image. Is it damaged?' };
   if (info.width < IMAGE_RULES.minBaseWidth)
     return {
-      error: `La imagen mide ${info.width} px de ancho; el mínimo es ${IMAGE_RULES.minBaseWidth} px.`,
+      error: `The image is ${info.width} px wide; the minimum is ${IMAGE_RULES.minBaseWidth} px.`,
     };
   if (Math.max(info.width, info.height) > IMAGE_RULES.maxSide)
     return {
-      error: `La imagen mide ${info.width} × ${info.height} px; el máximo es ${IMAGE_RULES.maxSide} px por lado.`,
+      error: `The image is ${info.width} × ${info.height} px; the maximum is ${IMAGE_RULES.maxSide} px per side.`,
     };
   return { size: { width: info.width, height: info.height } };
 }
@@ -65,29 +65,30 @@ export async function checkBaseImage(file: File): Promise<{ size: Size } | { err
 /** Checks a tortoiseshell texture (the "textures" bucket allows 5 MB). */
 export async function checkTexture(file: File): Promise<{ size: Size } | { error: string }> {
   if (!(IMAGE_RULES.baseTypes as readonly string[]).includes(file.type))
-    return { error: 'Formato no válido: usa JPG, PNG o WebP.' };
-  if (file.size > 5 * 1024 * 1024) return { error: `La textura pesa ${mb(file.size)}; el máximo es 5.0 MB.` };
+    return { error: 'Invalid format: use JPG, PNG or WebP.' };
+  if (file.size > 5 * 1024 * 1024)
+    return { error: `The texture is ${mb(file.size)}; the maximum is 5.0 MB.` };
   const info = await inspect(file);
-  if (!info) return { error: 'No se pudo leer la imagen. ¿Está dañada?' };
+  if (!info) return { error: 'Could not read the image. Is it damaged?' };
   if (Math.min(info.width, info.height) < 256)
-    return { error: `La textura mide ${info.width} × ${info.height} px; el mínimo es 256 px por lado.` };
+    return { error: `The texture is ${info.width} × ${info.height} px; the minimum is 256 px per side.` };
   return { size: { width: info.width, height: info.height } };
 }
 
-/** Checks a zone layer against the base image; returns its size or a Spanish error. */
+/** Checks a zone layer against the base image; returns its size or a user-facing error. */
 export async function checkLayer(file: File, base: Size | null): Promise<{ size: Size } | { error: string }> {
-  if (!base) return { error: 'Sube primero la imagen base del modelo.' };
-  if (file.type !== 'image/png') return { error: 'La capa debe ser PNG (con transparencia).' };
+  if (!base) return { error: 'Upload the model’s base image first.' };
+  if (file.type !== 'image/png') return { error: 'The layer must be a PNG (with transparency).' };
   if (file.size > IMAGE_RULES.maxBytes)
-    return { error: `La capa pesa ${mb(file.size)}; el máximo es ${mb(IMAGE_RULES.maxBytes)}.` };
+    return { error: `The layer is ${mb(file.size)}; the maximum is ${mb(IMAGE_RULES.maxBytes)}.` };
   const info = await inspect(file);
-  if (!info) return { error: 'No se pudo leer la capa. ¿Está dañada?' };
+  if (!info) return { error: 'Could not read the layer. Is it damaged?' };
   if (info.width !== base.width || info.height !== base.height)
     return {
-      error: `La capa mide ${info.width} × ${info.height} px; debe medir lo mismo que la imagen base (${base.width} × ${base.height} px).`,
+      error: `The layer is ${info.width} × ${info.height} px; it must be the same size as the base image (${base.width} × ${base.height} px).`,
     };
-  if (!info.transparent) return { error: 'La capa no tiene transparencia: solo la zona debe ser visible.' };
-  if (!info.visible) return { error: 'La capa está vacía (totalmente transparente).' };
+  if (!info.transparent) return { error: 'The layer has no transparency: only the zone should be visible.' };
+  if (!info.visible) return { error: 'The layer is empty (fully transparent).' };
   return { size: { width: info.width, height: info.height } };
 }
 

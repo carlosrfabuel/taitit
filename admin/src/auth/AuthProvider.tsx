@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (r === 'admin') return { error: null };
     } catch {
       await supabase.auth.signOut();
-      return { error: 'No se pudo comprobar tu acceso. Inténtalo de nuevo.' };
+      return { error: 'Could not check your access. Please try again.' };
     }
     // Customers can't use the panel: don't leave them signed in here.
     await supabase.auth.signOut();

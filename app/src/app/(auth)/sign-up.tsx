@@ -16,6 +16,7 @@ import { AppText, Button, Icon, Screen, TextField, useToast } from '@/ui';
 import { useCloseAuth } from '@/auth/navigation';
 import { WaitingForConfirmation, type WaitReason } from '@/auth/WaitingForConfirmation';
 import { openPrivacyPolicy } from '@/lib/links';
+import { fonts } from '@/ui/fonts';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -89,6 +90,7 @@ export default function SignUpScreen() {
   return (
     <Screen>
       <AppText variant="title">Create account</AppText>
+      <AppText variant="small">Join TAITIT and start designing your perfect eyewear.</AppText>
       <View style={styles.form}>
         <TextField
           label="Contact person"
@@ -187,7 +189,7 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.md },
+  form: { gap: tokens.spacing.lg, marginTop: tokens.spacing.lg },
   check: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -195,6 +197,6 @@ const styles = StyleSheet.create({
     minHeight: tokens.touch.minSize,
   },
   checkText: { flex: 1, color: tokens.colors.text },
-  link: { textDecorationLine: 'underline', fontWeight: tokens.weight.medium },
+  link: { textDecorationLine: 'underline', fontFamily: fonts.bodyMedium },
   section: { marginTop: tokens.spacing.sm },
 });

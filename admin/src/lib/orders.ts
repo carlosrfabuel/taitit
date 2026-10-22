@@ -94,13 +94,13 @@ export async function countOrdersSince(iso: string): Promise<number> {
 export type OrderPeriod = 'all' | 'today' | 'week' | 'month';
 
 export const PERIOD_LABEL: Record<OrderPeriod, string> = {
-  all: 'Todos',
-  today: 'Hoy',
-  week: '7 días',
-  month: '30 días',
+  all: 'All',
+  today: 'Today',
+  week: '7 days',
+  month: '30 days',
 };
 
-/** The calendar day in Spain (YYYY-MM-DD), so "Hoy" means TAITIT's today. */
+/** The calendar day in Spain (YYYY-MM-DD), so "Today" means TAITIT's today. */
 const madridDay = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
 
 /** Orders within the period whose number, optician, email, city, CIF or model contain the search. */
@@ -137,7 +137,7 @@ const COLUMNS =
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
-  new Date(iso).toLocaleString('es-ES', {
+  new Date(iso).toLocaleString('en-GB', {
     timeZone: 'Europe/Madrid',
     day: 'numeric',
     month: 'short',
@@ -252,14 +252,14 @@ export function downloadOrderSheet(o: OrderRow) {
 export function downloadOrdersSheet(orders: OrderRow[]) {
   saveFile(
     new Blob([orderSheet(orders.map(toSheetOrder)) as Uint8Array<ArrayBuffer>], { type: XLSX_TYPE }),
-    'pedidos.xlsx',
+    'orders.xlsx',
   );
 }
 
-/** The order image, saved as pedido-<number>.jpg. */
+/** The order image, saved as order-<number>.jpg. */
 export async function downloadOrderImage(o: OrderRow) {
   if (!o.image_path) return;
   const { data, error } = await supabase.storage.from('orders').download(o.image_path);
   if (error) throw error;
-  saveFile(data, `pedido-${o.number}.jpg`);
+  saveFile(data, `order-${o.number}.jpg`);
 }

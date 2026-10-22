@@ -119,11 +119,11 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
     const duplicate = zones.some((z) => z.id !== zone?.id && z.name.toLowerCase() === trimmed.toLowerCase());
     const next = {
       name: !trimmed
-        ? 'Introduce el nombre de la zona.'
+        ? 'Enter the zone name.'
         : trimmed.length > ZONE_NAME_MAX
-          ? `Máximo ${ZONE_NAME_MAX} caracteres.`
+          ? `Maximum ${ZONE_NAME_MAX} characters.`
           : duplicate
-            ? 'Ya hay una zona con ese nombre en este modelo.'
+            ? 'This model already has a zone with that name.'
             : undefined,
       layer: errors.layer,
     };
@@ -142,41 +142,41 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
   return (
     <Modal
       open
-      title={zone ? `Editar zona: ${zone.name}` : 'Nueva zona'}
+      title={zone ? `Edit zone: ${zone.name}` : 'New zone'}
       onClose={close}
       dismissible={!save.isPending}
       footer={
         <>
           <Button variant="secondary" disabled={save.isPending} onClick={close}>
-            Cancelar
+            Cancel
           </Button>
           <Button type="submit" form="zone-form" loading={save.isPending} disabled={checking}>
-            {zone ? 'Guardar zona' : 'Añadir zona'}
+            {zone ? 'Save zone' : 'Add zone'}
           </Button>
         </>
       }
     >
       <form id="zone-form" onSubmit={submit} noValidate className="flex flex-col gap-4">
         <Select
-          label="Zona"
+          label="Zone"
           value={role ?? ''}
-          hint="Metal principal (con las varillas), frente secundario y terminales: las 3 zonas de cada modelo."
+          hint="Main metal (with the temples), secondary front and tips: the 3 zones of every model."
           options={[
-            { value: '', label: 'Sin asignar' },
+            { value: '', label: 'Unassigned' },
             ...ROLES.map((r) => ({
               value: r,
-              label: taken.has(r) ? `${ZONE_ROLE_LABEL[r]} (ya asignada)` : ZONE_ROLE_LABEL[r],
+              label: taken.has(r) ? `${ZONE_ROLE_LABEL[r]} (already assigned)` : ZONE_ROLE_LABEL[r],
               disabled: taken.has(r),
             })),
           ]}
           onChange={(e) => pickRole((e.target.value || null) as ZoneRole | null)}
         />
         <Input
-          label="Nombre"
+          label="Name"
           value={name}
           maxLength={ZONE_NAME_MAX}
           error={errors.name}
-          hint="Se muestra en la app, en inglés: p. ej. Main metal, Secondary front, Tips."
+          hint="Shown in the app, in English: e.g. Main metal, Secondary front, Tips."
           onChange={(e) => {
             setName(e.target.value);
             setErrors((x) => ({ ...x, name: undefined }));
@@ -190,7 +190,7 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           disabled={!!lockedMaterial}
           hint={
             lockedMaterial
-              ? `Siempre ${MATERIAL_LABEL[lockedMaterial].toLowerCase()} en esta zona.`
+              ? `Always ${MATERIAL_LABEL[lockedMaterial].toLowerCase()} in this zone.`
               : undefined
           }
           onChange={(e) => changeMaterial(e.target.value as Material)}
@@ -198,14 +198,14 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
         <div className="flex items-end gap-3">
           <div className="flex-1">
             <Select
-              label="Color por defecto"
+              label="Default color"
               value={swatchId ?? ''}
-              hint={options.length ? undefined : 'No hay colores activos de este material (Paletas).'}
+              hint={options.length ? undefined : 'There are no active colors of this material (Palettes).'}
               options={[
-                { value: '', label: '— Sin color —' },
+                { value: '', label: '— No color —' },
                 ...options.map((s) => ({
                   value: s.id,
-                  label: `${swatchLabel(s)}${s.active ? '' : ' (inactivo)'}`,
+                  label: `${swatchLabel(s)}${s.active ? '' : ' (inactive)'}`,
                 })),
               ]}
               onChange={(e) => pickSwatch(e.target.value || null)}
@@ -215,28 +215,28 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
         </div>
         {finishes.length > 0 && (
           <Select
-            label="Acabado por defecto"
+            label="Default finish"
             value={shownFinish!}
             options={finishes.map((f) => ({ value: f, label: FINISH_LABEL[f] }))}
             onChange={(e) => setFinish(e.target.value as Finish)}
           />
         )}
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-bold text-ink">Capa (PNG)</span>
+          <span className="text-sm font-bold text-ink">Layer (PNG)</span>
           <div className="flex items-center gap-3">
             <ZoneThumb
               layerUrl={currentLayer}
               color={swatch?.hex ?? null}
-              label="Forma de la zona"
+              label="Zone shape"
               className="h-20 w-40"
             />
             <label className="cursor-pointer text-sm font-semibold text-accent">
-              {checking ? 'Comprobando…' : currentLayer ? 'Cambiar capa' : 'Elegir capa'}
+              {checking ? 'Checking…' : currentLayer ? 'Change layer' : 'Choose layer'}
               <input
                 type="file"
                 accept="image/png"
                 className="sr-only"
-                aria-label="Archivo de la capa"
+                aria-label="Layer file"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   e.target.value = '';
@@ -252,8 +252,8 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           ) : (
             <p className="text-sm text-muted">
               {base
-                ? `Transparente salvo la zona, ${base.width} × ${base.height} px como la imagen base.`
-                : 'Sube primero la imagen base del modelo.'}
+                ? `Transparent except for the zone, ${base.width} × ${base.height} px like the base image.`
+                : "Upload the model's base image first."}
             </p>
           )}
         </div>

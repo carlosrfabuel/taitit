@@ -134,6 +134,24 @@ export async function fetchCatalog(swatches: CatalogSwatch[]): Promise<CatalogMo
   return result;
 }
 
+/** Material of the model's secondary front (metal or acetate; every model has one), for the catalog filter. */
+export const frontMaterial = (model: Pick<CatalogModel, 'zones'>): Material | null =>
+  model.zones.find((z) => z.role === 'secondary')?.material ?? null;
+
+const ROLE_ORDER: ZoneRole[] = ['main', 'secondary', 'tips'];
+
+/** The model's default colors in part order (main, secondary front, tips), for the catalog cards. */
+export function defaultColors(
+  model: Pick<CatalogModel, 'zones'>,
+  swatches: CatalogSwatch[],
+): CatalogSwatch[] {
+  const byId = new Map(swatches.map((s) => [s.id, s]));
+  return [...model.zones]
+    .sort((a, b) => ROLE_ORDER.indexOf(a.role ?? 'tips') - ROLE_ORDER.indexOf(b.role ?? 'tips'))
+    .map((z) => (z.defaultSwatchId ? byId.get(z.defaultSwatchId) : undefined))
+    .filter((s): s is CatalogSwatch => !!s);
+}
+
 /** Categories present in the catalog, in first-seen (catalog) order. */
 export const categoriesOf = (models: CatalogModel[]) => [
   ...new Set(models.map((m) => m.category.trim()).filter(Boolean)),

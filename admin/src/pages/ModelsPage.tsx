@@ -13,7 +13,7 @@ export function ModelsPage() {
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
   const newButton = (
     <Button icon={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/models/new')}>
-      Nuevo modelo
+      New model
     </Button>
   );
 
@@ -21,7 +21,7 @@ export function ModelsPage() {
   const columns: Column<ModelRow>[] = [
     {
       key: 'photo',
-      header: 'Foto',
+      header: 'Photo',
       className: 'w-28',
       // The catalog thumbnail (the frame in its default colors). The base image alone is nearly white:
       // its colored parts are blanked out for the layers drawn on top.
@@ -35,13 +35,13 @@ export function ModelsPage() {
           />
         ) : (
           <span className="flex h-10 w-24 items-center justify-center rounded bg-bg text-xs text-muted">
-            Sin foto
+            No photo
           </span>
         ),
     },
     {
       key: 'name',
-      header: 'Nombre',
+      header: 'Name',
       render: (row) => (
         <div>
           {/* A real link too, so the row can be opened with the keyboard. */}
@@ -58,12 +58,12 @@ export function ModelsPage() {
     },
     {
       key: 'category',
-      header: 'Categoría',
+      header: 'Category',
       render: (row) => row.category || <span className="text-muted">—</span>,
     },
     {
       key: 'zones',
-      header: 'Zonas',
+      header: 'Zones',
       render: (row) => (
         <span className={row.zones ? 'text-ink' : 'text-muted'}>
           {row.zones} / {MAX_ZONES_PER_MODEL}
@@ -72,25 +72,25 @@ export function ModelsPage() {
     },
     {
       key: 'published',
-      header: 'Estado',
-      render: (row) => (row.published ? <Tag tone="success">Publicado</Tag> : <Tag>Borrador</Tag>),
+      header: 'Status',
+      render: (row) => (row.published ? <Tag tone="success">Published</Tag> : <Tag>Draft</Tag>),
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Modelos"
-        note="Los modelos publicados aparecen en la app por orden alfabético."
+        title="Models"
+        note="Published models appear in the app in alphabetical order."
         actions={rows.length > 0 ? newButton : undefined}
       />
       {models.isPending ? (
         <Spinner />
       ) : models.isError && !models.data ? (
         <EmptyState
-          title="No se pudieron cargar los modelos"
+          title="Couldn't load the models"
           message={readMessage(models.error)}
-          action={<Button onClick={() => void models.refetch()}>Reintentar</Button>}
+          action={<Button onClick={() => void models.refetch()}>Try again</Button>}
         />
       ) : (
         <>
@@ -102,8 +102,8 @@ export function ModelsPage() {
             empty={
               <EmptyState
                 icon={<Glasses className="size-6" aria-hidden />}
-                title="Aún no hay modelos"
-                message="Crea el primer modelo; después podrás subir su imagen y sus zonas."
+                title="No models yet"
+                message="Create the first model; you can then upload its image and its zones."
                 action={newButton}
               />
             }

@@ -30,7 +30,7 @@ const matches = (c: CustomerRow, query: string) => {
 };
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // Account approval (client decision 2026-10-19): new opticians can browse and save designs, but
 // can only order once approved here. The database enforces it (create_order, order image upload).
@@ -44,7 +44,7 @@ export function CustomersPage() {
   const change = useMutation({
     mutationFn: ({ id, status }: { id: string; status: AccountStatus }) => setAccountStatus(id, status),
     onMutate: () => setError(null),
-    onError: (e) => setError(`No se pudo cambiar el estado. ${dbMessage(e)}`),
+    onError: (e) => setError(`Couldn't change the status. ${dbMessage(e)}`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 
@@ -75,7 +75,7 @@ export function CustomersPage() {
       disabled={change.isPending}
       loading={busy(row.id) && change.variables?.status === status}
       onClick={() => change.mutate({ id: row.id, status })}
-      aria-label={`${label}: ${row.email ?? row.full_name ?? 'cliente'}`}
+      aria-label={`${label}: ${row.email ?? row.full_name ?? 'customer'}`}
     >
       {label}
     </Button>
@@ -84,36 +84,36 @@ export function CustomersPage() {
   const columns: Column<CustomerRow>[] = [
     {
       key: 'business',
-      header: 'Óptica',
+      header: 'Optician',
       render: (row) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-ink">{row.business_name || 'Sin datos de empresa'}</span>
+          <span className="font-semibold text-ink">{row.business_name || 'No company details'}</span>
           {row.legal_name && row.legal_name !== row.business_name && (
             <span className="text-xs text-muted">{row.legal_name}</span>
           )}
-          {row.tax_id && <span className="text-xs text-muted">CIF/NIF {row.tax_id}</span>}
-          {row.labeling && <span className="text-xs text-muted">Nombre en las gafas: {row.labeling}</span>}
-          {row.bank_account && <span className="text-xs text-muted">Cuenta: {row.bank_account}</span>}
+          {row.tax_id && <span className="text-xs text-muted">VAT number {row.tax_id}</span>}
+          {row.labeling && <span className="text-xs text-muted">Name on the glasses: {row.labeling}</span>}
+          {row.bank_account && <span className="text-xs text-muted">Account: {row.bank_account}</span>}
         </div>
       ),
     },
     {
       key: 'contact',
-      header: 'Contacto',
+      header: 'Contact',
       render: (row) => (
         <div className="flex flex-col">
           <span>{row.full_name || '—'}</span>
           <span className="text-xs text-muted">{row.email ?? '—'}</span>
           {row.phone && <span className="text-xs text-muted">{row.phone}</span>}
           {row.contact_email && row.contact_email !== row.email && (
-            <span className="text-xs text-muted">Contacto: {row.contact_email}</span>
+            <span className="text-xs text-muted">Contact: {row.contact_email}</span>
           )}
         </div>
       ),
     },
     {
       key: 'address',
-      header: 'Dirección',
+      header: 'Address',
       render: (row) => (
         <div className="flex flex-col">
           <span className="text-sm">
@@ -121,7 +121,7 @@ export function CustomersPage() {
           </span>
           {row.delivery_address && (
             <span className="text-xs text-muted">
-              Entrega:{' '}
+              Delivery:{' '}
               {addressLine(
                 row.delivery_address,
                 row.delivery_postal_code,
@@ -132,7 +132,7 @@ export function CustomersPage() {
           )}
           {row.commercial_address && (
             <span className="text-xs text-muted">
-              Comercial:{' '}
+              Commercial:{' '}
               {addressLine(
                 row.commercial_address,
                 row.commercial_postal_code,
@@ -144,10 +144,10 @@ export function CustomersPage() {
         </div>
       ),
     },
-    { key: 'created', header: 'Registro', render: (row) => formatDate(row.created_at) },
+    { key: 'created', header: 'Signed up', render: (row) => formatDate(row.created_at) },
     {
       key: 'status',
-      header: 'Estado',
+      header: 'Status',
       render: (row) => (
         <Tag
           tone={row.status === 'approved' ? 'success' : row.status === 'pending' ? 'attention' : 'neutral'}
@@ -162,9 +162,9 @@ export function CustomersPage() {
       className: 'w-72',
       render: (row) => (
         <div className="flex justify-end gap-2">
-          {row.status !== 'approved' && action(row, 'approved', 'Aprobar', Check, 'primary')}
-          {row.status !== 'rejected' && action(row, 'rejected', 'Rechazar', X, 'secondary')}
-          {row.status !== 'pending' && action(row, 'pending', 'Pendiente', RotateCcw, 'ghost')}
+          {row.status !== 'approved' && action(row, 'approved', 'Approve', Check, 'primary')}
+          {row.status !== 'rejected' && action(row, 'rejected', 'Reject', X, 'secondary')}
+          {row.status !== 'pending' && action(row, 'pending', 'Pending', RotateCcw, 'ghost')}
           <Button
             size="sm"
             variant="ghost"
@@ -174,7 +174,7 @@ export function CustomersPage() {
               remove.reset();
               setToDelete(row);
             }}
-            aria-label={`Eliminar cuenta: ${row.email ?? row.full_name ?? 'cliente'}`}
+            aria-label={`Delete account: ${row.email ?? row.full_name ?? 'customer'}`}
           />
         </div>
       ),
@@ -184,8 +184,8 @@ export function CustomersPage() {
   return (
     <>
       <PageHeader
-        title="Clientes"
-        note="Las ópticas se registran en la app y solo pueden enviar pedidos cuando las apruebas aquí. Mientras tanto pueden ver el catálogo y guardar diseños."
+        title="Customers"
+        note="Opticians sign up in the app and can only send orders once you approve them here. Until then they can browse the catalog and save designs."
       />
       <div className="relative mb-4 w-full max-w-sm">
         <Search
@@ -196,12 +196,12 @@ export function CustomersPage() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar óptica, contacto, email, CIF o ciudad"
-          aria-label="Buscar clientes"
+          placeholder="Search optician, contact, email, VAT number or city"
+          aria-label="Search customers"
           className="pl-9"
         />
       </div>
-      <div role="tablist" aria-label="Estado" className="mb-4 flex gap-2">
+      <div role="tablist" aria-label="Status" className="mb-4 flex gap-2">
         {TABS.map((s) => (
           <button
             key={s}
@@ -215,7 +215,7 @@ export function CustomersPage() {
                 : 'border border-line bg-surface text-ink hover:bg-bg'
             }`}
           >
-            {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'} ({count(s)})
+            {s === 'pending' ? 'Pending' : s === 'approved' ? 'Approved' : 'Rejected'} ({count(s)})
           </button>
         ))}
       </div>
@@ -228,9 +228,9 @@ export function CustomersPage() {
         <Spinner />
       ) : customers.isError && !customers.data ? (
         <EmptyState
-          title="No se pudieron cargar los clientes"
+          title="Couldn't load the customers"
           message={readMessage(customers.error)}
-          action={<Button onClick={() => void customers.refetch()}>Reintentar</Button>}
+          action={<Button onClick={() => void customers.refetch()}>Try again</Button>}
         />
       ) : (
         <Table
@@ -242,16 +242,16 @@ export function CustomersPage() {
               icon={<Users className="size-6" aria-hidden />}
               title={
                 query.trim()
-                  ? 'Ninguna cuenta coincide'
+                  ? 'No accounts match'
                   : tab === 'pending'
-                    ? 'No hay cuentas pendientes'
-                    : 'No hay cuentas en esta lista'
+                    ? 'No pending accounts'
+                    : 'No accounts in this list'
               }
               message={
                 query.trim()
-                  ? 'Prueba con otra búsqueda o mira las otras pestañas.'
+                  ? 'Try another search or check the other tabs.'
                   : tab === 'pending'
-                    ? 'Las nuevas ópticas aparecerán aquí al registrarse.'
+                    ? 'New opticians will appear here when they sign up.'
                     : undefined
               }
             />
@@ -260,39 +260,39 @@ export function CustomersPage() {
       )}
       <Modal
         open={!!toDelete}
-        title="Eliminar cuenta"
+        title="Delete account"
         onClose={() => !remove.isPending && setToDelete(null)}
         dismissible={!remove.isPending}
         footer={
           <>
             <Button variant="secondary" disabled={remove.isPending} onClick={() => setToDelete(null)}>
-              Cancelar
+              Cancel
             </Button>
             <Button
               variant="danger"
               loading={remove.isPending}
               onClick={() => toDelete && remove.mutate(toDelete.id)}
             >
-              Eliminar cuenta
+              Delete account
             </Button>
           </>
         }
       >
         <div className="flex flex-col gap-3 text-sm">
           <p>
-            ¿Eliminar la cuenta de{' '}
+            Delete the account of{' '}
             <span className="font-semibold">
-              {toDelete?.business_name || toDelete?.full_name || 'este cliente'}
+              {toDelete?.business_name || toDelete?.full_name || 'this customer'}
             </span>
-            {toDelete?.email ? ` (${toDelete.email})` : ''}? Hazlo solo si el cliente lo ha pedido.
+            {toDelete?.email ? ` (${toDelete.email})` : ''}? Only do this if the customer has asked for it.
           </p>
           <p className="text-muted">
-            Se borran la cuenta, los datos de empresa y los diseños guardados. Sus pedidos se conservan, con
-            el nombre y el email con los que se enviaron. No se puede deshacer.
+            This deletes the account, the company details and the saved designs. Their orders are kept, with
+            the name and email they were sent with. This can't be undone.
           </p>
           {remove.isError && (
             <p role="alert" className="text-danger">
-              No se pudo eliminar. {dbMessage(remove.error)}
+              Couldn't delete. {dbMessage(remove.error)}
             </p>
           )}
         </div>

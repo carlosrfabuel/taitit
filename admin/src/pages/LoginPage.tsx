@@ -24,12 +24,8 @@ export function LoginPage() {
     e.preventDefault();
     if (loading) return;
     const next = {
-      email: !email.trim()
-        ? 'Introduce tu email.'
-        : EMAIL.test(email.trim())
-          ? null
-          : 'Introduce un email válido.',
-      password: password ? null : 'Introduce tu contraseña.',
+      email: !email.trim() ? 'Enter your email.' : EMAIL.test(email.trim()) ? null : 'Enter a valid email.',
+      password: password ? null : 'Enter your password.',
     };
     setErrors(next);
     setFormError(null);
@@ -47,18 +43,18 @@ export function LoginPage() {
         noValidate
         className="w-full max-w-sm rounded-2xl border border-line bg-surface p-8"
       >
-        <img src="/logo.svg" alt="TAITIT" className="mx-auto h-8 w-auto" />
+        <img src="/logo-full.svg" alt="TAITIT, tailored handcrafted eyewear" className="mx-auto mb-3 w-48" />
         <div className="text-center text-sm font-semibold uppercase tracking-widest text-muted">Panel</div>
-        <p className="mt-1 mb-6 text-center text-sm text-muted">Acceso de administrador</p>
+        <p className="mt-1 mb-6 text-center text-sm text-muted">Administrator access</p>
         {status === 'loading' && !loading ? (
-          <Spinner label="Comprobando sesión…" />
+          <Spinner label="Checking session…" />
         ) : (
           <div className="flex flex-col gap-4">
             <Input
               label="Email"
               type="email"
               autoComplete="email"
-              placeholder="tu@email.com"
+              placeholder="you@email.com"
               value={email}
               error={errors.email}
               onChange={(e) => {
@@ -67,7 +63,7 @@ export function LoginPage() {
               }}
             />
             <Input
-              label="Contraseña"
+              label="Password"
               type="password"
               autoComplete="current-password"
               value={password}
@@ -83,7 +79,7 @@ export function LoginPage() {
               </p>
             )}
             <Button type="submit" loading={loading} className="w-full">
-              Entrar
+              Sign in
             </Button>
           </div>
         )}

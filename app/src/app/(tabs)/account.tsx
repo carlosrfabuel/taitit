@@ -6,11 +6,13 @@ import { tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { businessComplete } from '@/auth/business';
 import { openPrivacyPolicy } from '@/lib/links';
-import { AppText, Badge, Button, Card, EmptyState, Screen, useToast } from '@/ui';
+import { useWelcome } from '@/lib/welcome';
+import { AppText, Badge, BrandLogo, Button, Card, EmptyState, Screen, useToast } from '@/ui';
 
 export default function AccountScreen() {
   const { session, profile, signOut } = useAuth();
   const toast = useToast();
+  const welcome = useWelcome();
   const [signingOut, setSigningOut] = useState(false);
 
   const devKit = __DEV__ ? (
@@ -22,10 +24,14 @@ export default function AccountScreen() {
     />
   ) : null;
 
+  // At the foot of the screen: the logo, then the app version.
   const version = (
-    <AppText variant="tiny" align="center">
-      Version {Constants.expoConfig?.version ?? '—'}
-    </AppText>
+    <View style={styles.foot}>
+      <BrandLogo width={120} style={styles.footLogo} />
+      <AppText variant="tiny" align="center">
+        Version {Constants.expoConfig?.version ?? '—'}
+      </AppText>
+    </View>
   );
 
   if (!session) {
@@ -51,6 +57,8 @@ export default function AccountScreen() {
     await signOut();
     setSigningOut(false);
     toast('Signed out');
+    // Back to the welcome screen, like a first visit.
+    welcome.reset();
   };
 
   return (
@@ -145,7 +153,7 @@ export default function AccountScreen() {
       />
       <Button
         title="Delete account"
-        variant="ghost"
+        variant="dangerGhost"
         icon="trash-outline"
         onPress={() => router.push('/delete-account')}
       />
@@ -158,4 +166,6 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   row: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.sm },
   status: { marginTop: tokens.spacing.xs },
+  foot: { alignItems: 'center', gap: tokens.spacing.sm, marginTop: tokens.spacing.lg },
+  footLogo: { opacity: 0.85 },
 });

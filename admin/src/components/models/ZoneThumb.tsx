@@ -31,7 +31,7 @@ export function ZoneThumb({
           }}
         />
       ) : (
-        <span className="text-xs text-muted">Sin capa</span>
+        <span className="text-xs text-muted">No layer</span>
       )}
     </div>
   );

@@ -17,3 +17,7 @@ export { Swatch } from './Swatch';
 export { TextField } from './TextField';
 export { ToastProvider, useToast } from './Toast';
 export { Sheet } from './Sheet';
+export { GradientFill } from './GradientFill';
+export { WARM_GLOWS } from './GradientFill';
+export type { Glow } from './GradientFill';
+export { BrandLogo } from './BrandLogo';

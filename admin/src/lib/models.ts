@@ -64,14 +64,14 @@ export type FieldErrors = Partial<Record<keyof ModelInput, string>>;
 export function validateModel(input: ModelInput): FieldErrors {
   const e: FieldErrors = {};
   const name = input.name.trim();
-  if (!name) e.name = 'Introduce el nombre del modelo.';
-  else if (name.length > MODEL_LIMITS.name) e.name = `Máximo ${MODEL_LIMITS.name} caracteres.`;
+  if (!name) e.name = 'Enter the model name.';
+  else if (name.length > MODEL_LIMITS.name) e.name = `Maximum ${MODEL_LIMITS.name} characters.`;
   if (input.category.trim().length > MODEL_LIMITS.category)
-    e.category = `Máximo ${MODEL_LIMITS.category} caracteres.`;
+    e.category = `Maximum ${MODEL_LIMITS.category} characters.`;
   if (input.size_ref.trim().length > MODEL_LIMITS.sizeRef)
-    e.size_ref = `Máximo ${MODEL_LIMITS.sizeRef} caracteres.`;
+    e.size_ref = `Maximum ${MODEL_LIMITS.sizeRef} characters.`;
   if (input.description.trim().length > MODEL_LIMITS.description)
-    e.description = `Máximo ${MODEL_LIMITS.description} caracteres.`;
+    e.description = `Maximum ${MODEL_LIMITS.description} characters.`;
   return e;
 }
 

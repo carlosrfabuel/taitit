@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
 /**
- * The panel is in Spanish (`<html lang="es">`); the public pages for app users are in English. Marks
- * the page as English while it is open, so browsers don't offer to translate it from Spanish.
+ * Sets the page language while a page is open (the panel and the public pages are all English since
+ * 2026-10-22; kept so a page can declare its language explicitly).
  */
 export function useDocumentLang(lang: string) {
   useEffect(() => {

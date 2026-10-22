@@ -41,7 +41,7 @@ export function OrderDetailPage() {
       to="/orders"
       className="inline-flex items-center gap-1 text-sm font-semibold text-muted hover:text-ink print:hidden"
     >
-      <ArrowLeft className="size-4" aria-hidden /> Pedidos
+      <ArrowLeft className="size-4" aria-hidden /> Orders
     </Link>
   );
 
@@ -49,23 +49,23 @@ export function OrderDetailPage() {
   if (order.isError && !order.data)
     return (
       <EmptyState
-        title="No se pudo cargar el pedido"
+        title="Couldn't load the order"
         message={readMessage(order.error)}
-        action={<Button onClick={() => void order.refetch()}>Reintentar</Button>}
+        action={<Button onClick={() => void order.refetch()}>Try again</Button>}
       />
     );
   if (!o)
     return (
       <>
         {back}
-        <EmptyState title="Pedido no encontrado" message="Puede que el enlace no sea correcto." />
+        <EmptyState title="Order not found" message="The link may not be correct." />
       </>
     );
 
   const columns: Column<OrderItemRow>[] = [
     {
       key: 'zone',
-      header: 'Pieza',
+      header: 'Part',
       render: (i) => <span className="font-semibold text-ink">{i.zone_name}</span>,
     },
     { key: 'material', header: 'Material', render: (i) => MATERIAL_LABEL[i.material] },
@@ -85,14 +85,14 @@ export function OrderDetailPage() {
         </span>
       ),
     },
-    { key: 'ref', header: 'Referencia', render: (i) => <span className="font-mono text-xs">{i.ref}</span> },
-    { key: 'finish', header: 'Acabado', render: (i) => (i.finish ? FINISH_LABEL[i.finish] : '—') },
+    { key: 'ref', header: 'Reference', render: (i) => <span className="font-mono text-xs">{i.ref}</span> },
+    { key: 'finish', header: 'Finish', render: (i) => (i.finish ? FINISH_LABEL[i.finish] : '—') },
     {
       key: 'kind',
-      header: 'Tipo',
+      header: 'Type',
       render: (i) =>
         i.kind === 'translucent' && i.alpha != null
-          ? `${KIND_LABEL[i.kind]} · ${Math.round(i.alpha * 100)} %`
+          ? `${KIND_LABEL[i.kind]} · ${Math.round(i.alpha * 100)}%`
           : KIND_LABEL[i.kind],
     },
   ];
@@ -103,7 +103,7 @@ export function OrderDetailPage() {
       if (what === 'image') await downloadOrderImage(o);
       else downloadOrderSheet(o);
     } catch (e) {
-      setDownloadError(`No se pudo descargar. ${readMessage(e as { message?: string })}`);
+      setDownloadError(`Couldn't download. ${readMessage(e as { message?: string })}`);
     }
   };
 
@@ -119,8 +119,8 @@ export function OrderDetailPage() {
     <>
       {back}
       <PageHeader
-        title={`Pedido #${o.number}`}
-        note={`${formatOrderDate(o.created_at)} · ${o.model_name} · ${o.quantity} ${o.quantity === 1 ? 'unidad' : 'unidades'}`}
+        title={`Order #${o.number}`}
+        note={`${formatOrderDate(o.created_at)} · ${o.model_name} · ${o.quantity} ${o.quantity === 1 ? 'unit' : 'units'}`}
         actions={
           // Not printed: the printed page is the technical sheet itself.
           <div className="flex gap-2 print:hidden">
@@ -129,7 +129,7 @@ export function OrderDetailPage() {
               icon={<Printer className="size-4" aria-hidden />}
               onClick={() => window.print()}
             >
-              Imprimir ficha
+              Print order sheet
             </Button>
             <Button
               variant="secondary"
@@ -137,13 +137,13 @@ export function OrderDetailPage() {
               disabled={!o.image_path || imageGone}
               onClick={() => void download('image')}
             >
-              Descargar imagen
+              Download image
             </Button>
             <Button
               icon={<FileSpreadsheet className="size-4" aria-hidden />}
               onClick={() => void download('sheet')}
             >
-              Descargar Excel
+              Download Excel
             </Button>
           </div>
         }
@@ -159,58 +159,58 @@ export function OrderDetailPage() {
             {image.data ? (
               <img
                 src={image.data}
-                alt={`Diseño del pedido ${o.number}`}
+                alt={`Design of order ${o.number}`}
                 className="h-auto w-full rounded-lg"
               />
             ) : imageGone ? (
-              <p className="text-sm text-muted">La imagen de este pedido ya no está disponible.</p>
+              <p className="text-sm text-muted">The image for this order is no longer available.</p>
             ) : image.isError ? (
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-danger">No se pudo cargar la imagen. Revisa tu conexión.</p>
+                <p className="text-sm text-danger">Couldn't load the image. Check your connection.</p>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => void image.refetch()}
                   className="print:hidden"
                 >
-                  Reintentar
+                  Try again
                 </Button>
               </div>
             ) : o.image_path ? (
-              <Spinner label="Cargando imagen…" />
+              <Spinner label="Loading image…" />
             ) : (
-              <p className="text-sm text-muted">Este pedido no tiene imagen.</p>
+              <p className="text-sm text-muted">This order has no image.</p>
             )}
           </Card>
           <Table columns={columns} rows={o.order_items} rowKey={(i) => `${i.sort_order}-${i.zone_name}`} />
           <Card>
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Notas</h2>
-            <p className="whitespace-pre-wrap text-ink">{o.notes || 'Sin notas.'}</p>
-            {o.shop_ref && <p className="mt-2 text-sm text-muted">Referencia: {o.shop_ref}</p>}
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Notes</h2>
+            <p className="whitespace-pre-wrap text-ink">{o.notes || 'No notes.'}</p>
+            {o.shop_ref && <p className="mt-2 text-sm text-muted">Reference: {o.shop_ref}</p>}
           </Card>
         </div>
         <Card>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Óptica</h2>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Optician</h2>
           <dl className="flex flex-col gap-3">
-            {field('Nombre comercial', o.business_name)}
-            {field('Razón social', o.legal_name)}
-            {field('CIF/NIF', o.tax_id)}
-            {field('Nombre en las gafas', o.labeling)}
-            {field('Contacto', o.customer_name)}
+            {field('Commercial name', o.business_name)}
+            {field('Company name', o.legal_name)}
+            {field('VAT number', o.tax_id)}
+            {field('Name on the glasses', o.labeling)}
+            {field('Contact', o.customer_name)}
             {field('Email', o.customer_email)}
             {o.contact_email &&
               o.contact_email !== o.customer_email &&
-              field('Email de contacto', o.contact_email)}
-            {field('Teléfono', o.phone)}
-            {field('Dirección', addressLine(o.address, o.postal_code, o.city, o.province))}
+              field('Contact email', o.contact_email)}
+            {field('Phone', o.phone)}
+            {field('Address', addressLine(o.address, o.postal_code, o.city, o.province))}
             {o.delivery_address &&
               field(
-                'Dirección de entrega',
+                'Delivery address',
                 addressLine(o.delivery_address, o.delivery_postal_code, o.delivery_city, o.delivery_province),
               )}
             {o.commercial_address &&
               field(
-                'Dirección comercial',
+                'Commercial address',
                 addressLine(
                   o.commercial_address,
                   o.commercial_postal_code,
@@ -218,9 +218,9 @@ export function OrderDetailPage() {
                   o.commercial_province,
                 ),
               )}
-            {o.bank_account && field('Cuenta bancaria', o.bank_account)}
+            {o.bank_account && field('Bank account', o.bank_account)}
           </dl>
-          <p className="mt-4 text-xs text-muted">Datos en el momento del pedido.</p>
+          <p className="mt-4 text-xs text-muted">Details as of the time of the order.</p>
         </Card>
       </div>
     </>

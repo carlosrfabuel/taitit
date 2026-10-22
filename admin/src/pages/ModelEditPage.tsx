@@ -25,7 +25,7 @@ import { dbMessage, problemLabel, readMessage, publishProblemsIn } from '../lib/
 
 const backLink = (
   <Link to="/models" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-accent">
-    <ArrowLeft className="size-4" aria-hidden /> Modelos
+    <ArrowLeft className="size-4" aria-hidden /> Models
   </Link>
 );
 
@@ -47,11 +47,9 @@ export function ModelEditPage() {
       <>
         {backLink}
         <EmptyState
-          title={model.isError ? 'No se pudo cargar el modelo' : 'Modelo no encontrado'}
-          message={model.isError ? readMessage(model.error) : 'Puede que se haya eliminado.'}
-          action={
-            model.isError ? <Button onClick={() => void model.refetch()}>Reintentar</Button> : undefined
-          }
+          title={model.isError ? "Couldn't load the model" : 'Model not found'}
+          message={model.isError ? readMessage(model.error) : 'It may have been deleted.'}
+          action={model.isError ? <Button onClick={() => void model.refetch()}>Try again</Button> : undefined}
         />
       </>
     );
@@ -77,7 +75,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
   const [errors, setErrors] = useState<FieldErrors>({});
   // Set when arriving from "create" (router state), replaced by "saved", cleared on any edit.
   const created = !!(useLocation().state as { created?: boolean } | null)?.created;
-  const [notice, setNotice] = useState<string | null>(created ? 'Modelo creado.' : null);
+  const [notice, setNotice] = useState<string | null>(created ? 'Model created.' : null);
 
   // Existing categories as suggestions, so the same one isn't typed two ways.
   const all = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
@@ -102,7 +100,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
       // Not awaited: the save is done once the database accepts it, even if this refresh is slow or fails.
       void queryClient.invalidateQueries({ queryKey: modelKeys.all });
       if (!model) navigate(`/models/${savedId}`, { replace: true, state: { created: true } });
-      else setNotice('Cambios guardados.');
+      else setNotice('Changes saved.');
     },
   });
 
@@ -132,15 +130,15 @@ function ModelForm({ model }: { model: ModelRow | null }) {
     <>
       {backLink}
       <PageHeader
-        title={model ? model.name : 'Nuevo modelo'}
-        note={model ? undefined : 'La imagen base y las zonas se añaden después de crear el modelo.'}
+        title={model ? model.name : 'New model'}
+        note={model ? undefined : 'The base image and zones are added after the model is created.'}
       />
       <div className="grid max-w-6xl gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <form id={formId} onSubmit={submit} noValidate>
             <Card className="flex flex-col gap-4">
               <Input
-                label="Nombre"
+                label="Name"
                 value={values.name}
                 maxLength={MODEL_LIMITS.name}
                 error={errors.name}
@@ -149,17 +147,17 @@ function ModelForm({ model }: { model: ModelRow | null }) {
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
-                  label="Categoría"
+                  label="Category"
                   value={values.category}
                   maxLength={MODEL_LIMITS.category}
                   error={errors.category}
-                  hint="Filtro del catálogo de la app (en inglés)."
+                  hint="Filter in the app's catalog (in English)."
                   list={categoriesId}
                   onChange={(e) => set('category', e.target.value)}
                   placeholder="Optical"
                 />
                 <Input
-                  label="Talla"
+                  label="Size"
                   value={values.size_ref}
                   maxLength={MODEL_LIMITS.sizeRef}
                   error={errors.size_ref}
@@ -173,7 +171,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
                 ))}
               </datalist>
               <Textarea
-                label="Descripción"
+                label="Description"
                 value={values.description}
                 maxLength={MODEL_LIMITS.description}
                 error={errors.description}
@@ -201,19 +199,19 @@ function ModelForm({ model }: { model: ModelRow | null }) {
                 onChange={(e) => set('published', e.target.checked)}
               />
               <span>
-                <span className="block text-sm font-bold text-ink">Publicado</span>
+                <span className="block text-sm font-bold text-ink">Published</span>
                 <span className="block text-sm text-muted">
                   {!model
-                    ? 'Primero crea el modelo; después añade su imagen y sus zonas.'
+                    ? 'Create the model first; then add its image and its zones.'
                     : canPublish
-                      ? 'Visible en el catálogo de la app.'
-                      : 'Se podrá publicar cuando esté completo.'}
+                      ? "Visible in the app's catalog."
+                      : 'It can be published once it is complete.'}
                 </span>
               </span>
             </label>
             {model && problems.data && problems.data.length > 0 && (
               <div className="rounded-lg bg-bg p-3">
-                <p className="text-sm font-bold text-ink">Para publicar falta:</p>
+                <p className="text-sm font-bold text-ink">Still needed to publish:</p>
                 <ul className="mt-1 list-disc pl-5 text-sm text-muted">
                   {problems.data.map((p) => (
                     <li key={p}>{problemLabel(p)}</li>
@@ -222,15 +220,15 @@ function ModelForm({ model }: { model: ModelRow | null }) {
               </div>
             )}
             {model && problems.isError && (
-              <p className="text-sm text-danger">No se pudo comprobar si el modelo está completo.</p>
+              <p className="text-sm text-danger">Couldn't check whether the model is complete.</p>
             )}
           </Card>
           {save.isError && (
             <p role="alert" className="text-sm text-danger">
               {refused
-                ? `No se puede publicar todavía: ${refused.map(problemLabel).join(' ')}`
+                ? `It can't be published yet: ${refused.map(problemLabel).join(' ')}`
                 : (save.error as { code?: string }).code === 'not_found'
-                  ? 'Este modelo ya no existe.'
+                  ? 'This model no longer exists.'
                   : dbMessage(save.error)}
             </p>
           )}
@@ -241,10 +239,10 @@ function ModelForm({ model }: { model: ModelRow | null }) {
           )}
           <div className="flex gap-2">
             <Button type="submit" form={formId} loading={save.isPending} className="flex-1">
-              {model ? 'Guardar' : 'Crear modelo'}
+              {model ? 'Save' : 'Create model'}
             </Button>
             <Button variant="secondary" onClick={() => navigate('/models')}>
-              Cancelar
+              Cancel
             </Button>
           </div>
           {model && (

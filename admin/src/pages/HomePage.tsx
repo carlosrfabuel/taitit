@@ -13,7 +13,7 @@ import { dbMessage, readMessage } from '../lib/errors';
 const SHOWN = 5;
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // What waits for TAITIT: accounts to approve and the latest orders, with links to the full lists.
 export function HomePage() {
@@ -28,7 +28,7 @@ export function HomePage() {
   const approve = useMutation({
     mutationFn: (id: string) => setAccountStatus(id, 'approved'),
     onMutate: () => setError(null),
-    onError: (e) => setError(`No se pudo aprobar. ${dbMessage(e)}`),
+    onError: (e) => setError(`Couldn't approve. ${dbMessage(e)}`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 
@@ -47,45 +47,42 @@ export function HomePage() {
 
   return (
     <>
-      <PageHeader
-        title="Inicio"
-        note="Lo que espera tu atención: cuentas por aprobar y los últimos pedidos."
-      />
+      <PageHeader title="Home" note="What needs your attention: accounts to approve and the latest orders." />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
           to="/customers"
           icon={<Users className="size-5" aria-hidden />}
-          label="Clientes por aprobar"
+          label="Customers to approve"
           value={customers.data ? pending.length : '…'}
           attention={pending.length > 0}
         />
         <Stat
           to="/orders"
           icon={<Receipt className="size-5" aria-hidden />}
-          label="Pedidos nuevos"
+          label="New orders"
           value={orders.data ? fresh : '…'}
-          note={seenAt ? 'desde tu última visita a Pedidos' : 'abre Pedidos para empezar a contarlos'}
+          note={seenAt ? 'since your last visit to Orders' : 'open Orders to start counting them'}
           attention={fresh > 0}
         />
         <Stat
           to="/orders"
           icon={<Receipt className="size-5" aria-hidden />}
-          label="Pedidos en 7 días"
+          label="Orders in 7 days"
           value={orders.data ? week : '…'}
         />
         <Stat
           to="/models"
           icon={<Glasses className="size-5" aria-hidden />}
-          label="Modelos publicados"
+          label="Published models"
           value={models.data ? published : '…'}
-          note={drafts > 0 ? `${drafts} en borrador` : undefined}
+          note={drafts > 0 ? `${drafts} ${drafts === 1 ? 'draft' : 'drafts'}` : undefined}
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
-          <SectionTitle to="/customers" title="Clientes por aprobar" />
+          <SectionTitle to="/customers" title="Customers to approve" />
           {error && (
             <p role="alert" className="mb-3 text-sm text-danger">
               {error}
@@ -96,9 +93,7 @@ export function HomePage() {
           ) : (
             (loadError(customers) ??
             (pending.length === 0 ? (
-              <p className="text-sm text-muted">
-                No hay cuentas pendientes. Las nuevas ópticas aparecerán aquí.
-              </p>
+              <p className="text-sm text-muted">No pending accounts. New opticians will appear here.</p>
             ) : (
               <ul className="divide-y divide-line">
                 {pending.slice(0, SHOWN).map((c) => (
@@ -114,18 +109,18 @@ export function HomePage() {
             )))
           )}
           {pending.length > SHOWN && (
-            <p className="mt-3 text-sm text-muted">Y {pending.length - SHOWN} más en Clientes.</p>
+            <p className="mt-3 text-sm text-muted">And {pending.length - SHOWN} more in Customers.</p>
           )}
         </Card>
 
         <Card>
-          <SectionTitle to="/orders" title="Últimos pedidos" />
+          <SectionTitle to="/orders" title="Latest orders" />
           {orders.isPending ? (
             <Spinner />
           ) : (
             (loadError(orders) ??
             (orderRows.length === 0 ? (
-              <p className="text-sm text-muted">Todavía no hay pedidos.</p>
+              <p className="text-sm text-muted">No orders yet.</p>
             ) : (
               <ul className="divide-y divide-line">
                 {orderRows.slice(0, SHOWN).map((o) => (
@@ -141,7 +136,7 @@ export function HomePage() {
                           {o.business_name ?? o.customer_name ?? '—'}
                         </span>
                         <span className="truncate text-xs text-muted">
-                          {o.model_name} · {o.quantity} {o.quantity === 1 ? 'unidad' : 'unidades'} ·{' '}
+                          {o.model_name} · {o.quantity} {o.quantity === 1 ? 'unit' : 'units'} ·{' '}
                           {formatOrderDate(o.created_at)}
                         </span>
                       </span>
@@ -198,7 +193,7 @@ function SectionTitle({ to, title }: { to: string; title: string }) {
         to={to}
         className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"
       >
-        Ver todos <ArrowRight className="size-4" aria-hidden />
+        View all <ArrowRight className="size-4" aria-hidden />
       </Link>
     </div>
   );
@@ -219,10 +214,10 @@ function PendingRow({
     <li className="flex items-center gap-4 py-3">
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-semibold text-ink">
-          {c.business_name || c.full_name || 'Sin datos de empresa'}
+          {c.business_name || c.full_name || 'No company details'}
         </span>
         <span className="truncate text-xs text-muted">
-          {[c.email, c.city, `registro ${formatDate(c.created_at)}`].filter(Boolean).join(' · ')}
+          {[c.email, c.city, `signed up ${formatDate(c.created_at)}`].filter(Boolean).join(' · ')}
         </span>
       </span>
       <Button
@@ -231,9 +226,9 @@ function PendingRow({
         loading={busy}
         disabled={disabled}
         onClick={onApprove}
-        aria-label={`Aprobar: ${c.email ?? c.business_name ?? 'cliente'}`}
+        aria-label={`Approve: ${c.email ?? c.business_name ?? 'customer'}`}
       >
-        Aprobar
+        Approve
       </Button>
     </li>
   );

@@ -5,7 +5,7 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <div className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>{children}</div>;
 }
 
-export function Spinner({ label = 'Cargando…' }: { label?: string }) {
+export function Spinner({ label = 'Loading…' }: { label?: string }) {
   return (
     <div role="status" className="flex items-center gap-2 p-6 text-muted">
       <Loader2 className="size-5 animate-spin" aria-hidden />
@@ -82,7 +82,7 @@ const TAG_TONES = {
   attention: 'bg-highlight text-on-highlight',
 } as const;
 
-/** Small status label, e.g. "Publicado" / "Borrador"; "attention" for what waits for the admin. */
+/** Small status label, e.g. "Published" / "Draft"; "attention" for what waits for the admin. */
 export function Tag({ tone = 'neutral', children }: { tone?: keyof typeof TAG_TONES; children: ReactNode }) {
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${TAG_TONES[tone]}`}>

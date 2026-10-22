@@ -65,7 +65,7 @@ export function PreviewCard({ model }: { model: ModelRow }) {
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-ink">Vista previa</h2>
+        <h2 className="text-lg font-bold text-ink">Preview</h2>
         {Object.keys(picks).length > 0 && (
           <Button
             size="sm"
@@ -73,20 +73,20 @@ export function PreviewCard({ model }: { model: ModelRow }) {
             icon={<RotateCcw className="size-4" aria-hidden />}
             onClick={() => setPicks({})}
           >
-            Colores por defecto
+            Default colors
           </Button>
         )}
       </div>
       {!model.base_path || !size ? (
         <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted">
-          Sube la imagen base para ver la vista previa.
+          Upload the base image to see the preview.
         </div>
       ) : (
         <div className="relative">
           <canvas
             ref={canvas}
             role="img"
-            aria-label={`Vista previa de ${model.name}`}
+            aria-label={`Preview of ${model.name}`}
             className="h-auto w-full rounded-lg bg-bg"
             style={{ aspectRatio: `${size.width} / ${size.height}` }}
           />
@@ -99,12 +99,12 @@ export function PreviewCard({ model }: { model: ModelRow }) {
       )}
       {degraded && state === 'idle' && (
         <p role="status" className="text-sm text-muted">
-          No se pudo cargar una textura de carey: se muestra su color HEX en su lugar.
+          A tortoiseshell texture couldn't be loaded: its HEX color is shown instead.
         </p>
       )}
       {state === 'error' && (
         <p role="alert" className="text-sm text-danger">
-          No se pudieron cargar las imágenes de la vista previa.
+          Couldn't load the preview images.
         </p>
       )}
       {(zones.isPending || swatches.isPending) && <Spinner />}
@@ -127,10 +127,10 @@ export function PreviewCard({ model }: { model: ModelRow }) {
             return (
               <div key={z.id} className="flex flex-col gap-2">
                 <Select
-                  label={`Probar color: ${z.name}`}
+                  label={`Try a color: ${z.name}`}
                   value={swatchId}
                   options={[
-                    { value: '', label: '— Sin color —' },
+                    { value: '', label: '— No color —' },
                     ...options.map((s) => ({ value: s.id, label: swatchLabel(s) })),
                   ]}
                   onChange={(e) =>
@@ -139,10 +139,10 @@ export function PreviewCard({ model }: { model: ModelRow }) {
                 />
                 {swatch && swatch.finishes.length > 0 && (
                   <Select
-                    label={`Acabado: ${z.name}`}
+                    label={`Finish: ${z.name}`}
                     value={shownFinish}
                     options={[
-                      ...(shownFinish ? [] : [{ value: '', label: '— Sin acabado —' }]),
+                      ...(shownFinish ? [] : [{ value: '', label: '— No finish —' }]),
                       ...swatch.finishes.map((f) => ({ value: f, label: FINISH_LABEL[f] })),
                     ]}
                     onChange={(e) =>
@@ -158,7 +158,7 @@ export function PreviewCard({ model }: { model: ModelRow }) {
           })}
         </div>
       )}
-      <p className="text-xs text-muted">Los colores que pruebes aquí no se guardan.</p>
+      <p className="text-xs text-muted">Colors you try here are not saved.</p>
     </Card>
   );
 }

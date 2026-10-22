@@ -35,13 +35,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const color =
-    toast?.type === 'error'
-      ? tokens.colors.danger
-      : toast?.type === 'success'
-        ? tokens.colors.success
-        : tokens.colors.onPrimary;
-
   return (
     <ToastContext.Provider value={show}>
       {children}
@@ -53,7 +46,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           accessibilityLiveRegion="polite"
           style={[styles.toast, { bottom: insets.bottom + 72 }]}
         >
-          <Icon name={ICON[toast.type]} size={20} color={color} />
+          {/* White like the text: a green or red icon vanished on the green toast. */}
+          <Icon name={ICON[toast.type]} size={20} color={tokens.colors.onPrimary} />
           <AppText variant="body" color={tokens.colors.onPrimary} style={styles.text}>
             {toast.message}
           </AppText>

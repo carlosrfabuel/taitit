@@ -12,7 +12,7 @@ export function AccountDeletionPage() {
     <main className="min-h-screen bg-bg px-4 py-10 sm:px-6">
       <article className="mx-auto flex w-full max-w-2xl flex-col gap-6 rounded-2xl border border-line bg-surface p-6 sm:p-10">
         <header className="flex flex-col gap-3">
-          <img src="/logo.svg" alt="TAITIT" className="h-7 w-auto self-start" />
+          <img src="/logo-full.svg" alt="TAITIT, tailored handcrafted eyewear" className="w-36 self-start" />
           <h1 className="text-3xl font-extrabold text-ink">Delete your account</h1>
           <p className="text-sm text-muted">TAITIT tool · ANATASA DESIGN SL</p>
         </header>

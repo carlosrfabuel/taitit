@@ -31,14 +31,14 @@ export function PalettesPage() {
       const byId = new Map(after.map((s) => [s.id, s]));
       queryClient.setQueryData<SwatchRow[]>(swatchKeys.all, (old) => old?.map((s) => byId.get(s.id) ?? s));
     },
-    onError: (e) => setOrderError(`No se pudo guardar el orden. ${dbMessage(e)}`),
+    onError: (e) => setOrderError(`Couldn't save the order. ${dbMessage(e)}`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: swatchKeys.all }),
   });
 
   const columns: Column<SwatchRow>[] = [
     {
       key: 'order',
-      header: 'Orden',
+      header: 'Order',
       className: 'w-20',
       render: (row) => {
         const i = rows.indexOf(row);
@@ -60,15 +60,15 @@ export function PalettesPage() {
         );
         return (
           <div className="flex items-center gap-0.5">
-            {arrow(-1, 'Subir', ChevronUp)}
-            {arrow(1, 'Bajar', ChevronDown)}
+            {arrow(-1, 'Move up', ChevronUp)}
+            {arrow(1, 'Move down', ChevronDown)}
           </div>
         );
       },
     },
     {
       key: 'swatch',
-      header: 'Muestra',
+      header: 'Swatch',
       className: 'w-20',
       render: (row) => (
         <Swatch
@@ -81,7 +81,7 @@ export function PalettesPage() {
     },
     {
       key: 'name',
-      header: 'Nombre',
+      header: 'Name',
       render: (row) => (
         <button
           type="button"
@@ -96,45 +96,45 @@ export function PalettesPage() {
       ),
     },
     { key: 'hex', header: 'HEX', render: (row) => <span className="font-mono text-xs">{row.hex}</span> },
-    { key: 'ref', header: 'Referencia', render: (row) => row.ref },
+    { key: 'ref', header: 'Reference', render: (row) => row.ref },
     {
       key: 'kind',
-      header: 'Tipo',
+      header: 'Type',
       render: (row) =>
         row.kind === 'translucent' && row.alpha != null
-          ? `${KIND_LABEL[row.kind]} · ${Math.round(row.alpha * 100)} %`
+          ? `${KIND_LABEL[row.kind]} · ${Math.round(row.alpha * 100)}%`
           : row.kind === 'havana' && !row.texture_path
-            ? `${KIND_LABEL[row.kind]} · sin textura`
+            ? `${KIND_LABEL[row.kind]} · no texture`
             : KIND_LABEL[row.kind],
     },
     ...(tab === 'metal'
       ? [
           {
             key: 'finishes',
-            header: 'Acabados',
+            header: 'Finishes',
             render: (row: SwatchRow) => row.finishes.map((f) => FINISH_LABEL[f]).join(' · ') || '—',
           },
         ]
       : []),
     {
       key: 'active',
-      header: 'Estado',
-      render: (row) => (row.active ? <Tag tone="success">Activo</Tag> : <Tag>Inactivo</Tag>),
+      header: 'Status',
+      render: (row) => (row.active ? <Tag tone="success">Active</Tag> : <Tag>Inactive</Tag>),
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Paletas"
-        note="Colores que el cliente puede elegir en la app, en este orden. Los nombres se escriben en inglés."
+        title="Palettes"
+        note="Colors the customer can choose in the app, in this order. Names are written in English."
         actions={
           <Button
             icon={<Plus className="size-4" aria-hidden />}
             disabled={!swatches.data}
             onClick={() => setEditing('new')}
           >
-            Nuevo color
+            New color
           </Button>
         }
       />
@@ -164,9 +164,9 @@ export function PalettesPage() {
         <Spinner />
       ) : swatches.isError && !swatches.data ? (
         <EmptyState
-          title="No se pudieron cargar los colores"
+          title="Couldn't load the colors"
           message={readMessage(swatches.error)}
-          action={<Button onClick={() => void swatches.refetch()}>Reintentar</Button>}
+          action={<Button onClick={() => void swatches.refetch()}>Try again</Button>}
         />
       ) : (
         <>
@@ -183,8 +183,8 @@ export function PalettesPage() {
             empty={
               <EmptyState
                 icon={<Palette className="size-6" aria-hidden />}
-                title={`Aún no hay colores de ${MATERIAL_LABEL[tab].toLowerCase()}`}
-                action={<Button onClick={() => setEditing('new')}>Nuevo color</Button>}
+                title={`No ${MATERIAL_LABEL[tab].toLowerCase()} colors yet`}
+                action={<Button onClick={() => setEditing('new')}>New color</Button>}
               />
             }
           />

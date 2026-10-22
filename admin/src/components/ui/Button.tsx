@@ -4,7 +4,9 @@ import { Loader2 } from 'lucide-react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-brand text-white border-brand hover:opacity-90',
+  // The TAITIT green gradient, as in the app (app/src/ui/BrandGradient: #3D8457 → #2F6B47 → #173D2A).
+  primary:
+    'bg-linear-to-br from-[#3D8457] via-brand to-[#173D2A] text-white border-transparent hover:opacity-90',
   secondary: 'bg-surface text-brand border-brand hover:bg-bg',
   ghost: 'bg-transparent text-brand border-transparent hover:bg-bg',
   danger: 'bg-surface text-danger border-danger hover:bg-red-50',

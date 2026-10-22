@@ -123,4 +123,4 @@ export function orderSheetRows(orders: SheetOrder[]): Cell[][] {
 export const orderSheet = (orders: SheetOrder[]) =>
   buildXlsx(orderSheetRows(orders), orders.length === 1 ? `Pedido ${orders[0]!.number}` : 'Pedidos');
 
-export const orderSheetName = (number: number) => `pedido-${number}.xlsx`;
+export const orderSheetName = (number: number) => `order-${number}.xlsx`;

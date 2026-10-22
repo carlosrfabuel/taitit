@@ -28,7 +28,7 @@ export function BaseImageCard({ model }: { model: ModelRow }) {
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-ink">Imagen base</h2>
+        <h2 className="text-lg font-bold text-ink">Base image</h2>
         <Button
           variant="secondary"
           size="sm"
@@ -36,30 +36,30 @@ export function BaseImageCard({ model }: { model: ModelRow }) {
           loading={upload.isPending}
           onClick={() => input.current?.click()}
         >
-          {model.base_path ? 'Reemplazar imagen' : 'Subir imagen'}
+          {model.base_path ? 'Replace image' : 'Upload image'}
         </Button>
       </div>
       <p className="text-sm text-muted">
-        Foto 3/4 con las zonas borradas (la genera la herramienta de zonas). JPG, PNG o WebP, máximo{' '}
-        {IMAGE_RULES.maxBytes / 1024 / 1024} MB, al menos {IMAGE_RULES.minBaseWidth} px de ancho. Las capas de
-        las zonas deben medir exactamente lo mismo.
+        3/4 photo with the zones erased (made by the zone tool). JPG, PNG or WebP, up to{' '}
+        {IMAGE_RULES.maxBytes / 1024 / 1024} MB, at least {IMAGE_RULES.minBaseWidth} px wide. The zone layers
+        must have exactly the same size.
       </p>
       {model.base_path ? (
         <figure className="flex flex-col gap-1">
           <img
             src={publicUrl(model.base_path)}
-            alt={`Imagen base de ${model.name}`}
+            alt={`Base image of ${model.name}`}
             className="max-h-64 w-full rounded-lg bg-bg object-contain"
           />
           <figcaption className="text-xs text-muted">
             {model.base_width && model.base_height
               ? `${model.base_width} × ${model.base_height} px`
-              : 'Tamaño desconocido: vuelve a subirla.'}
+              : 'Unknown size: upload it again.'}
           </figcaption>
         </figure>
       ) : (
         <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted">
-          Sin imagen base
+          No base image
         </div>
       )}
       {error && (
@@ -72,7 +72,7 @@ export function BaseImageCard({ model }: { model: ModelRow }) {
         type="file"
         accept={IMAGE_RULES.baseTypes.join(',')}
         className="hidden"
-        aria-label="Archivo de la imagen base"
+        aria-label="Base image file"
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = ''; // the same file can be picked again after an error

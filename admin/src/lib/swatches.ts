@@ -67,15 +67,15 @@ export function validateSwatch(input: SwatchInput): SwatchErrors {
   const e: SwatchErrors = {};
   const name = input.name.trim();
   const ref = input.ref.trim();
-  if (!name) e.name = 'Introduce el nombre del color.';
-  else if (name.length > SWATCH_LIMITS.name) e.name = `Máximo ${SWATCH_LIMITS.name} caracteres.`;
-  if (!HEX.test(normalizeHex(input.hex))) e.hex = 'Formato no válido. Ejemplo: #1E1E22';
-  if (!ref) e.ref = 'Introduce la referencia interna.';
-  else if (ref.length > SWATCH_LIMITS.ref) e.ref = `Máximo ${SWATCH_LIMITS.ref} caracteres.`;
+  if (!name) e.name = 'Enter the color name.';
+  else if (name.length > SWATCH_LIMITS.name) e.name = `Maximum ${SWATCH_LIMITS.name} characters.`;
+  if (!HEX.test(normalizeHex(input.hex))) e.hex = 'Invalid format. Example: #1E1E22';
+  if (!ref) e.ref = 'Enter the internal reference.';
+  else if (ref.length > SWATCH_LIMITS.ref) e.ref = `Maximum ${SWATCH_LIMITS.ref} characters.`;
   // 5–100 %, as the form says; stored with 2 decimals (numeric(3,2)).
   if (input.kind === 'translucent' && (input.alpha == null || !(input.alpha >= 0.05 && input.alpha <= 1)))
-    e.alpha = 'Indica una opacidad entre 5 % y 100 %.';
-  if (input.material === 'metal' && input.finishes.length === 0) e.finishes = 'Elige al menos un acabado.';
+    e.alpha = 'Enter an opacity between 5% and 100%.';
+  if (input.material === 'metal' && input.finishes.length === 0) e.finishes = 'Choose at least one finish.';
   return e;
 }
 

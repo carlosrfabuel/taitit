@@ -31,7 +31,7 @@ export function ZonesCard({ model }: { model: ModelRow }) {
       await queryClient.cancelQueries({ queryKey: zonesKey });
       queryClient.setQueryData(zonesKey, after);
     },
-    onError: (e) => setError(`No se pudo guardar el orden. ${dbMessage(e)}`),
+    onError: (e) => setError(`Couldn't save the order. ${dbMessage(e)}`),
     onSettled: refresh,
   });
 
@@ -51,7 +51,7 @@ export function ZonesCard({ model }: { model: ModelRow }) {
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-ink">
-          Zonas{' '}
+          Zones{' '}
           <span className="text-sm font-semibold text-muted">
             {rows.length} / {MAX_ZONES_PER_MODEL}
           </span>
@@ -60,22 +60,22 @@ export function ZonesCard({ model }: { model: ModelRow }) {
           size="sm"
           icon={<Plus className="size-4" aria-hidden />}
           disabled={full || !zones.data || !swatches.data}
-          title={full ? `Máximo ${MAX_ZONES_PER_MODEL} zonas por modelo` : undefined}
+          title={full ? `Maximum ${MAX_ZONES_PER_MODEL} zones per model` : undefined}
           onClick={() => setEditing('new')}
         >
-          Añadir zona
+          Add zone
         </Button>
       </div>
       <p className="text-sm text-muted">
-        Partes que el cliente puede cambiar de color, en el orden en que aparecen en la app.
-        {full && ` Máximo ${MAX_ZONES_PER_MODEL} zonas por modelo.`}
+        Parts whose color the customer can change, in the order they appear in the app.
+        {full && ` Maximum ${MAX_ZONES_PER_MODEL} zones per model.`}
       </p>
 
       {zones.isPending || swatches.isPending ? (
         <Spinner />
       ) : zones.isError || swatches.isError ? (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-danger">No se pudieron cargar las zonas.</p>
+          <p className="text-sm text-danger">Couldn't load the zones.</p>
           <Button
             size="sm"
             variant="secondary"
@@ -84,12 +84,12 @@ export function ZonesCard({ model }: { model: ModelRow }) {
               void swatches.refetch();
             }}
           >
-            Reintentar
+            Try again
           </Button>
         </div>
       ) : rows.length === 0 ? (
         <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted">
-          Aún no hay zonas
+          No zones yet
         </div>
       ) : (
         <ul className="divide-y divide-line">
@@ -116,13 +116,13 @@ export function ZonesCard({ model }: { model: ModelRow }) {
             return (
               <li key={zone.id} className="flex items-center gap-3 py-3">
                 <div className="flex flex-col">
-                  {arrow(-1, 'Subir zona', ChevronUp)}
-                  {arrow(1, 'Bajar zona', ChevronDown)}
+                  {arrow(-1, 'Move zone up', ChevronUp)}
+                  {arrow(1, 'Move zone down', ChevronDown)}
                 </div>
                 <ZoneThumb
                   layerUrl={zone.layer_path ? publicUrl(zone.layer_path) : null}
                   color={swatch?.hex ?? null}
-                  label={`Forma de la zona ${zone.name}`}
+                  label={`Shape of zone ${zone.name}`}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-ink">
@@ -133,7 +133,7 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                       </span>
                     ) : (
                       <span className="ml-2 rounded-full bg-highlight px-2 py-0.5 text-xs font-semibold text-on-highlight">
-                        Sin zona asignada
+                        No zone assigned
                       </span>
                     )}
                   </p>
@@ -144,39 +144,39 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                         <Swatch hex={swatch.hex} alpha={swatch.alpha} title={swatch.name} size={16} />
                         {swatchLabel(swatch)}
                         {zone.default_finish && ` · ${FINISH_LABEL[zone.default_finish]}`}
-                        {!swatch.active && ' (color inactivo)'}
+                        {!swatch.active && ' (inactive color)'}
                       </>
                     ) : (
-                      <span className="text-danger">sin color por defecto</span>
+                      <span className="text-danger">no default color</span>
                     )}
                   </p>
                   {zone.pattern_hex && (
                     <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
                       {zone.pattern_own ? (
                         <>
-                          Carey de la foto · color medio
+                          Tortoiseshell from the photo · average color
                           <Swatch hex={zone.pattern_hex} title={zone.pattern_hex} size={16} />
-                          {zone.pattern_hex} (un havana de este color se ve como en la foto)
+                          {zone.pattern_hex} (a havana of this color looks as in the photo)
                         </>
                       ) : (
-                        'Carey real de TAITIT para los colores havana'
+                        "TAITIT's real tortoiseshell for havana colors"
                       )}
                     </p>
                   )}
-                  {!zone.layer_path && <p className="text-sm text-danger">Falta la capa.</p>}
+                  {!zone.layer_path && <p className="text-sm text-danger">The layer is missing.</p>}
                   {sizeMismatch && (
                     <p className="text-sm text-danger">
-                      La capa mide {zone.layer_width} × {zone.layer_height} px y la imagen base{' '}
+                      The layer is {zone.layer_width} × {zone.layer_height} px and the base image is{' '}
                       {model.base_width} × {model.base_height} px.
                     </p>
                   )}
                 </div>
                 <Button size="sm" variant="secondary" onClick={() => setEditing(zone)}>
-                  Editar
+                  Edit
                 </Button>
                 <button
                   type="button"
-                  aria-label={`Eliminar zona: ${zone.name}`}
+                  aria-label={`Delete zone: ${zone.name}`}
                   onClick={() => {
                     remove.reset();
                     setDeleting(zone);
@@ -208,26 +208,27 @@ export function ZonesCard({ model }: { model: ModelRow }) {
       )}
       <Modal
         open={!!deleting}
-        title="Eliminar zona"
+        title="Delete zone"
         onClose={() => !remove.isPending && setDeleting(null)}
         dismissible={!remove.isPending}
         footer={
           <>
             <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>
-              Cancelar
+              Cancel
             </Button>
             <Button
               variant="danger"
               loading={remove.isPending}
               onClick={() => deleting && remove.mutate(deleting)}
             >
-              Eliminar
+              Delete
             </Button>
           </>
         }
       >
         <p className="text-sm text-ink">
-          Se eliminará la zona <strong>{deleting?.name}</strong> y su capa. Los pedidos ya hechos no cambian.
+          The zone <strong>{deleting?.name}</strong> and its layer will be deleted. Orders already placed
+          don't change.
         </p>
         {remove.isError && (
           <p role="alert" className="mt-3 text-sm text-danger">

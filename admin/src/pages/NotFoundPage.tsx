@@ -7,9 +7,9 @@ export function NotFoundPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 text-center">
       <p className="text-5xl font-extrabold text-ink">{notFound ? '404' : 'Error'}</p>
-      <p className="text-muted">{notFound ? 'Esta página no existe.' : 'Ha ocurrido un error inesperado.'}</p>
+      <p className="text-muted">{notFound ? 'This page does not exist.' : 'An unexpected error occurred.'}</p>
       <Link to="/models" className="mt-2 font-semibold text-accent">
-        Volver al panel
+        Back to the panel
       </Link>
     </div>
   );

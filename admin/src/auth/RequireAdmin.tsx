@@ -11,7 +11,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Spinner label="Comprobando acceso…" />
+        <Spinner label="Checking access…" />
       </div>
     );
   }
@@ -24,13 +24,13 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-sm text-center">
         <p className="text-lg font-bold text-ink">
-          {status === 'forbidden' ? NOT_ADMIN_MESSAGE : 'No se pudo comprobar tu acceso.'}
+          {status === 'forbidden' ? NOT_ADMIN_MESSAGE : 'Could not check your access.'}
         </p>
         {email && <p className="mt-1 text-sm text-muted">{email}</p>}
         <div className="mt-5 flex justify-center gap-2">
-          {status === 'error' && <Button onClick={retry}>Reintentar</Button>}
+          {status === 'error' && <Button onClick={retry}>Retry</Button>}
           <Button variant="secondary" onClick={() => void signOut()}>
-            Cerrar sesión
+            Sign out
           </Button>
         </div>
       </Card>

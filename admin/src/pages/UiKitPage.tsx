@@ -29,15 +29,15 @@ export function UiKitPage() {
 
   return (
     <div className="flex max-w-4xl flex-col gap-8">
-      <PageHeader title="UI kit" note="Componentes del panel (solo desarrollo)." />
+      <PageHeader title="UI kit" note="Panel components (development only)." />
 
-      <Section title="Botones">
+      <Section title="Buttons">
         <div className="flex flex-wrap items-center gap-2">
-          <Button icon={<Plus className="size-4" />}>Nuevo modelo</Button>
-          <Button variant="secondary">Secundario</Button>
-          <Button variant="ghost">Fantasma</Button>
+          <Button icon={<Plus className="size-4" />}>New model</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="ghost">Ghost</Button>
           <Button variant="danger" icon={<Trash2 className="size-4" />}>
-            Eliminar
+            Delete
           </Button>
           <Button
             loading={loading}
@@ -46,86 +46,86 @@ export function UiKitPage() {
               setTimeout(() => setLoading(false), 1500);
             }}
           >
-            Guardar
+            Save
           </Button>
           <Button size="sm" disabled>
-            Desactivado
+            Disabled
           </Button>
           <Button variant="secondary" onClick={() => setOpen(true)}>
-            Abrir modal
+            Open modal
           </Button>
         </div>
       </Section>
 
-      <Section title="Campos">
+      <Section title="Fields">
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Nombre del modelo" placeholder="PHILEAS" />
+          <Input label="Model name" placeholder="PHILEAS" />
           <Select
-            label="Material de la zona"
+            label="Zone material"
             options={[
               { value: 'metal', label: 'Metal' },
-              { value: 'acetate', label: 'Acetato' },
+              { value: 'acetate', label: 'Acetate' },
             ]}
           />
-          <Input label="Código HEX" defaultValue="#ZZZZZZ" error="Formato no válido. Ejemplo: #1E1E22" />
-          <Input label="Referencia interna" placeholder="TM-01" hint="Aparece en los pedidos." />
+          <Input label="HEX code" defaultValue="#ZZZZZZ" error="Invalid format. Example: #1E1E22" />
+          <Input label="Internal reference" placeholder="TM-01" hint="Shown on orders." />
           <div className="col-span-2">
-            <Textarea label="Descripción" placeholder="Frente de titanio con aros de acetato…" />
+            <Textarea label="Description" placeholder="Titanium front with acetate rims…" />
           </div>
         </div>
       </Section>
 
-      <Section title="Muestras y estados">
+      <Section title="Swatches and states">
         <div className="flex items-center gap-3">
-          <Swatch hex="#1E1E22" title="Negro" />
-          <Swatch hex="#4CFF5A" title="Verde neón" />
-          <Swatch hex="#E8434F" alpha={0.55} title="Rosa translúcido" />
-          <Swatch hex="#F4F1EA" alpha={0.45} title="Cristal" />
-          <Swatch hex="#C9A45C" title="Oro" />
+          <Swatch hex="#1E1E22" title="Black" />
+          <Swatch hex="#4CFF5A" title="Neon green" />
+          <Swatch hex="#E8434F" alpha={0.55} title="Translucent pink" />
+          <Swatch hex="#F4F1EA" alpha={0.45} title="Crystal" />
+          <Swatch hex="#C9A45C" title="Gold" />
         </div>
       </Section>
 
-      <Section title="Tabla">
+      <Section title="Table">
         <Table<Row>
           rowKey={(r) => r.number}
           rows={ROWS}
           onRowClick={() => setOpen(true)}
           columns={[
-            { key: 'n', header: 'Pedido', render: (r) => <span className="font-semibold">{r.number}</span> },
-            { key: 'm', header: 'Modelo', render: (r) => r.model },
-            { key: 'z', header: 'Zonas', render: (r) => r.zones },
+            { key: 'n', header: 'Order', render: (r) => <span className="font-semibold">{r.number}</span> },
+            { key: 'm', header: 'Model', render: (r) => r.model },
+            { key: 'z', header: 'Zones', render: (r) => r.zones },
           ]}
         />
       </Section>
 
-      <Section title="Carga y vacío">
+      <Section title="Loading and empty">
         <Card>
           <Spinner />
         </Card>
         <Card>
           <EmptyState
             icon={<Heart className="size-6" />}
-            title="Sin pedidos todavía"
-            message="Cuando los clientes confirmen un diseño, aparecerán aquí."
-            action={<Button variant="secondary">Ver modelos</Button>}
+            title="No orders yet"
+            message="When customers confirm a design, it will appear here."
+            action={<Button variant="secondary">View models</Button>}
           />
         </Card>
       </Section>
 
       <Modal
         open={open}
-        title="Cambiar estado"
+        title="Change status"
         onClose={() => setOpen(false)}
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
-            <Button onClick={() => setOpen(false)}>Confirmar</Button>
+            <Button onClick={() => setOpen(false)}>Confirm</Button>
           </>
         }
       >
-        <p className="text-sm text-muted">El cliente recibirá una notificación con el nuevo estado.</p>
+        <p className="text-sm text-muted">The customer will receive a notification with the new status.</p>
       </Modal>
     </div>
   );

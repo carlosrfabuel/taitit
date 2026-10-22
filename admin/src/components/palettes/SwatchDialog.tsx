@@ -34,7 +34,7 @@ const FINISHES: Finish[] = ['gloss', 'matte'];
 function messageFor(error: unknown) {
   const problems = publishProblemsIn(error as { message?: string });
   if (problems?.some((p) => p === 'default_color_inactive' || p === 'zone_without_default_color'))
-    return 'Es el color por defecto de una zona de un modelo publicado. Cambia ese color por defecto en el modelo (o despublícalo) y vuelve a intentarlo.';
+    return "It's the default color of a zone in a published model. Change that default color in the model (or unpublish it) and try again.";
   return dbMessage(error as { message?: string });
 }
 
@@ -112,7 +112,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
 
   const pickTexture = async (file: File) => {
     const id = ++pick.current;
-    // Picking a file means "use a texture": it cancels an earlier "Quitar", so a bad file blocks saving.
+    // Picking a file means "use a texture": it cancels an earlier "Remove", so a bad file blocks saving.
     setTexture((t) => (t === 'remove' ? null : t));
     const checked = await checkTexture(file);
     if (id !== pick.current) return;
@@ -136,7 +136,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
         (s) => s.id !== swatch?.id && s.material === values.material && s.ref.toLowerCase() === ref,
       )
     )
-      next.ref = 'Ya existe un color de este material con esa referencia.';
+      next.ref = 'A color of this material with that reference already exists.';
     // A texture error only counts while the color is tortoiseshell and that texture is being added.
     if (kind === 'havana' && texture !== 'remove' && errors.texture) next.texture = errors.texture;
     setErrors(next);
@@ -147,17 +147,17 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
   return (
     <Modal
       open
-      title={swatch ? `Editar color: ${swatch.name}` : `Nuevo color (${MATERIAL_LABEL[values.material]})`}
+      title={swatch ? `Edit color: ${swatch.name}` : `New color (${MATERIAL_LABEL[values.material]})`}
       onClose={close}
       dismissible={!busy}
       footer={
         confirmDelete ? (
           <>
             <Button variant="secondary" disabled={remove.isPending} onClick={() => setConfirmDelete(false)}>
-              No, volver
+              No, go back
             </Button>
             <Button variant="danger" loading={remove.isPending} onClick={() => remove.mutate()}>
-              Sí, eliminar
+              Yes, delete
             </Button>
           </>
         ) : (
@@ -169,14 +169,14 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
                 className="mr-auto"
                 onClick={() => setConfirmDelete(true)}
               >
-                Eliminar
+                Delete
               </Button>
             )}
             <Button variant="secondary" disabled={busy} onClick={close}>
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" form="swatch-form" loading={save.isPending}>
-              {swatch ? 'Guardar color' : 'Añadir color'}
+              {swatch ? 'Save color' : 'Add color'}
             </Button>
           </>
         )
@@ -185,11 +185,12 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
       {confirmDelete ? (
         <div className="flex flex-col gap-2 text-sm text-ink">
           <p>
-            ¿Eliminar <strong>{swatch!.name}</strong> ({swatch!.ref})? No se puede deshacer.
+            Delete <strong>{swatch!.name}</strong> ({swatch!.ref})? This can't be undone.
           </p>
           <p className="text-muted">
-            Las zonas que lo usen como color por defecto se quedarán sin él, y desaparecerá de los diseños
-            guardados. Los pedidos ya hechos no cambian. Si solo quieres ocultarlo en la app, desactívalo.
+            Zones that use it as their default color will be left without one, and it will disappear from
+            saved designs. Orders already placed don't change. If you only want to hide it in the app,
+            deactivate it.
           </p>
           {remove.isError && (
             <p role="alert" className="text-danger">
@@ -204,17 +205,17 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
               hex={/^#[0-9A-F]{6}$/.test(hex) ? hex : '#FFFFFF'}
               alpha={kind === 'translucent' ? values.alpha : null}
               textureUrl={shownTexture}
-              title="Muestra"
+              title="Swatch"
               size={48}
             />
-            <p className="text-sm text-muted">Así se verá la muestra en la paleta de la app.</p>
+            <p className="text-sm text-muted">This is how the swatch will look in the app's palette.</p>
           </div>
           <Input
-            label="Nombre"
+            label="Name"
             value={values.name}
             maxLength={SWATCH_LIMITS.name}
             error={errors.name}
-            hint="Se muestra en la app, en inglés: p. ej. Rose Gold."
+            hint="Shown in the app, in English: e.g. Rose Gold."
             onChange={(e) => set('name', e.target.value)}
           />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -231,18 +232,18 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
               </div>
               <input
                 type="color"
-                aria-label="Elegir color"
+                aria-label="Pick color"
                 value={/^#[0-9A-F]{6}$/.test(hex) ? hex.toLowerCase() : '#ffffff'}
                 onChange={(e) => set('hex', e.target.value.toUpperCase())}
                 className={`h-10 w-12 cursor-pointer rounded-lg border border-line bg-surface ${errors.hex ? 'mb-7' : ''}`}
               />
             </div>
             <Input
-              label="Referencia interna"
+              label="Internal reference"
               value={values.ref}
               maxLength={SWATCH_LIMITS.ref}
               error={errors.ref}
-              hint="Aparece en los pedidos."
+              hint="Shown on orders."
               onChange={(e) => set('ref', e.target.value)}
             />
           </div>
@@ -250,7 +251,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
             <Select
               label="Material"
               value={values.material}
-              hint="No se puede cambiar después."
+              hint="Can't be changed later."
               options={(['metal', 'acetate'] as Material[]).map((m) => ({
                 value: m,
                 label: MATERIAL_LABEL[m],
@@ -268,7 +269,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
           )}
           {isMetal ? (
             <fieldset className="flex flex-col gap-1.5">
-              <legend className="mb-1.5 text-sm font-bold text-ink">Acabados disponibles</legend>
+              <legend className="mb-1.5 text-sm font-bold text-ink">Available finishes</legend>
               <div className="flex gap-4">
                 {FINISHES.map((f) => (
                   <label key={f} className="flex items-center gap-2 text-sm text-ink">
@@ -293,7 +294,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
             </fieldset>
           ) : (
             <Select
-              label="Tipo"
+              label="Type"
               value={kind}
               options={ACETATE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
               onChange={(e) => {
@@ -306,35 +307,35 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
           )}
           {kind === 'translucent' && (
             <Input
-              label="Opacidad (%)"
+              label="Opacity (%)"
               type="number"
               min={5}
               max={100}
               step={5}
               value={values.alpha == null ? '' : Math.round(values.alpha * 100)}
               error={errors.alpha}
-              hint="100 % = opaco. Cuanto más bajo, más se ve a través."
+              hint="100% = opaque. The lower it is, the more you can see through it."
               onChange={(e) => set('alpha', e.target.value === '' ? null : Number(e.target.value) / 100)}
             />
           )}
           {kind === 'havana' && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-bold text-ink">Textura de carey</span>
+              <span className="text-sm font-bold text-ink">Tortoiseshell texture</span>
               <div className="flex items-center gap-3">
                 <div className="flex h-16 w-24 items-center justify-center overflow-hidden rounded-lg border border-line bg-bg">
                   {shownTexture ? (
-                    <img src={shownTexture} alt="Textura" className="size-full object-cover" />
+                    <img src={shownTexture} alt="Texture" className="size-full object-cover" />
                   ) : (
-                    <span className="px-1 text-center text-xs text-muted">Sin textura (usa el HEX)</span>
+                    <span className="px-1 text-center text-xs text-muted">No texture (uses the HEX)</span>
                   )}
                 </div>
                 <label className="cursor-pointer text-sm font-semibold text-accent">
-                  {shownTexture ? 'Cambiar textura' : 'Subir textura'}
+                  {shownTexture ? 'Change texture' : 'Upload texture'}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="sr-only"
-                    aria-label="Archivo de la textura"
+                    aria-label="Texture file"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       e.target.value = '';
@@ -351,7 +352,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
                       setErrors((x) => ({ ...x, texture: undefined }));
                     }}
                   >
-                    Quitar
+                    Remove
                   </button>
                 )}
               </div>
@@ -361,7 +362,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
                 </p>
               ) : (
                 <p className="text-sm text-muted">
-                  Foto de la muestra de acetato. JPG, PNG o WebP, máximo 5 MB.
+                  Photo of the acetate sample. JPG, PNG or WebP, up to 5 MB.
                 </p>
               )}
             </div>
@@ -374,8 +375,8 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
               onChange={(e) => set('active', e.target.checked)}
             />
             <span>
-              <span className="block text-sm font-bold text-ink">Activo</span>
-              <span className="block text-sm text-muted">Solo los colores activos aparecen en la app.</span>
+              <span className="block text-sm font-bold text-ink">Active</span>
+              <span className="block text-sm text-muted">Only active colors appear in the app.</span>
             </span>
           </label>
           {save.isError && (
