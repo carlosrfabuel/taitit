@@ -17,11 +17,17 @@
   --color-selected-line: #b9ddb2;
   --color-highlight: #fbe7a1;
   --color-on-highlight: #4a3a08;
+  /* Sidebar: deep TAITIT green (as the app's start screen). */
+  --color-forest: #14301f;
+  --color-forest-line: #24472f;
+  --font-sans: 'Urbanist', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
 }
 
 body {
   @apply bg-bg text-ink antialiased;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-weight: 500;
 }
 
 /* Printed order sheet: keep the color chips (browsers drop background colors when printing). */

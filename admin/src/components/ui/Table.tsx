@@ -8,9 +8,11 @@ type Props<T> = {
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   empty?: ReactNode;
+  /** The row shown in a side panel: highlighted. */
+  selectedKey?: string | null;
 };
 
-export function Table<T>({ columns, rows, rowKey, onRowClick, empty }: Props<T>) {
+export function Table<T>({ columns, rows, rowKey, onRowClick, empty, selectedKey }: Props<T>) {
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
@@ -29,7 +31,12 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, empty }: Props<T>)
             <tr
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={`border-b border-line last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-bg' : ''}`}
+              aria-selected={selectedKey != null ? rowKey(row) === selectedKey : undefined}
+              className={`border-b border-line last:border-0 ${onRowClick ? 'cursor-pointer hover:bg-bg' : ''} ${
+                selectedKey != null && rowKey(row) === selectedKey
+                  ? 'bg-selected/60 hover:bg-selected/60'
+                  : ''
+              }`}
             >
               {columns.map((c) => (
                 <td key={c.key} className={`px-4 py-3 ${c.className ?? ''}`}>

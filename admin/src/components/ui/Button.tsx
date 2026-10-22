@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -17,6 +17,8 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: 'md' | 'sm';
   icon?: ReactNode;
   loading?: boolean;
+  /** A trailing arrow (→) for the page's main forward action. */
+  arrow?: boolean;
 };
 
 export function Button({
@@ -24,6 +26,7 @@ export function Button({
   size = 'md',
   icon,
   loading = false,
+  arrow = false,
   disabled,
   className = '',
   children,
@@ -36,13 +39,14 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg border-[1.5px] font-semibold transition
+      className={`inline-flex items-center justify-center gap-2 rounded-full border-[1.5px] font-semibold transition
         disabled:cursor-not-allowed disabled:opacity-45
         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
-        ${size === 'sm' ? 'h-8 px-3 text-sm' : 'h-10 px-4 text-sm'} ${VARIANTS[variant]} ${className}`}
+        ${size === 'sm' ? 'h-8 px-3.5 text-sm' : 'h-10 px-5 text-sm'} ${VARIANTS[variant]} ${className}`}
     >
       {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : icon}
       {children}
+      {arrow && !loading ? <ArrowRight className="size-4" aria-hidden /> : null}
     </button>
   );
 }

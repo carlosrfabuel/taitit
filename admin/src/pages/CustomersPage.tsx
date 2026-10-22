@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, RotateCcw, Search, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
+import { Avatar, CustomerPanel } from '../components/CustomerPanel';
+import { listOrders, orderKeys } from '../lib/orders';
+import { listModels, modelKeys } from '../lib/models';
 import { Button, EmptyState, Input, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
-  addressLine,
   deleteCustomerAccount,
   customerKeys,
   listCustomers,
@@ -58,6 +60,14 @@ export function CustomersPage() {
 
   const all = (customers.data ?? []).filter((c) => matches(c, query));
   const rows = all.filter((c) => c.status === tab);
+  const orders = useQuery({ queryKey: orderKeys.all, queryFn: listOrders });
+  const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
+  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
+  const ordersOf = (id: string) => (orders.data ?? []).filter((o) => o.user_id === id);
+  // The customer in the panel: the one clicked, else the first in the list; none once closed.
+  const [picked, setPicked] = useState<string | null>(null);
+  const [panelClosed, setPanelClosed] = useState(false);
+  const selected = panelClosed ? null : (rows.find((c) => c.id === picked) ?? rows[0] ?? null);
   const count = (s: AccountStatus) => all.filter((c) => c.status === s).length;
   const busy = (id: string) => change.isPending && change.variables?.id === id;
 
@@ -86,63 +96,22 @@ export function CustomersPage() {
       key: 'business',
       header: 'Optician',
       render: (row) => (
-        <div className="flex flex-col">
-          <span className="font-semibold text-ink">{row.business_name || 'No company details'}</span>
-          {row.legal_name && row.legal_name !== row.business_name && (
-            <span className="text-xs text-muted">{row.legal_name}</span>
-          )}
-          {row.tax_id && <span className="text-xs text-muted">VAT number {row.tax_id}</span>}
-          {row.labeling && <span className="text-xs text-muted">Name on the glasses: {row.labeling}</span>}
-          {row.bank_account && <span className="text-xs text-muted">Account: {row.bank_account}</span>}
+        <div className="flex items-center gap-3">
+          <Avatar customer={row} />
+          <div className="flex min-w-0 flex-col">
+            <span className="font-semibold text-ink">
+              {row.business_name || row.full_name || 'No company details'}
+            </span>
+            <span className="truncate text-xs text-muted">{row.email ?? row.full_name ?? '—'}</span>
+          </div>
         </div>
       ),
     },
     {
-      key: 'contact',
-      header: 'Contact',
-      render: (row) => (
-        <div className="flex flex-col">
-          <span>{row.full_name || '—'}</span>
-          <span className="text-xs text-muted">{row.email ?? '—'}</span>
-          {row.phone && <span className="text-xs text-muted">{row.phone}</span>}
-          {row.contact_email && row.contact_email !== row.email && (
-            <span className="text-xs text-muted">Contact: {row.contact_email}</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'address',
-      header: 'Address',
-      render: (row) => (
-        <div className="flex flex-col">
-          <span className="text-sm">
-            {addressLine(row.address, row.postal_code, row.city, row.province) ?? '—'}
-          </span>
-          {row.delivery_address && (
-            <span className="text-xs text-muted">
-              Delivery:{' '}
-              {addressLine(
-                row.delivery_address,
-                row.delivery_postal_code,
-                row.delivery_city,
-                row.delivery_province,
-              )}
-            </span>
-          )}
-          {row.commercial_address && (
-            <span className="text-xs text-muted">
-              Commercial:{' '}
-              {addressLine(
-                row.commercial_address,
-                row.commercial_postal_code,
-                row.commercial_city,
-                row.commercial_province,
-              )}
-            </span>
-          )}
-        </div>
-      ),
+      key: 'orders',
+      header: 'Orders',
+      className: 'w-20',
+      render: (row) => (orders.data ? ordersOf(row.id).length : '…'),
     },
     { key: 'created', header: 'Signed up', render: (row) => formatDate(row.created_at) },
     {
@@ -184,6 +153,7 @@ export function CustomersPage() {
   return (
     <>
       <PageHeader
+        crumbs={[{ label: 'Customers' }]}
         title="Customers"
         note="Opticians sign up in the app and can only send orders once you approve them here. Until then they can browse the catalog and save designs."
       />
@@ -233,30 +203,54 @@ export function CustomersPage() {
           action={<Button onClick={() => void customers.refetch()}>Try again</Button>}
         />
       ) : (
-        <Table
-          columns={columns}
-          rows={rows}
-          rowKey={(r) => r.id}
-          empty={
-            <EmptyState
-              icon={<Users className="size-6" aria-hidden />}
-              title={
-                query.trim()
-                  ? 'No accounts match'
-                  : tab === 'pending'
-                    ? 'No pending accounts'
-                    : 'No accounts in this list'
-              }
-              message={
-                query.trim()
-                  ? 'Try another search or check the other tabs.'
-                  : tab === 'pending'
-                    ? 'New opticians will appear here when they sign up.'
-                    : undefined
+        <div
+          className={
+            selected
+              ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]'
+              : ''
+          }
+        >
+          <div className="min-w-0">
+            <Table
+              columns={columns}
+              rows={rows}
+              rowKey={(r) => r.id}
+              selectedKey={selected?.id ?? null}
+              onRowClick={(r) => {
+                setPicked(r.id);
+                setPanelClosed(false);
+              }}
+              empty={
+                <EmptyState
+                  icon={<Users className="size-6" aria-hidden />}
+                  title={
+                    query.trim()
+                      ? 'No accounts match'
+                      : tab === 'pending'
+                        ? 'No pending accounts'
+                        : 'No accounts in this list'
+                  }
+                  message={
+                    query.trim()
+                      ? 'Try another search or check the other tabs.'
+                      : tab === 'pending'
+                        ? 'New opticians will appear here when they sign up.'
+                        : undefined
+                  }
+                />
               }
             />
-          }
-        />
+          </div>
+          {selected && (
+            <CustomerPanel
+              key={selected.id}
+              customer={selected}
+              orders={ordersOf(selected.id)}
+              models={byName}
+              onClose={() => setPanelClosed(true)}
+            />
+          )}
+        </div>
       )}
       <Modal
         open={!!toDelete}

@@ -17,6 +17,7 @@ export type ModelRow = {
   thumb_key: string | null;
   published: boolean;
   sort_order: number;
+  updated_at: string;
   zones: number;
 };
 
@@ -38,7 +39,7 @@ export const modelKeys = {
 };
 
 const COLUMNS =
-  'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, published, sort_order, model_zones(count)';
+  'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, published, sort_order, updated_at, model_zones(count)';
 
 type Raw = Omit<ModelRow, 'zones'> & { model_zones: { count: number }[] };
 const toRow = ({ model_zones, ...m }: Raw): ModelRow => ({ ...m, zones: model_zones[0]?.count ?? 0 });

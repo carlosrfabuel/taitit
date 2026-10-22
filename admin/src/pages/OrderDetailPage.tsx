@@ -117,8 +117,8 @@ export function OrderDetailPage() {
 
   return (
     <>
-      {back}
       <PageHeader
+        crumbs={[{ label: 'Orders', to: '/orders' }, { label: `#${o.number}` }]}
         title={`Order #${o.number}`}
         note={`${formatOrderDate(o.created_at)} · ${o.model_name} · ${o.quantity} ${o.quantity === 1 ? 'unit' : 'units'}`}
         actions={

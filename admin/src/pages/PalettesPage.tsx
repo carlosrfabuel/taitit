@@ -126,6 +126,7 @@ export function PalettesPage() {
   return (
     <>
       <PageHeader
+        crumbs={[{ label: 'Palettes' }]}
         title="Palettes"
         note="Colors the customer can choose in the app, in this order. Names are written in English."
         actions={

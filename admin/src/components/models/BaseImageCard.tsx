@@ -45,12 +45,26 @@ export function BaseImageCard({ model }: { model: ModelRow }) {
         must have exactly the same size.
       </p>
       {model.base_path ? (
-        <figure className="flex flex-col gap-1">
-          <img
-            src={publicUrl(model.base_path)}
-            alt={`Base image of ${model.name}`}
-            className="max-h-64 w-full rounded-lg bg-bg object-contain"
-          />
+        // A small thumbnail: with the zones erased it is mostly blank (the preview above shows the model).
+        <figure className="flex items-center gap-4">
+          {/* White frame on white: the light greys are darkened (shown only; the file is unchanged)
+              so the outline can be recognised. Pure white stays white. */}
+          <svg aria-hidden className="absolute size-0">
+            <filter id="base-outline" colorInterpolationFilters="sRGB">
+              <feComponentTransfer>
+                <feFuncR type="gamma" exponent={10} />
+                <feFuncG type="gamma" exponent={10} />
+                <feFuncB type="gamma" exponent={10} />
+              </feComponentTransfer>
+            </filter>
+          </svg>
+          <span className="shrink-0 rounded-lg border border-line bg-surface p-1">
+            <img
+              src={publicUrl(model.base_path)}
+              alt={`Base image of ${model.name}`}
+              className="h-16 w-44 object-contain [filter:url(#base-outline)]"
+            />
+          </span>
           <figcaption className="text-xs text-muted">
             {model.base_width && model.base_height
               ? `${model.base_width} × ${model.base_height} px`

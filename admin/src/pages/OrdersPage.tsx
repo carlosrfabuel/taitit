@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileSpreadsheet, Receipt, Search } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { OrderColors } from '../components/OrderColors';
+import { OrderPanel } from '../components/OrderPanel';
+import { ModelThumb } from '../components/ModelThumb';
+import { listModels, modelKeys } from '../lib/models';
 import { Button, EmptyState, Input, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
   downloadOrdersSheet,
   filterOrders,
-  formatOrderDate,
+  orderDayAndTime,
   listOrders,
   markOrdersSeen,
   orderKeys,
@@ -23,15 +25,21 @@ import { readMessage } from '../lib/errors';
 const PERIODS: OrderPeriod[] = ['all', 'today', 'week', 'month'];
 
 // Orders sent from the app, newest first. No status (client decision): an order is a fixed copy of
-// what the optician sent. Search and period narrow the list (and its Excel).
+// what the optician sent. Search and period narrow the list (and its Excel). Clicking a row shows the order
+// in a panel beside the list; the panel opens the full order sheet.
 export function OrdersPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const orders = useQuery({ queryKey: orderKeys.all, queryFn: listOrders, refetchInterval: 60_000 });
   const rows = orders.data ?? [];
   const [query, setQuery] = useState('');
   const [period, setPeriod] = useState<OrderPeriod>('all');
   const shown = filterOrders(rows, query, period);
+  const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
+  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
+  // The order in the panel: the one clicked, else the first one shown; none once the panel is closed.
+  const [picked, setPicked] = useState<string | null>(null);
+  const [panelClosed, setPanelClosed] = useState(false);
+  const selected = panelClosed ? null : (shown.find((o) => o.id === picked) ?? shown[0] ?? null);
 
   // Orders sent since this browser last opened the list are marked "New" during this visit; the list
   // then counts as seen (the sidebar badge clears).
@@ -56,18 +64,41 @@ export function OrdersPage() {
         </span>
       ),
     },
-    { key: 'date', header: 'Date', render: (o) => formatOrderDate(o.created_at) },
+    {
+      key: 'date',
+      header: 'Date',
+      render: (o) => {
+        const { day, time } = orderDayAndTime(o.created_at);
+        return (
+          <span className="flex flex-col whitespace-nowrap">
+            <span>{day}</span>
+            <span className="text-xs text-muted">{time}</span>
+          </span>
+        );
+      },
+    },
     {
       key: 'business',
       header: 'Optician',
       render: (o) => (
-        <div className="flex flex-col">
+        <div className="flex max-w-56 flex-col">
           <span className="font-semibold text-ink">{o.business_name ?? o.customer_name ?? '—'}</span>
-          <span className="text-xs text-muted">{[o.city, o.customer_email].filter(Boolean).join(' · ')}</span>
+          <span className="truncate text-xs text-muted" title={o.customer_email ?? undefined}>
+            {[o.city, o.customer_email].filter(Boolean).join(' · ')}
+          </span>
         </div>
       ),
     },
-    { key: 'model', header: 'Model', render: (o) => o.model_name },
+    {
+      key: 'model',
+      header: 'Model',
+      render: (o) => (
+        <span className="flex items-center gap-3">
+          <ModelThumb model={byName.get(o.model_name)} className="h-9 w-16" />
+          {o.model_name}
+        </span>
+      ),
+    },
     { key: 'colors', header: 'Colors', render: (o) => <OrderColors items={o.order_items} /> },
     { key: 'quantity', header: 'Quantity', className: 'w-24', render: (o) => o.quantity },
   ];
@@ -77,8 +108,9 @@ export function OrdersPage() {
   return (
     <>
       <PageHeader
+        crumbs={[{ label: 'Orders' }]}
         title="Orders"
-        note="Orders sent from the app, newest first. Click one to see its order sheet and download the image and the Excel."
+        note="Orders sent from the app, newest first. Click one to see it beside the list."
         actions={
           shown.length > 0 ? (
             <Button
@@ -147,35 +179,52 @@ export function OrdersPage() {
               </span>
             )}
           </div>
-          <Table
-            columns={columns}
-            rows={shown}
-            rowKey={(o) => o.id}
-            onRowClick={(o) => navigate(`/orders/${o.id}`)}
-            empty={
-              <EmptyState
-                icon={<Search className="size-6" aria-hidden />}
-                title="No orders match"
-                message="Try another search or period."
-                action={
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setQuery('');
-                      setPeriod('all');
-                    }}
-                  >
-                    View all
-                  </Button>
+          <div
+            className={
+              selected
+                ? 'grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_380px]'
+                : ''
+            }
+          >
+            <div className="min-w-0">
+              <Table
+                columns={columns}
+                rows={shown}
+                rowKey={(o) => o.id}
+                selectedKey={selected?.id ?? null}
+                onRowClick={(o) => {
+                  setPicked(o.id);
+                  setPanelClosed(false);
+                }}
+                empty={
+                  <EmptyState
+                    icon={<Search className="size-6" aria-hidden />}
+                    title="No orders match"
+                    message="Try another search or period."
+                    action={
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setQuery('');
+                          setPeriod('all');
+                        }}
+                      >
+                        View all
+                      </Button>
+                    }
+                  />
                 }
               />
-            }
-          />
-          {rows.length === ORDERS_LIMIT && (
-            <p className="mt-3 text-sm text-muted">
-              Showing the {ORDERS_LIMIT} most recent orders; the search and the Excel include only these.
-            </p>
-          )}
+              {rows.length === ORDERS_LIMIT && (
+                <p className="mt-3 text-sm text-muted">
+                  Showing the {ORDERS_LIMIT} most recent orders; the search and the Excel include only these.
+                </p>
+              )}
+            </div>
+            {selected && (
+              <OrderPanel key={selected.id} order={selected} onClose={() => setPanelClosed(true)} />
+            )}
+          </div>
         </>
       )}
     </>

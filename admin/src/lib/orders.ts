@@ -22,6 +22,8 @@ export type OrderItemRow = {
 
 export type OrderRow = {
   id: string;
+  /** The account that sent it (null once the account was deleted). */
+  user_id: string | null;
   number: number;
   created_at: string;
   model_name: string;
@@ -133,7 +135,7 @@ export function filterOrders(
 }
 
 const COLUMNS =
-  'id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, user_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -145,6 +147,16 @@ export const formatOrderDate = (iso: string) =>
     hour: '2-digit',
     minute: '2-digit',
   });
+
+/** The order's day and time in Spain, separately (lists show them on two lines). */
+export const orderDayAndTime = (iso: string) => {
+  const d = new Date(iso);
+  const zone = { timeZone: 'Europe/Madrid' } as const;
+  return {
+    day: d.toLocaleDateString('en-GB', { ...zone, day: 'numeric', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-GB', { ...zone, hour: '2-digit', minute: '2-digit' }),
+  };
+};
 
 /** Newest orders shown in the list (more would need paging; order search is out of scope). */
 export const ORDERS_LIMIT = 200;

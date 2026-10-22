@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, Check, Glasses, Receipt, Users } from 'lucide-react';
+import { ArrowRight, Check, Glasses, Pencil, Receipt, Sparkles, Users } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { OrderColors } from '../components/OrderColors';
+import { ModelThumb } from '../components/ModelThumb';
 import { Button, Card, Spinner } from '../components/ui';
 import { customerKeys, listCustomers, setAccountStatus, type CustomerRow } from '../lib/customers';
 import { filterOrders, formatOrderDate, listOrders, orderKeys, ordersSeenAt } from '../lib/orders';
@@ -33,12 +34,18 @@ export function HomePage() {
   });
 
   const pending = (customers.data ?? []).filter((c) => c.status === 'pending');
+  // Hidden only once the list has loaded empty: while loading or on an error the card says so.
+  const showPending = !customers.data || pending.length > 0;
   const orderRows = orders.data ?? [];
   const seenAt = seen.data ?? null;
   const fresh = seenAt ? orderRows.filter((o) => o.created_at > seenAt).length : 0;
   const week = filterOrders(orderRows, '', 'week').length;
   const published = (models.data ?? []).filter((m) => m.published).length;
   const drafts = (models.data ?? []).length - published;
+  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
+  const recentModels = [...(models.data ?? [])]
+    .sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1))
+    .slice(0, 3);
 
   const loadError = (q: { isError: boolean; data?: unknown; error: unknown }) =>
     q.isError && !q.data ? (
@@ -53,13 +60,15 @@ export function HomePage() {
         <Stat
           to="/customers"
           icon={<Users className="size-5" aria-hidden />}
+          tone="bg-highlight text-on-highlight"
           label="Customers to approve"
           value={customers.data ? pending.length : '…'}
           attention={pending.length > 0}
         />
         <Stat
           to="/orders"
-          icon={<Receipt className="size-5" aria-hidden />}
+          icon={<Sparkles className="size-5" aria-hidden />}
+          tone="bg-sky-100 text-sky-800"
           label="New orders"
           value={orders.data ? fresh : '…'}
           note={seenAt ? 'since your last visit to Orders' : 'open Orders to start counting them'}
@@ -68,50 +77,52 @@ export function HomePage() {
         <Stat
           to="/orders"
           icon={<Receipt className="size-5" aria-hidden />}
+          tone="bg-violet-100 text-violet-800"
           label="Orders in 7 days"
           value={orders.data ? week : '…'}
         />
         <Stat
           to="/models"
           icon={<Glasses className="size-5" aria-hidden />}
+          tone="bg-selected text-on-selected"
           label="Published models"
           value={models.data ? published : '…'}
           note={drafts > 0 ? `${drafts} ${drafts === 1 ? 'draft' : 'drafts'}` : undefined}
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <SectionTitle to="/customers" title="Customers to approve" />
-          {error && (
-            <p role="alert" className="mb-3 text-sm text-danger">
-              {error}
-            </p>
-          )}
-          {customers.isPending ? (
-            <Spinner />
-          ) : (
-            (loadError(customers) ??
-            (pending.length === 0 ? (
-              <p className="text-sm text-muted">No pending accounts. New opticians will appear here.</p>
+      {/* The approvals card only while accounts are waiting (the stat card and the sidebar badge show 0). */}
+      <div className={`grid gap-6 ${showPending ? 'xl:grid-cols-2' : ''}`}>
+        {showPending && (
+          <Card>
+            <SectionTitle to="/customers" title="Customers to approve" />
+            {error && (
+              <p role="alert" className="mb-3 text-sm text-danger">
+                {error}
+              </p>
+            )}
+            {customers.isPending ? (
+              <Spinner />
             ) : (
-              <ul className="divide-y divide-line">
-                {pending.slice(0, SHOWN).map((c) => (
-                  <PendingRow
-                    key={c.id}
-                    customer={c}
-                    busy={approve.isPending && approve.variables === c.id}
-                    disabled={approve.isPending}
-                    onApprove={() => approve.mutate(c.id)}
-                  />
-                ))}
-              </ul>
-            )))
-          )}
-          {pending.length > SHOWN && (
-            <p className="mt-3 text-sm text-muted">And {pending.length - SHOWN} more in Customers.</p>
-          )}
-        </Card>
+              (loadError(customers) ?? (
+                <ul className="divide-y divide-line">
+                  {pending.slice(0, SHOWN).map((c) => (
+                    <PendingRow
+                      key={c.id}
+                      customer={c}
+                      busy={approve.isPending && approve.variables === c.id}
+                      disabled={approve.isPending}
+                      onApprove={() => approve.mutate(c.id)}
+                    />
+                  ))}
+                </ul>
+              ))
+            )}
+            {pending.length > SHOWN && (
+              <p className="mt-3 text-sm text-muted">And {pending.length - SHOWN} more in Customers.</p>
+            )}
+          </Card>
+        )}
 
         <Card>
           <SectionTitle to="/orders" title="Latest orders" />
@@ -128,9 +139,10 @@ export function HomePage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/orders/${o.id}`)}
-                      className="flex w-full items-center gap-4 py-3 text-left hover:bg-bg"
+                      className="flex w-full items-center gap-4 rounded-lg px-2 py-3 text-left hover:bg-bg"
                     >
                       <span className="w-14 font-bold text-ink">#{o.number}</span>
+                      <ModelThumb model={byName.get(o.model_name)} className="h-10 w-16" />
                       <span className="flex min-w-0 flex-1 flex-col">
                         <span className="truncate font-semibold text-ink">
                           {o.business_name ?? o.customer_name ?? '—'}
@@ -149,6 +161,33 @@ export function HomePage() {
           )}
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <SectionTitle to="/models" title="Recently updated models" />
+        {models.isPending ? (
+          <Spinner />
+        ) : (
+          (loadError(models) ?? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {recentModels.map((m) => (
+                <div key={m.id} className="flex items-center gap-4 rounded-xl border border-line p-3">
+                  <ModelThumb model={m} className="h-14 w-24" />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-semibold text-ink">{m.name}</span>
+                    <span className="text-xs text-muted">Updated {formatDate(m.updated_at)}</span>
+                  </span>
+                  <Link
+                    to={`/models/${m.id}`}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"
+                  >
+                    <Pencil className="size-3.5" aria-hidden /> Edit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </Card>
     </>
   );
 }
@@ -156,6 +195,7 @@ export function HomePage() {
 function Stat({
   to,
   icon,
+  tone,
   label,
   value,
   note,
@@ -163,6 +203,8 @@ function Stat({
 }: {
   to: string;
   icon: ReactNode;
+  /** Tint of the round icon. */
+  tone: string;
   label: string;
   value: number | string;
   note?: string;
@@ -171,16 +213,18 @@ function Stat({
   return (
     <Link
       to={to}
-      className={`flex flex-col gap-1 rounded-2xl border p-5 transition hover:shadow-sm ${
-        attention ? 'border-highlight bg-highlight/40' : 'border-line bg-surface'
+      className={`flex items-start gap-4 rounded-2xl border p-5 transition hover:shadow-sm ${
+        attention ? 'border-highlight bg-highlight/30' : 'border-line bg-surface'
       }`}
     >
-      <span className="flex items-center gap-2 text-sm font-semibold text-muted">
-        {icon}
-        {label}
+      <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${tone}`}>{icon}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="text-sm font-semibold text-ink">{label}</span>
+        <span className="text-3xl font-bold text-ink" data-stat-value>
+          {value}
+        </span>
+        {note && <span className="text-xs text-muted">{note}</span>}
       </span>
-      <span className="text-3xl font-extrabold text-ink">{value}</span>
-      {note && <span className="text-xs text-muted">{note}</span>}
     </Link>
   );
 }
@@ -188,7 +232,7 @@ function Stat({
 function SectionTitle({ to, title }: { to: string; title: string }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-muted">{title}</h2>
+      <h2 className="font-serif text-xl font-bold text-ink">{title}</h2>
       <Link
         to={to}
         className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline"

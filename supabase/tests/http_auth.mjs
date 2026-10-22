@@ -82,7 +82,7 @@ async function main() {
       // Built complete, then published (the publishing rules reject incomplete models).
       `insert into public.models (id, name, base_path, base_width, base_height) values ('${modelId}', 'HTTP TEST ${run}', 'test/base.jpg', 1600, 556);`,
       `insert into public.model_zones (model_id, name, material, default_swatch_id, layer_path, layer_width, layer_height)
-        select '${modelId}', 'Frente', 'metal', id, 'test/frente.png', 1600, 556 from public.swatches where ref = 'PH-M01';`,
+        select '${modelId}', 'Frente', 'metal', id, 'test/frente.png', 1600, 556 from public.swatches where material = 'metal' and active order by ref limit 1;`,
       `update public.models set published = true where id = '${modelId}';`,
     ].join('\n'),
   );
