@@ -24,6 +24,8 @@ export type OrderRow = {
   id: string;
   /** The account that sent it (null once the account was deleted). */
   user_id: string | null;
+  /** The catalog model (null once that model is deleted); `model_name` is the name as ordered. */
+  model_id: string | null;
   number: number;
   created_at: string;
   model_name: string;
@@ -57,7 +59,10 @@ export type OrderRow = {
 
 export const orderKeys = {
   all: ['orders'] as const,
-  one: (id: string) => ['orders', id] as const,
+  // 'one' keeps an order's id apart from the other keys (an id can never read as 'seen').
+  one: (id: string) => ['orders', 'one', id] as const,
+  customer: (userId: string) => ['orders', 'customer', userId] as const,
+  perCustomer: ['orders', 'per-customer'] as const,
   seen: ['orders', 'seen'] as const,
   since: (iso: string) => ['orders', 'since', iso] as const,
 };
@@ -135,7 +140,7 @@ export function filterOrders(
 }
 
 const COLUMNS =
-  'id, user_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, user_id, model_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -175,6 +180,34 @@ export async function listOrders(): Promise<OrderRow[]> {
     .limit(ORDERS_LIMIT);
   if (error) throw error;
   return (data as OrderRow[]).map(sortItems);
+}
+
+/** One optician's orders, newest first: all of them, not only the newest in the list. */
+export async function listCustomerOrders(userId: string): Promise<OrderRow[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(COLUMNS)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data as OrderRow[]).map(sortItems);
+}
+
+/** Number of orders per optician, over every order (read in pages: the API returns 1000 rows at most). */
+export async function countOrdersPerCustomer(): Promise<Map<string, number>> {
+  const PAGE = 1000;
+  const counts = new Map<string, number>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('user_id')
+      .not('user_id', 'is', null)
+      .order('id')
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    for (const { user_id } of data) counts.set(user_id!, (counts.get(user_id!) ?? 0) + 1);
+    if (data.length < PAGE) return counts;
+  }
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

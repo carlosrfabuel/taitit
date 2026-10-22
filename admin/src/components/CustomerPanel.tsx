@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Mail, Phone, X } from 'lucide-react';
-import { Tag } from './ui';
+import { Spinner, Tag } from './ui';
 import { ModelThumb } from './ModelThumb';
 import { addressLine, STATUS_LABEL, type CustomerRow } from '../lib/customers';
-import { formatOrderDate, type OrderRow } from '../lib/orders';
+import { formatOrderDate, listCustomerOrders, orderKeys } from '../lib/orders';
+import { readMessage } from '../lib/errors';
 import type { ModelRow } from '../lib/models';
 
 const formatDate = (iso: string) =>
@@ -36,17 +38,22 @@ export function Avatar({ customer, size = 'md' }: { customer: CustomerRow; size?
  */
 export function CustomerPanel({
   customer: c,
-  orders,
   models,
   onClose,
 }: {
   customer: CustomerRow;
-  /** This optician's orders, newest first. */
-  orders: OrderRow[];
+  /** Catalog models by id (for the order thumbnails). */
   models: Map<string, ModelRow>;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  // All of this optician's orders, newest first.
+  const ordersQuery = useQuery({
+    queryKey: orderKeys.customer(c.id),
+    queryFn: () => listCustomerOrders(c.id),
+  });
+  const orders = ordersQuery.data ?? [];
+  const loaded = !!ordersQuery.data;
   const units = orders.reduce((n, o) => n + o.quantity, 0);
   const address = addressLine(c.address, c.postal_code, c.city, c.province);
   const delivery = addressLine(
@@ -113,9 +120,12 @@ export function CustomerPanel({
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Figure value={orders.length} label={orders.length === 1 ? 'Order' : 'Orders'} />
-        <Figure value={units} label={units === 1 ? 'Unit' : 'Units'} />
-        <Figure value={orders[0] ? formatDate(orders[0].created_at) : '—'} label="Last order" />
+        <Figure value={loaded ? orders.length : '…'} label={orders.length === 1 ? 'Order' : 'Orders'} />
+        <Figure value={loaded ? units : '…'} label={units === 1 ? 'Unit' : 'Units'} />
+        <Figure
+          value={!loaded ? '…' : orders[0] ? formatDate(orders[0].created_at) : '—'}
+          label="Last order"
+        />
       </div>
 
       <dl className="flex flex-col gap-3 text-sm">
@@ -130,7 +140,13 @@ export function CustomerPanel({
 
       <section>
         <h3 className="mb-2 text-sm font-bold text-ink">Orders</h3>
-        {orders.length === 0 ? (
+        {ordersQuery.isPending ? (
+          <Spinner label="Loading orders…" />
+        ) : ordersQuery.isError ? (
+          <p className="text-sm text-danger">
+            Couldn&apos;t load the orders. {readMessage(ordersQuery.error as { message?: string })}
+          </p>
+        ) : orders.length === 0 ? (
           <p className="text-sm text-muted">No orders yet.</p>
         ) : (
           <ul className="divide-y divide-line rounded-xl border border-line">
@@ -141,7 +157,7 @@ export function CustomerPanel({
                   onClick={() => navigate(`/orders/${o.id}`)}
                   className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-bg"
                 >
-                  <ModelThumb model={models.get(o.model_name)} className="h-9 w-16" />
+                  <ModelThumb model={o.model_id ? models.get(o.model_id) : undefined} className="h-9 w-16" />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="font-semibold text-ink">#{o.number}</span>
                     <span className="truncate text-xs text-muted">

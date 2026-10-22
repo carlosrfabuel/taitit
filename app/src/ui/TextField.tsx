@@ -26,6 +26,8 @@ export function TextField({ label, error, helper, revealable, secureTextEntry, s
       {label ? <AppText variant="label">{label}</AppText> : null}
       <View style={[styles.field, { borderColor }]}>
         <TextInput
+          // Screen readers announce the field by its visible label (unless a caller gives its own).
+          accessibilityLabel={label}
           {...rest}
           secureTextEntry={secure}
           placeholderTextColor={colors.muted}

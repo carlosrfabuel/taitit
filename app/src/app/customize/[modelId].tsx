@@ -365,6 +365,12 @@ function Customizer({
         </View>
       ) : null}
       <ScrollView style={styles.palette} contentContainerStyle={styles.paletteContent}>
+        {/* The model's description from the admin panel (proposal: image, name and description). */}
+        {model.description ? (
+          <AppText variant="small" color={colors.muted}>
+            {model.description}
+          </AppText>
+        ) : null}
         {noticeOpen ? (
           <View style={styles.notice}>
             <AppText variant="small" style={styles.noticeText}>

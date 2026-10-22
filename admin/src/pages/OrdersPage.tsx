@@ -35,11 +35,15 @@ export function OrdersPage() {
   const [period, setPeriod] = useState<OrderPeriod>('all');
   const shown = filterOrders(rows, query, period);
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
-  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
+  // By id, not name: a renamed model keeps its orders' pictures, a new one reusing a name gets none.
+  const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
   // The order in the panel: the one clicked, else the first one shown; none once the panel is closed.
   const [picked, setPicked] = useState<string | null>(null);
   const [panelClosed, setPanelClosed] = useState(false);
   const selected = panelClosed ? null : (shown.find((o) => o.id === picked) ?? shown[0] ?? null);
+  // The order in the panel stays there when the list refreshes (a new order doesn't replace it).
+  // (Adjusted during render, React's pattern for state that follows other values.)
+  if (selected && selected.id !== picked) setPicked(selected.id);
 
   // Orders sent since this browser last opened the list are marked "New" during this visit; the list
   // then counts as seen (the sidebar badge clears).
@@ -94,7 +98,7 @@ export function OrdersPage() {
       header: 'Model',
       render: (o) => (
         <span className="flex items-center gap-3">
-          <ModelThumb model={byName.get(o.model_name)} className="h-9 w-16" />
+          <ModelThumb model={o.model_id ? byId.get(o.model_id) : undefined} className="h-9 w-16" />
           {o.model_name}
         </span>
       ),

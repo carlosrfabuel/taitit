@@ -7,7 +7,14 @@ import { OrderColors } from '../components/OrderColors';
 import { ModelThumb } from '../components/ModelThumb';
 import { Button, Card, Spinner } from '../components/ui';
 import { customerKeys, listCustomers, setAccountStatus, type CustomerRow } from '../lib/customers';
-import { filterOrders, formatOrderDate, listOrders, orderKeys, ordersSeenAt } from '../lib/orders';
+import {
+  countOrdersSince,
+  filterOrders,
+  formatOrderDate,
+  listOrders,
+  orderKeys,
+  ordersSeenAt,
+} from '../lib/orders';
 import { listModels, modelKeys } from '../lib/models';
 import { dbMessage, readMessage } from '../lib/errors';
 
@@ -38,11 +45,18 @@ export function HomePage() {
   const showPending = !customers.data || pending.length > 0;
   const orderRows = orders.data ?? [];
   const seenAt = seen.data ?? null;
-  const fresh = seenAt ? orderRows.filter((o) => o.created_at > seenAt).length : 0;
+  // Counted by the database (the list holds only the newest orders); the same query as the sidebar badge.
+  const freshQuery = useQuery({
+    queryKey: orderKeys.since(seenAt ?? ''),
+    queryFn: () => countOrdersSince(seenAt!),
+    enabled: !!seenAt,
+    refetchInterval: 60_000,
+  });
+  const fresh = seenAt ? (freshQuery.data ?? 0) : 0;
   const week = filterOrders(orderRows, '', 'week').length;
   const published = (models.data ?? []).filter((m) => m.published).length;
   const drafts = (models.data ?? []).length - published;
-  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
+  const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
   const recentModels = [...(models.data ?? [])]
     .sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1))
     .slice(0, 3);
@@ -70,7 +84,7 @@ export function HomePage() {
           icon={<Sparkles className="size-5" aria-hidden />}
           tone="bg-sky-100 text-sky-800"
           label="New orders"
-          value={orders.data ? fresh : '…'}
+          value={!seenAt || freshQuery.data !== undefined ? fresh : '…'}
           note={seenAt ? 'since your last visit to Orders' : 'open Orders to start counting them'}
           attention={fresh > 0}
         />
@@ -142,7 +156,10 @@ export function HomePage() {
                       className="flex w-full items-center gap-4 rounded-lg px-2 py-3 text-left hover:bg-bg"
                     >
                       <span className="w-14 font-bold text-ink">#{o.number}</span>
-                      <ModelThumb model={byName.get(o.model_name)} className="h-10 w-16" />
+                      <ModelThumb
+                        model={o.model_id ? byId.get(o.model_id) : undefined}
+                        className="h-10 w-16"
+                      />
                       <span className="flex min-w-0 flex-1 flex-col">
                         <span className="truncate font-semibold text-ink">
                           {o.business_name ?? o.customer_name ?? '—'}

@@ -338,7 +338,7 @@ function ModelTile({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${model.name}. Customize`}
+      accessibilityLabel={`${model.name}.${model.description ? ` ${model.description}.` : ''} Customize`}
       onPress={() => router.push({ pathname: '/customize/[modelId]', params: { modelId: model.id } })}
       style={({ pressed }) => [styles.item, pressed && styles.pressed]}
     >
@@ -356,6 +356,12 @@ function ModelTile({
       <AppText variant="label" align="center" numberOfLines={1}>
         {model.name}
       </AppText>
+      {/* The start of the description (all of it on the model's screen). */}
+      {model.description ? (
+        <AppText variant="tiny" align="center" color={colors.muted} numberOfLines={2}>
+          {model.description}
+        </AppText>
+      ) : null}
     </Pressable>
   );
 }

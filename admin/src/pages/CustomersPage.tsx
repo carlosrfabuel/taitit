@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, RotateCcw, Search, Trash2, Users, X } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Avatar, CustomerPanel } from '../components/CustomerPanel';
-import { listOrders, orderKeys } from '../lib/orders';
+import { countOrdersPerCustomer, orderKeys } from '../lib/orders';
 import { listModels, modelKeys } from '../lib/models';
 import { Button, EmptyState, Input, Modal, Spinner, Table, Tag, type Column } from '../components/ui';
 import {
@@ -60,14 +60,17 @@ export function CustomersPage() {
 
   const all = (customers.data ?? []).filter((c) => matches(c, query));
   const rows = all.filter((c) => c.status === tab);
-  const orders = useQuery({ queryKey: orderKeys.all, queryFn: listOrders });
+  // Counted over every order (not only the newest ones the Orders list holds).
+  const orderCounts = useQuery({ queryKey: orderKeys.perCustomer, queryFn: countOrdersPerCustomer });
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
-  const byName = new Map((models.data ?? []).map((m) => [m.name, m]));
-  const ordersOf = (id: string) => (orders.data ?? []).filter((o) => o.user_id === id);
+  const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
   // The customer in the panel: the one clicked, else the first in the list; none once closed.
   const [picked, setPicked] = useState<string | null>(null);
   const [panelClosed, setPanelClosed] = useState(false);
   const selected = panelClosed ? null : (rows.find((c) => c.id === picked) ?? rows[0] ?? null);
+  // The customer in the panel stays there when the list refreshes (a new sign-up doesn't replace it).
+  // (Adjusted during render, React's pattern for state that follows other values.)
+  if (selected && selected.id !== picked) setPicked(selected.id);
   const count = (s: AccountStatus) => all.filter((c) => c.status === s).length;
   const busy = (id: string) => change.isPending && change.variables?.id === id;
 
@@ -111,7 +114,7 @@ export function CustomersPage() {
       key: 'orders',
       header: 'Orders',
       className: 'w-20',
-      render: (row) => (orders.data ? ordersOf(row.id).length : '…'),
+      render: (row) => (orderCounts.data ? (orderCounts.data.get(row.id) ?? 0) : '…'),
     },
     { key: 'created', header: 'Signed up', render: (row) => formatDate(row.created_at) },
     {
@@ -245,8 +248,7 @@ export function CustomersPage() {
             <CustomerPanel
               key={selected.id}
               customer={selected}
-              orders={ordersOf(selected.id)}
-              models={byName}
+              models={byId}
               onClose={() => setPanelClosed(true)}
             />
           )}
