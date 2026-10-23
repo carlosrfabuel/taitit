@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,7 @@ import {
   Button,
   Chip,
   EmptyState,
+  Icon,
   Loader,
   PhotoStage,
   PHOTO_STAGE_INSET,
@@ -30,7 +32,7 @@ import { useDesignMutations, useDesigns } from '@/designs/useDesigns';
 import { NameSheet } from '@/designs/NameSheet';
 import { RecolorView } from '@/render/RecolorView';
 import {
-  applyFinish,
+  chooseFinish,
   chooseSwatch,
   commit,
   currentPick,
@@ -286,6 +288,9 @@ function Customizer({
     setHistory(next);
   };
 
+  const saveLabel = !saved ? 'Save design' : unsaved ? 'Save changes' : 'Saved';
+  const saveDisabled = !unsaved || zones.length === 0;
+
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: saved?.name ?? model.name }} />
@@ -391,7 +396,9 @@ function Customizer({
                     key={f}
                     label={FINISH_LABEL[f]}
                     selected={current?.finish === f}
-                    onPress={() => change((h) => commit(h, applyFinish(h.picks, zone!, swatches, f)))}
+                    onPress={() =>
+                      change((h) => commit(h, chooseFinish(h.picks, model.zones, zone!, swatches, f)))
+                    }
                   />
                 ))}
               </View>
@@ -437,15 +444,26 @@ function Customizer({
         </AppText>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
-        <Button
-          title={!saved ? 'Save design' : unsaved ? 'Save changes' : 'Saved'}
-          icon={saved && !unsaved ? 'checkmark' : 'heart-outline'}
-          variant="secondary"
-          disabled={!unsaved || zones.length === 0}
-          loading={busy}
+        {/* Save as a round heart beside the order button (benchmarks 2026-10-23): outlined while
+            there is something to save, filled once the design is saved as it is. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={saveLabel}
+          accessibilityState={{ disabled: saveDisabled, busy }}
+          disabled={saveDisabled || busy}
           onPress={onSave}
-          style={styles.footerButton}
-        />
+          style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+        >
+          {busy ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Icon
+              name={saved && !unsaved ? 'heart' : 'heart-outline'}
+              size={24}
+              color={saveDisabled && !(saved && !unsaved) ? colors.muted : colors.primary}
+            />
+          )}
+        </Pressable>
         <Button
           title="Order"
           onPress={() =>
@@ -456,6 +474,7 @@ function Customizer({
               }),
             )
           }
+          arrow
           style={styles.footerButton}
         />
       </View>
@@ -504,6 +523,17 @@ const styles = StyleSheet.create({
   },
   noticeText: { flex: 1, color: colors.onHighlight },
   footerButton: { flex: 1 },
+  saveButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savePressed: { opacity: 0.7 },
   footer: {
     flexDirection: 'row',
     gap: spacing.md,

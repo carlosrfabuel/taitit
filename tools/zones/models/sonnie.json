@@ -9,6 +9,8 @@
   "zones": [
     {
       "id": "metal",
+      "seamFloor": 0.7,
+      "seamBlend": true,
       "label": "Main metal",
       "material": "metal",
       "role": "main",
@@ -23,6 +25,7 @@
       "defaultRef": "1",
       "defaultFinish": "matte",
       "smooth": 8,
+      "fill": 70,
       "pattern": "own"
     },
     {
@@ -30,7 +33,7 @@
       "label": "Tips",
       "material": "acetate",
       "role": "tips",
-      "defaultRef": "11",
+      "defaultRef": "1",
       "defaultFinish": "matte",
       "smooth": 6,
       "pattern": "own"

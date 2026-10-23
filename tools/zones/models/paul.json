@@ -9,6 +9,9 @@
   "zones": [
     {
       "id": "metal",
+      "seamFloor": 0.7,
+      "seamBlend": true,
+      "denoise": 3,
       "label": "Main metal",
       "material": "metal",
       "role": "main",
@@ -17,6 +20,7 @@
     },
     {
       "id": "frente",
+      "denoise": 3,
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",

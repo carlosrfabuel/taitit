@@ -55,7 +55,7 @@ export function AdminLayout() {
         : null;
   return (
     <div className="flex min-h-screen">
-      {/* Deep green sidebar (as the app's start screen): white logo, icons, the selected item as a pill. */}
+      {/* Black sidebar (as the app's icon and start screen): white logo, icons, the selected item as a pill. */}
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-forest px-4 py-6 text-white print:hidden">
         <div className="mb-10 px-2">
           <img src="/logo-full-white.svg" alt="TAITIT, tailored handcrafted eyewear" className="w-40" />

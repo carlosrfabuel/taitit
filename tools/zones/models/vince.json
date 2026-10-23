@@ -9,6 +9,9 @@
   "zones": [
     {
       "id": "metal",
+      "seamFloor": 0.7,
+      "seamBlend": true,
+      "denoise": 3,
       "label": "Main metal",
       "material": "metal",
       "role": "main",
@@ -17,6 +20,8 @@
     },
     {
       "id": "frente",
+      "seamFloor": 0.7,
+      "seamBlend": true,
       "label": "Secondary front",
       "material": "acetate",
       "role": "secondary",
@@ -25,6 +30,8 @@
     },
     {
       "id": "terminales",
+      "seamFloor": 0.7,
+      "seamBlend": true,
       "label": "Tips",
       "material": "acetate",
       "role": "tips",

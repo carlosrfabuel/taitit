@@ -122,6 +122,15 @@ async function maskedBlur(
 const percentile = (sorted: Float32Array, p: number) =>
   sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))]!;
 
+/** How far (px) a layer continues under the zones drawn after it (see Underlap in buildLayers). */
+const UNDERLAP = 2;
+const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+
+/** Reach (px) of `seamFloor`: how close to another zone a pixel counts as part of the joint. */
+const SEAM_REACH = 3;
+/** Blur sigma (px) of `seamBlend`: how far beside the joint the part's light is taken from. */
+const SEAM_BLEND_SIGMA = 4;
+
 export async function buildLayers(
   raster: Raster,
   seg: Segmentation,
@@ -170,7 +179,7 @@ export async function buildLayers(
         }
       const cap = vals.length ? Float32Array.from(vals).sort()[Math.floor(vals.length * 0.9)]! : 255;
       const capped = lum.map((v) => Math.min(v, cap));
-      const envelope = maskedMax(capped, inZone, width, height, Math.round(z.smooth * 2.5));
+      const envelope = maskedMax(capped, inZone, width, height, z.fill ?? Math.round(z.smooth * 2.5));
       source = await maskedBlur(envelope, inZone, width, height, z.smooth);
     }
 
@@ -209,8 +218,8 @@ export async function buildLayers(
         masked[i] = source[i]!;
       }
       const [num, den] = await Promise.all([
-        blurChannel(masked, width, height, DENOISE),
-        blurChannel(mask, width, height, DENOISE),
+        blurChannel(masked, width, height, z.denoise ?? DENOISE),
+        blurChannel(mask, width, height, z.denoise ?? DENOISE),
       ]);
       for (let i = 0; i < n; i++) if (mask[i]) clean[i] = den[i]! ? (num[i]! / den[i]!) * 255 : source[i]!;
     }
@@ -227,6 +236,80 @@ export async function buildLayers(
       const v = clean[i]!;
       shade[i] = Math.pow(Math.min(1, v / med), shadow);
       light[i] = v > med ? Math.min(1, (v - med) / Math.max(8, 255 - med)) : 0;
+    }
+    // `seamFloor`: where the part meets another zone (within SEAM_REACH px), its shadow stops at this
+    // ratio. The photo's joint between two parts can be near-black and broken (CHRISTIE's metal along
+    // its tortoiseshell front, 2026-10-23): a light color then shows a black dotted line. Lifted to the
+    // floor it stays a faint, continuous crease.
+    if (z.seamFloor) {
+      for (let i = 0; i < n; i++) {
+        if (seg.zone[i] !== id || shade[i]! >= z.seamFloor) continue;
+        const x = i % width;
+        const y = (i / width) | 0;
+        let near = false;
+        for (let dy = -SEAM_REACH; dy <= SEAM_REACH && !near; dy++)
+          for (let dx = -SEAM_REACH; dx <= SEAM_REACH; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+            const o = seg.zone[yy * width + xx]!;
+            if (o !== id && o !== NONE) {
+              near = true;
+              break;
+            }
+          }
+        if (near) shade[i] = z.seamFloor;
+      }
+    }
+    // `seamBlend`: where the part meets another zone (within SEAM_REACH px), its light and shadow are
+    // replaced by the part's own just beside the joint (a masked blur of the pixels around it). The
+    // photo's joint (a dark, broken line with bright bevel specks) then disappears when both parts get the
+    // same color; with different colors the color change itself marks the joint (VENDOR, 2026-10-23).
+    if (z.seamBlend) {
+      const seam = new Uint8Array(n);
+      for (let i = 0; i < n; i++) {
+        if (seg.zone[i] !== id) continue;
+        const x = i % width;
+        const y = (i / width) | 0;
+        for (let dy = -SEAM_REACH; dy <= SEAM_REACH && !seam[i]; dy++)
+          for (let dx = -SEAM_REACH; dx <= SEAM_REACH; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+            const o = seg.zone[yy * width + xx]!;
+            if (o !== id && o !== NONE) {
+              seam[i] = 1;
+              break;
+            }
+          }
+      }
+      const weight = new Float32Array(n);
+      const sh = new Float32Array(n);
+      const li = new Float32Array(n);
+      for (let i = 0; i < n; i++)
+        if (seg.zone[i] === id && !seam[i] && !seg.edge[i]) {
+          weight[i] = 255;
+          sh[i] = Math.min(1, shade[i]!) * 255;
+          li[i] = light[i]! * 255;
+        }
+      const den = await blurChannel(weight, width, height, SEAM_BLEND_SIGMA);
+      const numS = await blurChannel(sh, width, height, SEAM_BLEND_SIGMA);
+      const numL = await blurChannel(li, width, height, SEAM_BLEND_SIGMA);
+      for (let i = 0; i < n; i++)
+        if (seam[i] && den[i]! > 8) {
+          shade[i] = numS[i]! / den[i]!;
+          light[i] = numL[i]! / den[i]!;
+        }
+    }
+    // `lift`: rectangles (output px) where the part's shadow stops at the seam floor (default 0.7), for a
+    // dark spot of the photo that isn't at a joint (VENDOR's left hinge, 2026-10-23).
+    for (const [x1, y1, x2, y2] of z.lift ?? []) {
+      const floor = z.seamFloor ?? 0.7;
+      for (let y = Math.max(0, y1); y <= Math.min(height - 1, y2); y++)
+        for (let x = Math.max(0, x1); x <= Math.min(width - 1, x2); x++) {
+          const i = y * width + x;
+          if (seg.zone[i] === id && shade[i]! < floor) shade[i] = floor;
+        }
     }
     // Edge pixels that mix with the outside are lighter because of it (their alpha does that part): no
     // lighter than the part next to them, or every edge would get a light rim. A seam between two parts
@@ -277,6 +360,43 @@ export async function buildLayers(
       }
     }
     out.push({ width, height, data: layer });
+  }
+
+  // Underlap: each layer continues UNDERLAP px under the zones drawn after it (zone order = draw order,
+  // shared/src/render.ts), with its own edge light and shadow. At full size the later layer covers that
+  // strip (it is opaque where two parts meet), so nothing visible changes; but the app scales every
+  // layer down on its own, which leaves both edges of a joint partly transparent: the base showed
+  // through as a thin light line along every joint in one color (VENDOR on a phone, 2026-10-23).
+  for (let k = 0; k < out.length; k++) {
+    const L = out[k]!.data;
+    const own = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (seg.zone[i] === k + 1) own[i] = 1;
+    for (let pass = 0; pass < UNDERLAP; pass++) {
+      const add: [number, number][] = [];
+      for (let i = 0; i < n; i++) {
+        const z = seg.zone[i]!;
+        if (own[i] || z === NONE || z <= k + 1) continue; // only under zones drawn later
+        const x = i % width;
+        const y = (i / width) | 0;
+        for (const [dx, dy] of NEIGHBOURS) {
+          const xx = x + dx;
+          const yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+          const j = yy * width + xx;
+          if (own[j] && L[j * 4 + 3] === 255) {
+            add.push([i, j]);
+            break;
+          }
+        }
+      }
+      for (const [i, j] of add) {
+        own[i] = 1;
+        L[i * 4] = L[j * 4]!;
+        L[i * 4 + 1] = L[j * 4 + 1]!;
+        L[i * 4 + 2] = L[j * 4 + 2]!;
+        L[i * 4 + 3] = 255;
+      }
+    }
   }
 
   // Clear parts outside every zone (nose pads, lens edges) reflect the frame's photo color, which stays

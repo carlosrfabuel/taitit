@@ -11,6 +11,7 @@ import {
   downloadOrdersSheet,
   filterOrders,
   orderDayAndTime,
+  orderImageUrls,
   listOrders,
   markOrdersSeen,
   orderKeys,
@@ -37,6 +38,14 @@ export function OrdersPage() {
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
   // By id, not name: a renamed model keeps its orders' pictures, a new one reusing a name gets none.
   const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
+  // The design each optician ordered (private images): links for every listed order in one request.
+  const imagePaths = rows.map((o) => o.image_path).filter((p): p is string => !!p);
+  const images = useQuery({
+    queryKey: ['orders', 'images', imagePaths],
+    queryFn: () => orderImageUrls(imagePaths),
+    enabled: imagePaths.length > 0,
+    staleTime: 30 * 60_000, // the links last an hour
+  });
   // The order in the panel: the one clicked, else the first one shown; none once the panel is closed.
   const [picked, setPicked] = useState<string | null>(null);
   const [panelClosed, setPanelClosed] = useState(false);
@@ -102,6 +111,27 @@ export function OrdersPage() {
           {o.model_name}
         </span>
       ),
+    },
+    {
+      key: 'design',
+      header: 'Design',
+      render: (o) => {
+        const url = o.image_path ? images.data?.get(o.image_path) : undefined;
+        return (
+          <span className="inline-flex h-9 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white">
+            {url ? (
+              <img
+                src={url}
+                alt={`Design of order ${o.number}`}
+                loading="lazy"
+                className="size-full object-contain"
+              />
+            ) : o.image_path && images.isPending ? null : (
+              <span className="text-[10px] leading-tight text-muted">No image</span>
+            )}
+          </span>
+        );
+      },
     },
     { key: 'colors', header: 'Colors', render: (o) => <OrderColors items={o.order_items} /> },
     { key: 'quantity', header: 'Quantity', className: 'w-24', render: (o) => o.quantity },

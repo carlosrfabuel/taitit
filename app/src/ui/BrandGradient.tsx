@@ -3,11 +3,11 @@ import { StyleSheet, View } from 'react-native';
 import { Canvas, LinearGradient, Rect, vec } from '@shopify/react-native-skia';
 
 /**
- * TAITIT green as a gradient, lighter on the left to deep on the right, filling its parent (primary
- * buttons, the selected catalog chip). The parent rounds it (overflow hidden). Both ends keep white
- * text above 4.5:1 contrast.
+ * TAITIT black as a soft gradient, graphite on the left to pure black on the right, filling its
+ * parent (primary buttons, the selected catalog chip). The parent rounds it (overflow hidden). White
+ * text stays far above 4.5:1 contrast on both ends.
  */
-export const BRAND_GRADIENT = ['#3D8457', '#2F6B47', '#173D2A'] as const;
+export const BRAND_GRADIENT = ['#3A3A3A', '#1A1A1A', '#000000'] as const;
 
 export function BrandGradient() {
   const [size, setSize] = useState({ width: 0, height: 0 });

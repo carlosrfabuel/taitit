@@ -11,8 +11,8 @@ import {
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { tokens, type Material } from '@taitit/shared';
-import { AppText, BrandLogo, Chip, EmptyState, GradientFill, Icon, Skeleton, WARM_GLOWS } from '@/ui';
+import { MATERIAL_LABEL, tokens, type Material } from '@taitit/shared';
+import { AppText, BrandLogo, EmptyState, GradientFill, Icon, Skeleton, WARM_GLOWS } from '@/ui';
 import { useAuth } from '@/auth/AuthProvider';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import {
@@ -109,43 +109,38 @@ export default function CatalogScreen() {
           Find your <AppText style={[styles.title, styles.titleAccent]}>next frame</AppText>
         </AppText>
       </View>
-      {/* Equal chips spanning the width (their edges line up with the grid). */}
-      <View style={styles.chipRow}>
-        <Chip
-          fill
-          tone="strong"
-          label="All"
-          selected={!front && !category}
-          onPress={() => {
-            setFront(null);
-            setCategory(null);
-          }}
-        />
-        {FRONTS.map((f) => (
-          <Chip
-            key={f.key}
-            fill
-            tone="strong"
-            label={f.label}
-            selected={front === f.key}
-            onPress={() => setFront(front === f.key ? null : f.key)}
-          />
-        ))}
-      </View>
-      {/* More than one category (today all models are Optical): a second row of equal chips. */}
+      {/* Text tabs with a black underline on the selected one (benchmarks 2026-10-23). */}
+      <FilterTabs
+        label="Front material"
+        tabs={[
+          {
+            key: 'all',
+            label: 'All',
+            selected: !front && !category,
+            onPress: () => {
+              setFront(null);
+              setCategory(null);
+            },
+          },
+          ...FRONTS.map((f) => ({
+            key: f.key,
+            label: f.label,
+            selected: front === f.key,
+            onPress: () => setFront(front === f.key ? null : f.key),
+          })),
+        ]}
+      />
+      {/* More than one category (today all models are Optical): a second row of tabs. */}
       {categories.length > 1 && (
-        <View style={styles.chipRow}>
-          {categories.map((c) => (
-            <Chip
-              key={c}
-              fill
-              tone="strong"
-              label={c}
-              selected={category === c}
-              onPress={() => setCategory(category === c ? null : c)}
-            />
-          ))}
-        </View>
+        <FilterTabs
+          label="Category"
+          tabs={categories.map((c) => ({
+            key: c,
+            label: c,
+            selected: category === c,
+            onPress: () => setCategory(category === c ? null : c),
+          }))}
+        />
       )}
     </View>
   );
@@ -335,6 +330,11 @@ function ModelTile({
   swatches: CatalogSwatch[];
 }) {
   const dots = defaultColors(model, swatches);
+  // The model at a glance, e.g. "Optical · Acetate front".
+  const material = frontMaterial(model);
+  const meta = [model.category, material ? `${MATERIAL_LABEL[material]} front` : null]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <Pressable
       accessibilityRole="button"
@@ -356,6 +356,11 @@ function ModelTile({
       <AppText variant="label" align="center" numberOfLines={1}>
         {model.name}
       </AppText>
+      {meta ? (
+        <AppText variant="tiny" align="center" color={colors.muted} numberOfLines={1} style={styles.meta}>
+          {meta}
+        </AppText>
+      ) : null}
       {/* The start of the description (all of it on the model's screen). */}
       {model.description ? (
         <AppText variant="tiny" align="center" color={colors.muted} numberOfLines={2}>
@@ -363,6 +368,37 @@ function ModelTile({
         </AppText>
       ) : null}
     </Pressable>
+  );
+}
+
+/** A row of text tabs; the selected one is bold with a black underline. */
+function FilterTabs({
+  label,
+  tabs,
+}: {
+  label: string;
+  tabs: { key: string; label: string; selected: boolean; onPress: () => void }[];
+}) {
+  return (
+    <View style={styles.tabs} accessibilityRole="tablist" accessibilityLabel={label}>
+      {tabs.map((t) => (
+        <Pressable
+          key={t.key}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: t.selected }}
+          onPress={t.onPress}
+          style={({ pressed }) => [styles.tab, t.selected && styles.tabSelected, pressed && styles.pressed]}
+        >
+          <AppText
+            variant={t.selected ? 'label' : 'small'}
+            color={t.selected ? colors.text : colors.muted}
+            numberOfLines={1}
+          >
+            {t.label}
+          </AppText>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -426,8 +462,23 @@ const styles = StyleSheet.create({
   header: { gap: spacing.md, marginTop: spacing.lg, marginBottom: spacing.lg },
   headline: { gap: 0 },
   title: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42, color: colors.text },
-  titleAccent: { color: colors.primary },
-  chipRow: { flexDirection: 'row', gap: spacing.sm },
+  titleAccent: { fontFamily: fonts.displayItalic },
+  tabs: {
+    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  tab: {
+    flex: 1,
+    minHeight: touch.minSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -StyleSheet.hairlineWidth,
+  },
+  tabSelected: { borderBottomColor: colors.primary },
+  meta: { marginTop: -spacing.xs },
   grid: { flexDirection: 'row', gap: GAP, alignItems: 'flex-start' },
   column: { flex: 1, gap: spacing.lg },
   item: { gap: spacing.sm, alignItems: 'center' },

@@ -226,6 +226,19 @@ export function isMissingFile(error: unknown): boolean {
   return /not.?found/i.test(e?.message ?? '') || String(e?.statusCode) === '404';
 }
 
+/**
+ * Temporary links to several private order images at once (an hour), by path: one request for the
+ * whole list. A failed request or a missing file only leaves that image out.
+ */
+export async function orderImageUrls(paths: string[]): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  if (paths.length === 0) return urls;
+  const { data, error } = await supabase.storage.from('orders').createSignedUrls(paths, 3600);
+  if (error) throw error;
+  for (const u of data ?? []) if (u.path && u.signedUrl && !u.error) urls.set(u.path, u.signedUrl);
+  return urls;
+}
+
 /** Temporary link to the private order image (an hour). */
 export async function orderImageUrl(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from('orders').createSignedUrl(path, 3600);

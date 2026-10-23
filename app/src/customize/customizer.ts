@@ -74,10 +74,34 @@ export function applySwatch(
 }
 
 /**
- * The customer picks a color for a zone. The tips follow the secondary front (client rule
- * 2026-10-20): when both are acetate and the tips show the same color as the secondary front, a new
- * secondary color goes to the tips too. Tips the customer gave their own color keep it. One change
- * (one undo step) either way.
+ * The tips that follow this zone, if any (client rules 2026-10-20 and 2026-10-23): when the
+ * secondary front and the tips are both acetate, the tips take the front's color and finish, so
+ * they start the same, until the customer gives the tips a color of their own. Tips the customer
+ * never touched always follow; tips showing the front's color still follow.
+ */
+function followingTips(
+  picks: Picks,
+  zones: CatalogZone[],
+  zone: CatalogZone,
+  swatches: CatalogSwatch[],
+): CatalogZone | null {
+  if (zone.role !== 'secondary') return null;
+  const tips = zones.find((z) => z.role === 'tips');
+  if (!tips || tips.id === zone.id || tips.material !== zone.material) return null;
+  if (!picks[tips.id]) return tips;
+  const front = currentPick(zone, swatches, picks).swatch;
+  return front && currentPick(tips, swatches, picks).swatch?.id === front.id ? tips : null;
+}
+
+/** The tips copy the front's color and finish as they are in `next`. */
+function copyToTips(next: Picks, zone: CatalogZone, tips: CatalogZone, swatches: CatalogSwatch[]): Picks {
+  const { swatch, finish } = currentPick(zone, swatches, next);
+  return swatch ? { ...next, [tips.id]: { swatchId: swatch.id, finish } } : next;
+}
+
+/**
+ * The customer picks a color for a zone; following tips take it too (with the front's finish). Tips
+ * the customer gave their own color keep it. One change (one undo step) either way.
  */
 export function chooseSwatch(
   picks: Picks,
@@ -87,12 +111,23 @@ export function chooseSwatch(
   swatch: CatalogSwatch,
 ): Picks {
   const next = applySwatch(picks, zone, swatches, swatch);
-  if (next === picks || zone.role !== 'secondary') return next;
-  const tips = zones.find((z) => z.role === 'tips');
-  if (!tips || tips.id === zone.id || tips.material !== zone.material) return next;
-  const before = currentPick(zone, swatches, picks).swatch;
-  const tipsNow = currentPick(tips, swatches, picks).swatch;
-  return before && tipsNow?.id === before.id ? applySwatch(next, tips, swatches, swatch) : next;
+  if (next === picks) return next;
+  const tips = followingTips(picks, zones, zone, swatches);
+  return tips ? copyToTips(next, zone, tips, swatches) : next;
+}
+
+/** The customer picks a finish for a zone; following tips take the same finish. One undo step. */
+export function chooseFinish(
+  picks: Picks,
+  zones: CatalogZone[],
+  zone: CatalogZone,
+  swatches: CatalogSwatch[],
+  finish: Finish,
+): Picks {
+  const next = applyFinish(picks, zone, swatches, finish);
+  if (next === picks) return next;
+  const tips = followingTips(picks, zones, zone, swatches);
+  return tips ? copyToTips(next, zone, tips, swatches) : next;
 }
 
 /** Sets the finish of a zone's current color; ignored when the color doesn't offer it. */

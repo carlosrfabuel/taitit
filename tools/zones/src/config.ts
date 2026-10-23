@@ -22,6 +22,23 @@ export type ZoneConfig = {
   shadow?: number;
   /** Blur sigma for the shading of patterned originals (tortoiseshell), so the pattern doesn't bleed. */
   smooth?: number;
+  /** With `smooth`: how far (px) each pixel looks for the brightest pixel that fills a dark spot (default
+   * 2.5 × smooth). Large tortoiseshell patches need more, or their middle stays dark: a light solid color
+   * then shows them as grey smudges (CHRISTIE in Q0, 2026-10-23). */
+  fill?: number;
+  /** Where this part meets another zone (within 3 px), its shadow stops at this ratio of its typical
+   * brightness (e.g. 0.7): a near-black, broken joint in the photo then shows as a faint, continuous
+   * crease instead of a black dotted line in light colors. Off by default. */
+  seamFloor?: number;
+  /** Blur sigma of the light denoise (default 1). Higher for a matte metal photographed dark with a
+   * sand-blasted grain (PAUL, 2026-10-23): the grain is in the shading and shows as dots in white. */
+  denoise?: number;
+  /** Rectangles [x1, y1, x2, y2] (output px, inclusive) where this part's shadow stops at `seamFloor`
+   * (default 0.7): a dark spot of the photo away from any joint. */
+  lift?: [number, number, number, number][];
+  /** Where this part meets another zone (within 3 px), its light and shadow are taken from the part just
+   * beside the joint: the photo's joint line disappears when both parts get the same color. */
+  seamBlend?: boolean;
   /** Tortoiseshell pattern used for havana colors (acetate zones): "own" = this part as photographed
    * (it is tortoiseshell in the photo), "borrowed" (default) = textures/tortoise.jpg shaded like the
    * zone, "none" = flat havana color. */
@@ -163,7 +180,8 @@ export function loadConfig(file: string): { config: ModelConfig; inputPath: stri
   }
   for (const f of config.fixes ?? []) {
     const where = JSON.stringify(f.rect ?? f.poly);
-    if (!ids.has(f.from) || (f.to !== 'none' && !ids.has(f.to)))
+    // "none" as the source: pixels of no zone (not the studio background), e.g. a few px gap at a hinge.
+    if ((f.from !== 'none' && !ids.has(f.from)) || (f.to !== 'none' && !ids.has(f.to)))
       errors.push(`fix ${where} uses an unknown zone`);
     const point = (p: unknown) => Array.isArray(p) && p.length === 2 && p.every((v) => typeof v === 'number');
     if (!f.rect === !f.poly) errors.push(`fix ${where}: give either rect or poly`);

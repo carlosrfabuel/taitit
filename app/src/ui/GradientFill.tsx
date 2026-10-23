@@ -9,18 +9,17 @@ const { colors } = tokens;
 export type Glow = { x: number; y: number; radius: number; color: string };
 
 /**
- * Warm, layered background (benchmark: a fashion shop's colorful header): the palette's yellow and
- * greens as soft glows over the green-to-cream fade (catalog and welcome screen).
+ * Calm, layered background (benchmarks 2026-10-23: monochrome shops where the frames bring the only
+ * colour): soft warm-grey and white glows over the grey-to-off-white fade (catalog).
  */
 export const WARM_GLOWS: Glow[] = [
-  { x: 0.95, y: 0.02, radius: 0.85, color: '#FBE7A1E6' },
-  { x: 0.05, y: 0.18, radius: 0.75, color: '#B9DDB2D9' },
-  { x: 0.6, y: 0.3, radius: 0.55, color: '#F6D98A66' },
+  { x: 0.95, y: 0.02, radius: 0.85, color: '#E6E0D4CC' },
+  { x: 0.05, y: 0.2, radius: 0.75, color: '#FFFFFFCC' },
 ];
 
 /**
- * A vertical gradient filling its parent (behind the content): light green at the top fading into the
- * app background, for the welcome screen and the catalog. `until` ends the fade early (the rest is the
+ * A vertical gradient filling its parent (behind the content): light warm grey at the top fading into
+ * the app background, for the catalog. `until` ends the fade early (the rest is the
  * bottom color); `glows` add soft color spots on top (the catalog's warmer, richer background). Drawn
  * with Skia (already used for the recolor), so no extra native module.
  */

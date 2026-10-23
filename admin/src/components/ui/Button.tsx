@@ -4,9 +4,9 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
-  // The TAITIT green gradient, as in the app (app/src/ui/BrandGradient: #3D8457 → #2F6B47 → #173D2A).
+  // The TAITIT black gradient, as in the app (app/src/ui/BrandGradient: #3A3A3A → #1A1A1A → #000000).
   primary:
-    'bg-linear-to-br from-[#3D8457] via-brand to-[#173D2A] text-white border-transparent hover:opacity-90',
+    'bg-linear-to-br from-[#3A3A3A] via-[#1A1A1A] to-black text-white border-transparent hover:opacity-90',
   secondary: 'bg-surface text-brand border-brand hover:bg-bg',
   ghost: 'bg-transparent text-brand border-transparent hover:bg-bg',
   danger: 'bg-surface text-danger border-danger hover:bg-red-50',

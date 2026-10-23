@@ -1,25 +1,25 @@
 @import 'tailwindcss';
 
-/* Brand tokens, kept in sync with shared/src/tokens.ts (palette "Garden", 2026-10-20). */
+/* Brand tokens, kept in sync with shared/src/tokens.ts (palette "Black", 2026-10-23). */
 @theme {
-  --color-brand: #2f6b47;
-  --color-accent: #2f6b47;
-  --color-bg: #fbf8ee;
+  --color-brand: #111111;
+  --color-accent: #111111;
+  --color-bg: #f7f6f2;
   --color-surface: #ffffff;
-  --color-surface-muted: #f3eed9;
-  --color-ink: #1d2620;
-  --color-muted: #5d675f;
-  --color-line: #e6e0cb;
+  --color-surface-muted: #efede8;
+  --color-ink: #141414;
+  --color-muted: #5e5e5a;
+  --color-line: #e3e0d8;
   --color-danger: #b3261e;
   --color-success: #2e7d4f;
-  --color-selected: #ddefd9;
-  --color-on-selected: #1e4d31;
-  --color-selected-line: #b9ddb2;
+  --color-selected: #eceae4;
+  --color-on-selected: #111111;
+  --color-selected-line: #cfcbc1;
   --color-highlight: #fbe7a1;
   --color-on-highlight: #4a3a08;
-  /* Sidebar: deep TAITIT green (as the app's start screen). */
-  --color-forest: #14301f;
-  --color-forest-line: #24472f;
+  /* Sidebar: TAITIT black (as the app's icon and start screen). The token keeps its old name. */
+  --color-forest: #0d0d0d;
+  --color-forest-line: #2a2a2a;
   --font-sans: 'Urbanist', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-serif: 'Playfair Display', Georgia, serif;
 }

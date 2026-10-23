@@ -9,6 +9,10 @@
   "zones": [
     {
       "id": "metal",
+      "lift": [[86, 110, 112, 128]],
+      "seamFloor": 0.7,
+      "seamBlend": true,
+      "denoise": 3,
       "label": "Main metal",
       "material": "metal",
       "role": "main",
@@ -17,6 +21,9 @@
     },
     {
       "id": "frente",
+      "seamFloor": 0.7,
+      "seamBlend": true,
+      "denoise": 3,
       "label": "Secondary front",
       "material": "metal",
       "role": "secondary",
@@ -25,6 +32,8 @@
     },
     {
       "id": "terminales",
+      "seamFloor": 0.7,
+      "seamBlend": true,
       "label": "Tips",
       "material": "acetate",
       "role": "tips",
@@ -186,6 +195,17 @@
       "to": "metal",
       "piecesInside": true,
       "note": "navy piece of the left hinge"
+    },
+    {
+      "rect": [
+        96,
+        115,
+        97,
+        116
+      ],
+      "from": "none",
+      "to": "metal",
+      "note": "3 px gap at the left hinge where the cleared base is black (2026-10-23)"
     }
   ]
 }

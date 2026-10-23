@@ -8,6 +8,8 @@
   "zones": [
     {
       "id": "metal",
+      "seamFloor": 0.7,
+      "seamBlend": true,
       "label": "Main metal",
       "material": "metal",
       "role": "main",

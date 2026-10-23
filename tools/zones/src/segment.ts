@@ -255,7 +255,7 @@ export function segment(
   const touched = new Uint8Array(n);
   const cleared = new Uint8Array(n);
   for (const f of fixes) {
-    const from = zoneIndex(f.from);
+    const from = f.from === 'none' ? NONE : zoneIndex(f.from);
     const to = f.to === 'none' ? NONE : zoneIndex(f.to);
     const area = fixArea(f);
     const [x1, y1, x2, y2] = area.box;
@@ -282,7 +282,7 @@ export function segment(
     for (let y = Math.max(0, y1); y <= Math.min(height - 1, y2); y++) {
       for (let x = Math.max(0, x1); x <= Math.min(width - 1, x2); x++) {
         const i = y * width + x;
-        if (zone[i] !== from || !area.has(x, y)) continue;
+        if (zone[i] !== from || !area.has(x, y) || (from === NONE && background[i])) continue;
         zone[i] = to;
         if (to === NONE) cleared[i] = 1;
         if (f.shadeAsZone) group[i] = -1;

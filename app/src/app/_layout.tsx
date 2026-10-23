@@ -10,19 +10,18 @@ import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { ToastProvider } from '@/ui';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import { WelcomeProvider, useWelcome } from '@/lib/welcome';
+import { WelcomeProvider } from '@/lib/welcome';
 import { FONT_FILES, fonts } from '@/ui/fonts';
 
-// Keep the splash screen until the stored session (and whether the welcome screen was seen) is read, so
+// Keep the splash screen until the stored session is read, so
 // signed-in users never see a signed-out flash, and until the fonts are loaded (no text jump).
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootStack() {
   const { initializing } = useAuth();
-  const welcome = useWelcome();
   // A font that fails to load falls back to the system font: never a reason to stay on the splash.
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
-  const loading = initializing || !welcome.ready || (!fontsLoaded && !fontError);
+  const loading = initializing || (!fontsLoaded && !fontError);
 
   useEffect(() => {
     if (!loading) SplashScreen.hideAsync().catch(() => {});

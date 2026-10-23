@@ -1,26 +1,28 @@
 // Design tokens shared by the app and the admin (admin copy: admin/src/index.css @theme).
-// Palette "Garden" (chosen 2026-10-20): warm light-yellow ground, deep green for main actions,
-// light green for what is selected, warm yellow for notes and highlights. Every text colour has at
-// least 4.5:1 contrast on the backgrounds it is used on (success text: not on highlight).
+// Palette "Black" (2026-10-23, Carlos: black instead of dark green, like the logo): near-black for
+// main actions and what is selected, a soft off-white ground and warm greys, so the frames' own
+// colours are the only colour on screen; warm yellow stays for notes and highlights, green and red
+// only for success and errors. Every text colour has at least 4.5:1 contrast on the backgrounds it
+// is used on (success text: not on highlight).
 export const colors = {
-  primary: '#2F6B47',
+  primary: '#111111',
   onPrimary: '#FFFFFF',
-  accent: '#2F6B47',
-  background: '#FBF8EE',
+  accent: '#111111',
+  background: '#F7F6F2',
   surface: '#FFFFFF',
-  surfaceMuted: '#F3EED9',
-  text: '#1D2620',
-  muted: '#5D675F',
-  border: '#E6E0CB',
-  focus: '#2F6B47',
+  surfaceMuted: '#EFEDE8',
+  text: '#141414',
+  muted: '#5E5E5A',
+  border: '#E3E0D8',
+  focus: '#111111',
   danger: '#B3261E',
   success: '#2E7D4F',
   warning: '#8A6200',
-  overlay: 'rgba(29,38,32,0.45)',
-  /** Light green: selected chips, "approved" badges. */
-  selected: '#DDEFD9',
-  onSelected: '#1E4D31',
-  selectedBorder: '#B9DDB2',
+  overlay: 'rgba(17,17,17,0.45)',
+  /** Light warm grey: selected chips, "approved" badges. */
+  selected: '#ECEAE4',
+  onSelected: '#111111',
+  selectedBorder: '#CFCBC1',
   /** Light warm yellow: notes, "ordering as", "waiting for approval". */
   highlight: '#FBE7A1',
   onHighlight: '#4A3A08',
