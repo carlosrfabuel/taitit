@@ -37,11 +37,11 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "owner": "otherkgh0515",
+    "owner": "thirdkghs-team",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "20372d7d-20e6-4534-9e06-df46bdf48b3e"
+        "projectId": "802eb207-8810-4e8b-9ede-c0463e88ecf2"
       }
     }
   }
