@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import { MAX_ZONES_PER_MODEL } from '@taitit/shared';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FINISH_LABEL, MATERIAL_LABEL, swatchLabel, ZONE_ROLE_LABEL } from '../../lib/labels';
-import { Button, Card, Modal, Spinner, Swatch } from '../ui';
+import { Button, Card, Spinner, Swatch } from '../ui';
 import { publicUrl } from '../../lib/images';
 import { modelKeys, reorder, saveOrder, type ModelRow } from '../../lib/models';
-import { deleteZone, listZones, type ZoneRow } from '../../lib/zones';
+import { listZones, type ZoneRow } from '../../lib/zones';
 import { listSwatches, swatchKeys } from '../../lib/swatches';
 import { dbMessage } from '../../lib/errors';
 import { ZoneDialog } from './ZoneDialog';
@@ -17,8 +16,7 @@ export function ZonesCard({ model }: { model: ModelRow }) {
   const zonesKey = modelKeys.zones(model.id);
   const zones = useQuery({ queryKey: zonesKey, queryFn: () => listZones(model.id) });
   const swatches = useQuery({ queryKey: swatchKeys.all, queryFn: listSwatches });
-  const [editing, setEditing] = useState<ZoneRow | 'new' | null>(null);
-  const [deleting, setDeleting] = useState<ZoneRow | null>(null);
+  const [editing, setEditing] = useState<ZoneRow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: modelKeys.all });
@@ -35,40 +33,19 @@ export function ZonesCard({ model }: { model: ModelRow }) {
     onSettled: refresh,
   });
 
-  const remove = useMutation({
-    mutationFn: (zone: ZoneRow) => deleteZone(zone),
-    onSuccess: () => {
-      setDeleting(null);
-      refresh();
-    },
-  });
-
   const rows = zones.data ?? [];
-  const full = rows.length >= MAX_ZONES_PER_MODEL;
   const swatchById = new Map((swatches.data ?? []).map((s) => [s.id, s]));
 
   return (
     <Card className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-ink">
-          Zones{' '}
-          <span className="text-sm font-semibold text-muted">
-            {rows.length} / {MAX_ZONES_PER_MODEL}
-          </span>
-        </h2>
-        <Button
-          size="sm"
-          icon={<Plus className="size-4" aria-hidden />}
-          disabled={full || !zones.data || !swatches.data}
-          title={full ? `Maximum ${MAX_ZONES_PER_MODEL} zones per model` : undefined}
-          onClick={() => setEditing('new')}
-        >
-          Add zone
-        </Button>
-      </div>
+      <h2 className="text-lg font-bold text-ink">
+        Zones <span className="text-sm font-semibold text-muted">{rows.length}</span>
+      </h2>
+      {/* The zones' shapes are made and uploaded with the zone tool (tools/zones), not here (2026-10-23);
+          here: their order in the app and their default colors. */}
       <p className="text-sm text-muted">
-        Parts whose color the customer can change, in the order they appear in the app.
-        {full && ` Maximum ${MAX_ZONES_PER_MODEL} zones per model.`}
+        Parts whose color the customer can change, in the order they appear in the app. Their shapes are made
+        with the zone tool.
       </p>
 
       {zones.isPending || swatches.isPending ? (
@@ -174,17 +151,6 @@ export function ZonesCard({ model }: { model: ModelRow }) {
                 <Button size="sm" variant="secondary" onClick={() => setEditing(zone)}>
                   Edit
                 </Button>
-                <button
-                  type="button"
-                  aria-label={`Delete zone: ${zone.name}`}
-                  onClick={() => {
-                    remove.reset();
-                    setDeleting(zone);
-                  }}
-                  className="rounded p-2 text-muted hover:bg-red-50 hover:text-danger"
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </button>
               </li>
             );
           })}
@@ -198,44 +164,13 @@ export function ZonesCard({ model }: { model: ModelRow }) {
 
       {editing && zones.data && swatches.data && (
         <ZoneDialog
-          key={editing === 'new' ? 'new' : editing.id}
-          model={model}
-          zone={editing === 'new' ? null : editing}
+          key={editing.id}
+          zone={editing}
           zones={zones.data}
           swatches={swatches.data}
           onClose={() => setEditing(null)}
         />
       )}
-      <Modal
-        open={!!deleting}
-        title="Delete zone"
-        onClose={() => !remove.isPending && setDeleting(null)}
-        dismissible={!remove.isPending}
-        footer={
-          <>
-            <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() => deleting && remove.mutate(deleting)}
-            >
-              Delete
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-ink">
-          The zone <strong>{deleting?.name}</strong> and its layer will be deleted. Orders already placed
-          don't change.
-        </p>
-        {remove.isError && (
-          <p role="alert" className="mt-3 text-sm text-danger">
-            {dbMessage(remove.error)}
-          </p>
-        )}
-      </Modal>
     </Card>
   );
 }

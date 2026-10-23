@@ -43,25 +43,6 @@ async function inspect(file: File) {
   return { width, height, transparent, visible };
 }
 
-/** Checks a base image; returns its size or a user-facing error. */
-export async function checkBaseImage(file: File): Promise<{ size: Size } | { error: string }> {
-  if (!(IMAGE_RULES.baseTypes as readonly string[]).includes(file.type))
-    return { error: 'Invalid format: use JPG, PNG or WebP.' };
-  if (file.size > IMAGE_RULES.maxBytes)
-    return { error: `The image is ${mb(file.size)}; the maximum is ${mb(IMAGE_RULES.maxBytes)}.` };
-  const info = await inspect(file);
-  if (!info) return { error: 'Could not read the image. Is it damaged?' };
-  if (info.width < IMAGE_RULES.minBaseWidth)
-    return {
-      error: `The image is ${info.width} px wide; the minimum is ${IMAGE_RULES.minBaseWidth} px.`,
-    };
-  if (Math.max(info.width, info.height) > IMAGE_RULES.maxSide)
-    return {
-      error: `The image is ${info.width} × ${info.height} px; the maximum is ${IMAGE_RULES.maxSide} px per side.`,
-    };
-  return { size: { width: info.width, height: info.height } };
-}
-
 /** Checks a tortoiseshell texture (the "textures" bucket allows 5 MB). */
 export async function checkTexture(file: File): Promise<{ size: Size } | { error: string }> {
   if (!(IMAGE_RULES.baseTypes as readonly string[]).includes(file.type))
@@ -72,23 +53,6 @@ export async function checkTexture(file: File): Promise<{ size: Size } | { error
   if (!info) return { error: 'Could not read the image. Is it damaged?' };
   if (Math.min(info.width, info.height) < 256)
     return { error: `The texture is ${info.width} × ${info.height} px; the minimum is 256 px per side.` };
-  return { size: { width: info.width, height: info.height } };
-}
-
-/** Checks a zone layer against the base image; returns its size or a user-facing error. */
-export async function checkLayer(file: File, base: Size | null): Promise<{ size: Size } | { error: string }> {
-  if (!base) return { error: 'Upload the model’s base image first.' };
-  if (file.type !== 'image/png') return { error: 'The layer must be a PNG (with transparency).' };
-  if (file.size > IMAGE_RULES.maxBytes)
-    return { error: `The layer is ${mb(file.size)}; the maximum is ${mb(IMAGE_RULES.maxBytes)}.` };
-  const info = await inspect(file);
-  if (!info) return { error: 'Could not read the layer. Is it damaged?' };
-  if (info.width !== base.width || info.height !== base.height)
-    return {
-      error: `The layer is ${info.width} × ${info.height} px; it must be the same size as the base image (${base.width} × ${base.height} px).`,
-    };
-  if (!info.transparent) return { error: 'The layer has no transparency: only the zone should be visible.' };
-  if (!info.visible) return { error: 'The layer is empty (fully transparent).' };
   return { size: { width: info.width, height: info.height } };
 }
 

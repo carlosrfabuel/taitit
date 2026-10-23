@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Glasses, LayoutGrid, List, Pencil, Plus } from 'lucide-react';
-import { MAX_ZONES_PER_MODEL, type ZoneRole } from '@taitit/shared';
+import { Glasses, LayoutGrid, List, Pencil } from 'lucide-react';
+import type { ZoneRole } from '@taitit/shared';
 import { PageHeader } from '../components/PageHeader';
 import { Button, EmptyState, Spinner, Swatch, Table, Tag, type Column } from '../components/ui';
 import { ModelThumb } from '../components/ModelThumb';
@@ -48,11 +48,6 @@ export function ModelsPage() {
       .sort((a, b) => ROLE_ORDER.indexOf(a.role ?? 'tips') - ROLE_ORDER.indexOf(b.role ?? 'tips'))
       .map((z) => (z.default_swatch_id ? byId.get(z.default_swatch_id) : undefined))
       .filter((sw): sw is SwatchRow => !!sw);
-  const newButton = (
-    <Button icon={<Plus className="size-4" aria-hidden />} onClick={() => navigate('/models/new')}>
-      New model
-    </Button>
-  );
 
   const rows = models.data ?? [];
   const columns: Column<ModelRow>[] = [
@@ -101,11 +96,7 @@ export function ModelsPage() {
     {
       key: 'zones',
       header: 'Zones',
-      render: (row) => (
-        <span className={row.zones ? 'text-ink' : 'text-muted'}>
-          {row.zones} / {MAX_ZONES_PER_MODEL}
-        </span>
-      ),
+      render: (row) => <span className={row.zones ? 'text-ink' : 'text-muted'}>{row.zones}</span>,
     },
     {
       key: 'published',
@@ -143,14 +134,7 @@ export function ModelsPage() {
         crumbs={[{ label: 'Models' }]}
         title="Models"
         note="Published models appear in the app in alphabetical order."
-        actions={
-          rows.length > 0 ? (
-            <>
-              {toggle}
-              {newButton}
-            </>
-          ) : undefined
-        }
+        actions={rows.length > 0 ? toggle : undefined}
       />
       {models.isPending ? (
         <Spinner />
@@ -170,7 +154,7 @@ export function ModelsPage() {
               <div className="flex items-center justify-between">
                 {m.published ? <Tag tone="success">Published</Tag> : <Tag>Draft</Tag>}
                 <span className="text-xs text-muted">
-                  {m.zones} / {MAX_ZONES_PER_MODEL} zones
+                  {m.zones} {m.zones === 1 ? 'zone' : 'zones'}
                 </span>
               </div>
               <button
@@ -221,8 +205,7 @@ export function ModelsPage() {
               <EmptyState
                 icon={<Glasses className="size-6" aria-hidden />}
                 title="No models yet"
-                message="Create the first model; you can then upload its image and its zones."
-                action={newButton}
+                message="Models are added with the zone tool."
               />
             }
           />

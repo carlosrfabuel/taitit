@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { Navigate, createBrowserRouter } from 'react-router';
 import { AdminLayout } from './components/AdminLayout';
 import { RequireAdmin } from './auth/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
@@ -37,7 +37,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'models', element: <ModelsPage /> },
-      { path: 'models/new', element: <ModelEditPage /> },
+      // New models are added with the zone tool (2026-10-23): an old link lands on the list.
+      { path: 'models/new', element: <Navigate to="/models" replace /> },
       { path: 'models/:id', element: <ModelEditPage /> },
       { path: 'palettes', element: <PalettesPage /> },
       { path: 'orders', element: <OrdersPage /> },

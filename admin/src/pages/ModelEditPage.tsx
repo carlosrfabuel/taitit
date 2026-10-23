@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
@@ -10,7 +10,6 @@ import { PreviewCard } from '../components/models/PreviewCard';
 import { DeleteModelButton } from '../components/models/DeleteModelButton';
 import {
   MODEL_LIMITS,
-  createModel,
   getModel,
   listModels,
   modelKeys,
@@ -29,17 +28,14 @@ const backLink = (
   </Link>
 );
 
-// /models/new creates a model, /models/:id edits one.
+// /models/:id edits a model (new models are added with the zone tool).
 export function ModelEditPage() {
   const { id } = useParams();
-  const isNew = !id;
   const model = useQuery({
-    queryKey: modelKeys.one(id ?? 'new'),
+    queryKey: modelKeys.one(id!),
     queryFn: () => getModel(id!),
-    enabled: !isNew,
   });
 
-  if (isNew) return <ModelForm key="new" model={null} />;
   if (model.isPending) return <Spinner />;
   // Only without data: a failed background refetch must not replace a form being edited.
   if (!model.data) {
@@ -58,24 +54,22 @@ export function ModelEditPage() {
   return <ModelForm key={model.data.id} model={model.data} />;
 }
 
-function ModelForm({ model }: { model: ModelRow | null }) {
+function ModelForm({ model }: { model: ModelRow }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const formId = useId();
   const categoriesId = useId();
   const [values, setValues] = useState<ModelInput>({
-    name: model?.name ?? '',
-    category: model?.category ?? '',
-    size_ref: model?.size_ref ?? '',
-    description: model?.description ?? '',
-    published: model?.published ?? false,
+    name: model.name,
+    category: model.category ?? '',
+    size_ref: model.size_ref ?? '',
+    description: model.description ?? '',
+    published: model.published,
   });
   // Publish state as this form last opened or saved it: only an actual change here is written (see updateModel).
-  const [savedPublished, setSavedPublished] = useState(model?.published ?? false);
+  const [savedPublished, setSavedPublished] = useState(model.published);
   const [errors, setErrors] = useState<FieldErrors>({});
-  // Set when arriving from "create" (router state), replaced by "saved", cleared on any edit.
-  const created = !!(useLocation().state as { created?: boolean } | null)?.created;
-  const [notice, setNotice] = useState<string | null>(created ? 'Model created.' : null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Existing categories as suggestions, so the same one isn't typed two ways.
   const all = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
@@ -83,24 +77,18 @@ function ModelForm({ model }: { model: ModelRow | null }) {
 
   // The database's own publishing check (refreshed with every model change).
   const problems = useQuery({
-    queryKey: modelKeys.problems(model?.id ?? 'new'),
-    queryFn: () => publishProblems(model!.id),
-    enabled: !!model,
+    queryKey: modelKeys.problems(model.id),
+    queryFn: () => publishProblems(model.id),
   });
   const canPublish = problems.data?.length === 0;
 
   const save = useMutation({
-    mutationFn: async (input: ModelInput) => {
-      if (!model) return createModel(input);
-      await updateModel(model.id, input, input.published !== savedPublished);
-      return model.id;
-    },
-    onSuccess: (savedId, input) => {
+    mutationFn: (input: ModelInput) => updateModel(model.id, input, input.published !== savedPublished),
+    onSuccess: (_, input) => {
       setSavedPublished(input.published);
       // Not awaited: the save is done once the database accepts it, even if this refresh is slow or fails.
       void queryClient.invalidateQueries({ queryKey: modelKeys.all });
-      if (!model) navigate(`/models/${savedId}`, { replace: true, state: { created: true } });
-      else setNotice('Changes saved.');
+      setNotice('Changes saved.');
     },
   });
 
@@ -123,8 +111,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
   };
 
   // Publishing refused by the database: list what is missing instead of a generic error.
-  const refused =
-    save.isError && values.published && !model?.published ? publishProblemsIn(save.error) : null;
+  const refused = save.isError && values.published && !model.published ? publishProblemsIn(save.error) : null;
 
   const publishCard = (
     <Card className="flex flex-col gap-3">
@@ -142,11 +129,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
         <span>
           <span className="block text-sm font-bold text-ink">Published</span>
           <span className="block text-sm text-muted">
-            {!model
-              ? 'Create the model first; then add its image and its zones.'
-              : canPublish
-                ? "Visible in the app's catalog."
-                : 'It can be published once it is complete.'}
+            {canPublish ? "Visible in the app's catalog." : 'It can be published once it is complete.'}
           </span>
         </span>
       </label>
@@ -229,7 +212,7 @@ function ModelForm({ model }: { model: ModelRow | null }) {
         )}
         <div className="flex gap-2">
           <Button type="submit" form={formId} loading={save.isPending} className="flex-1">
-            {model ? 'Save' : 'Create model'}
+            Save
           </Button>
           <Button variant="secondary" onClick={() => navigate('/models')}>
             Cancel
@@ -241,38 +224,26 @@ function ModelForm({ model }: { model: ModelRow | null }) {
 
   return (
     <>
-      <PageHeader
-        crumbs={[{ label: 'Models', to: '/models' }, { label: model ? model.name : 'New model' }]}
-        title={model ? model.name : 'New model'}
-        note={model ? undefined : 'The base image and zones are added after the model is created.'}
-      />
-      {model ? (
-        // Existing model: the picture and its parts on the left; on the right, kept in view while
-        // scrolling, publishing, the details with their Save, and Delete.
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
-          <div className="flex min-w-0 flex-col gap-6">
-            <PreviewCard model={model} />
-            <ZonesCard model={model} />
-            <BaseImageCard model={model} />
-          </div>
-          <div className="flex flex-col gap-4 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
-            {publishCard}
-            {details}
-            <p className="px-1 text-xs text-muted">
-              The image and the zones are saved as soon as you upload them.
-            </p>
-            <div className="mt-4 border-t border-line pt-4">
-              <DeleteModelButton model={model} />
-            </div>
-          </div>
+      <PageHeader crumbs={[{ label: 'Models', to: '/models' }, { label: model.name }]} title={model.name} />
+      {/* The picture and its parts on the left; on the right, kept in view while scrolling, publishing,
+          the details with their Save, and Delete. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <PreviewCard model={model} />
+          <ZonesCard model={model} />
+          <BaseImageCard model={model} />
         </div>
-      ) : (
-        // New model: only the details; the image and the zones come once it exists.
-        <div className="flex max-w-2xl flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto">
           {publishCard}
           {details}
+          <p className="px-1 text-xs text-muted">
+            The base image and the zones' shapes are made and uploaded with the zone tool.
+          </p>
+          <div className="mt-4 border-t border-line pt-4">
+            <DeleteModelButton model={model} />
+          </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

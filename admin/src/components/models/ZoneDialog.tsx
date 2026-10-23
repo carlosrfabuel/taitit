@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type Finish, type Material, type ZoneRole } from '@taitit/shared';
 import {
@@ -10,17 +10,15 @@ import {
   ZONE_ROLE_MATERIAL,
 } from '../../lib/labels';
 import { Button, Input, Modal, Select, Swatch } from '../ui';
-import { checkLayer, publicUrl, type Size } from '../../lib/images';
-import { modelKeys, type ModelRow } from '../../lib/models';
+import { publicUrl } from '../../lib/images';
+import { modelKeys } from '../../lib/models';
 import { ZONE_NAME_MAX, saveZone, type ZoneRow } from '../../lib/zones';
 import type { SwatchRow } from '../../lib/swatches';
 import { dbMessage } from '../../lib/errors';
 import { ZoneThumb } from './ZoneThumb';
 
 type Props = {
-  model: ModelRow;
-  /** null = new zone */
-  zone: ZoneRow | null;
+  zone: ZoneRow;
   zones: ZoneRow[];
   swatches: SwatchRow[];
   onClose: () => void;
@@ -29,62 +27,32 @@ type Props = {
 const MATERIALS: Material[] = ['metal', 'acetate'];
 const ROLES: ZoneRole[] = ['main', 'secondary', 'tips'];
 
-export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
+export function ZoneDialog({ zone, zones, swatches, onClose }: Props) {
   const queryClient = useQueryClient();
-  const [name, setName] = useState(zone?.name ?? '');
-  const [role, setRole] = useState<ZoneRole | null>(zone?.role ?? null);
-  const [material, setMaterial] = useState<Material>(zone?.material ?? 'acetate');
-  const [swatchId, setSwatchId] = useState<string | null>(zone?.default_swatch_id ?? null);
-  const [finish, setFinish] = useState<Finish | null>(zone?.default_finish ?? null);
-  // Only the latest picked file counts (an earlier, slower check must not overwrite it).
-  const pick = useRef(0);
-  const [layer, setLayer] = useState<{ file: File; size: Size; url: string } | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; layer?: string }>({});
-
-  // Free the local preview of a picked layer.
-  useEffect(() => () => void (layer && URL.revokeObjectURL(layer.url)), [layer]);
+  const [name, setName] = useState(zone.name ?? '');
+  const [role, setRole] = useState<ZoneRole | null>(zone.role ?? null);
+  const [material, setMaterial] = useState<Material>(zone.material ?? 'acetate');
+  const [swatchId, setSwatchId] = useState<string | null>(zone.default_swatch_id ?? null);
+  const [finish, setFinish] = useState<Finish | null>(zone.default_finish ?? null);
+  const [errors, setErrors] = useState<{ name?: string }>({});
 
   // Active colors of this material; keep the current default visible even if it was deactivated.
   const options = swatches.filter(
-    (s) => s.material === material && (s.active || s.id === zone?.default_swatch_id),
+    (s) => s.material === material && (s.active || s.id === zone.default_swatch_id),
   );
   const swatch = swatches.find((s) => s.id === swatchId) ?? null;
   const finishes = swatch?.finishes ?? [];
   // What is shown is what is saved: a stored finish the color doesn't offer becomes its first one.
   const shownFinish = finishes.length ? (finish && finishes.includes(finish) ? finish : finishes[0]!) : null;
 
-  const base: Size | null =
-    model.base_width && model.base_height ? { width: model.base_width, height: model.base_height } : null;
-
   const save = useMutation({
     mutationFn: () =>
-      saveZone(
-        model.id,
-        zone,
-        { name, role, material, default_swatch_id: swatchId, default_finish: shownFinish },
-        layer && { file: layer.file, size: layer.size },
-        Math.max(-1, ...zones.map((z) => z.sort_order)) + 1,
-      ),
+      saveZone(zone.id, { name, role, material, default_swatch_id: swatchId, default_finish: shownFinish }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: modelKeys.all });
       onClose();
     },
   });
-
-  const pickLayer = async (file: File) => {
-    const id = ++pick.current;
-    setChecking(true);
-    const checked = await checkLayer(file, base);
-    if (id !== pick.current) return; // a newer file was picked meanwhile
-    setChecking(false);
-    if ('error' in checked) {
-      setErrors((e) => ({ ...e, layer: checked.error }));
-      return;
-    }
-    setErrors((e) => ({ ...e, layer: undefined }));
-    setLayer({ file, size: checked.size, url: URL.createObjectURL(file) });
-  };
 
   // Material fixed by the role (main metal = metal, tips = acetate); a default color must follow it.
   const lockedMaterial = role ? (ZONE_ROLE_MATERIAL[role] ?? null) : null;
@@ -103,7 +71,7 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
     if (!save.isPending) save.reset();
   };
   // Roles another zone of this model already has.
-  const taken = new Set(zones.filter((z) => z.id !== zone?.id && z.role).map((z) => z.role));
+  const taken = new Set(zones.filter((z) => z.id !== zone.id && z.role).map((z) => z.role));
 
   const pickSwatch = (id: string | null) => {
     setSwatchId(id);
@@ -114,9 +82,9 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (save.isPending || checking) return;
+    if (save.isPending) return;
     const trimmed = name.trim();
-    const duplicate = zones.some((z) => z.id !== zone?.id && z.name.toLowerCase() === trimmed.toLowerCase());
+    const duplicate = zones.some((z) => z.id !== zone.id && z.name.toLowerCase() === trimmed.toLowerCase());
     const next = {
       name: !trimmed
         ? 'Enter the zone name.'
@@ -125,10 +93,9 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           : duplicate
             ? 'This model already has a zone with that name.'
             : undefined,
-      layer: errors.layer,
     };
     setErrors(next);
-    if (next.name || next.layer) return;
+    if (next.name) return;
     save.mutate();
   };
 
@@ -137,12 +104,12 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
     if (!save.isPending) onClose();
   };
 
-  const currentLayer = layer?.url ?? (zone?.layer_path ? publicUrl(zone.layer_path) : null);
+  const currentLayer = zone.layer_path ? publicUrl(zone.layer_path) : null;
 
   return (
     <Modal
       open
-      title={zone ? `Edit zone: ${zone.name}` : 'New zone'}
+      title={`Edit zone: ${zone.name}`}
       onClose={close}
       dismissible={!save.isPending}
       footer={
@@ -150,8 +117,8 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           <Button variant="secondary" disabled={save.isPending} onClick={close}>
             Cancel
           </Button>
-          <Button type="submit" form="zone-form" loading={save.isPending} disabled={checking}>
-            {zone ? 'Save zone' : 'Add zone'}
+          <Button type="submit" form="zone-form" loading={save.isPending}>
+            Save zone
           </Button>
         </>
       }
@@ -222,7 +189,7 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
           />
         )}
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-bold text-ink">Layer (PNG)</span>
+          <span className="text-sm font-bold text-ink">Shape</span>
           <div className="flex items-center gap-3">
             <ZoneThumb
               layerUrl={currentLayer}
@@ -230,32 +197,8 @@ export function ZoneDialog({ model, zone, zones, swatches, onClose }: Props) {
               label="Zone shape"
               className="h-20 w-40"
             />
-            <label className="cursor-pointer text-sm font-semibold text-accent">
-              {checking ? 'Checking…' : currentLayer ? 'Change layer' : 'Choose layer'}
-              <input
-                type="file"
-                accept="image/png"
-                className="sr-only"
-                aria-label="Layer file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) void pickLayer(file);
-                }}
-              />
-            </label>
           </div>
-          {errors.layer ? (
-            <p role="alert" className="text-sm text-danger">
-              {errors.layer}
-            </p>
-          ) : (
-            <p className="text-sm text-muted">
-              {base
-                ? `Transparent except for the zone, ${base.width} × ${base.height} px like the base image.`
-                : "Upload the model's base image first."}
-            </p>
-          )}
+          <p className="text-sm text-muted">Made with the zone tool.</p>
         </div>
         {save.isError && (
           <p role="alert" className="text-sm text-danger">

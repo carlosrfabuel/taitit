@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { removeImages, uploadImage, type Size } from './images';
+import { removeImages } from './images';
 
 /** Same limits as the check constraints on public.models. */
 export const MODEL_LIMITS = { name: 60, category: 60, sizeRef: 30, description: 1000 } as const;
@@ -84,24 +84,6 @@ const toColumns = (input: ModelInput) => ({
   published: input.published,
 });
 
-/** Creates a model at the end of the list; returns its id. */
-export async function createModel(input: ModelInput): Promise<string> {
-  const last = await supabase
-    .from('models')
-    .select('sort_order')
-    .order('sort_order', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (last.error) throw last.error;
-  const { data, error } = await supabase
-    .from('models')
-    .insert({ ...toColumns(input), sort_order: (last.data?.sort_order ?? -1) + 1 })
-    .select('id')
-    .single();
-  if (error) throw error;
-  return data.id;
-}
-
 /**
  * Saves the form. `published` is only written when the admin changed it in this form: otherwise a
  * form opened before the model was published elsewhere (another tab, tools/zones) would unpublish it.
@@ -113,25 +95,6 @@ export async function updateModel(id: string, input: ModelInput, publishedChange
   const { data, error } = await supabase.from('models').update(columns).eq('id', id).select('id');
   if (error) throw error;
   if (!data.length) throw { code: 'not_found', message: 'Model not found' };
-}
-
-/** Replaces the base image: new file first, then the row, then the old file is removed. */
-export async function setBaseImage(model: ModelRow, file: File, size: Size): Promise<void> {
-  // The path stored now (the screen may be out of date if it changed in another tab or the CLI).
-  const current = await supabase.from('models').select('base_path').eq('id', model.id).maybeSingle();
-  if (current.error) throw current.error;
-  if (!current.data) throw { code: 'not_found', message: 'Model not found' };
-  const path = await uploadImage(model.id, 'base', file);
-  const { data, error } = await supabase
-    .from('models')
-    .update({ base_path: path, base_width: size.width, base_height: size.height })
-    .eq('id', model.id)
-    .select('id');
-  if (error || !data.length) {
-    await removeImages([path]); // the database said no: don't leave the new file behind
-    throw error ?? { code: 'not_found', message: 'Model not found' };
-  }
-  if (current.data.base_path !== path) await removeImages([current.data.base_path]);
 }
 
 /** What still blocks publishing (codes from the database check, see the publish_rules migration). */
