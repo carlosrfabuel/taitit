@@ -1,5 +1,15 @@
 import { NavLink, Outlet } from 'react-router';
-import { Glasses, House, LogOut, Palette, Receipt, Shapes, Users, type LucideIcon } from 'lucide-react';
+import {
+  Glasses,
+  House,
+  LogOut,
+  Palette,
+  Receipt,
+  Settings,
+  Shapes,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { countPending, customerKeys } from '../lib/customers';
 import { countOrdersSince, orderKeys, ordersSeenAt } from '../lib/orders';
@@ -12,6 +22,7 @@ const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/palettes', label: 'Palettes', icon: Palette },
   { to: '/orders', label: 'Orders', icon: Receipt },
   { to: '/customers', label: 'Customers', icon: Users },
+  { to: '/settings', label: 'Settings', icon: Settings },
   ...(import.meta.env.DEV ? [{ to: '/dev/ui-kit', label: 'UI kit (dev)', icon: Shapes }] : []),
 ];
 

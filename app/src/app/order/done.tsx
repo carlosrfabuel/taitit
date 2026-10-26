@@ -1,8 +1,8 @@
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { tokens } from '@taitit/shared';
-import { orderText, whatsappUrl } from '@/orders/orders';
-import { useOrder } from '@/orders/useOrders';
+import { orderText } from '@/orders/orders';
+import { openWhatsapp, useOrder } from '@/orders/useOrders';
 import { AppText, Button, Icon, Screen, useToast } from '@/ui';
 
 const { spacing, colors } = tokens;
@@ -16,7 +16,7 @@ export default function OrderDoneScreen() {
   const share = async () => {
     if (!order.data) return;
     try {
-      await Linking.openURL(whatsappUrl(orderText(order.data)));
+      await openWhatsapp(orderText(order.data));
     } catch {
       toast("Couldn't open WhatsApp.", 'error');
     }

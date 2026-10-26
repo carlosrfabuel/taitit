@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: boolean
+          order_email: string
+          updated_at: string
+          whatsapp_number: string
+        }
+        Insert: {
+          id?: boolean
+          order_email?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          id?: boolean
+          order_email?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       designs: {
         Row: {
           created_at: string
@@ -515,6 +536,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      app_whatsapp_number: { Args: never; Returns: string }
       create_order: {
         Args: {
           p_key: string

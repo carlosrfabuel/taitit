@@ -408,12 +408,18 @@ export function orderText(
 }
 
 /**
- * WhatsApp link with the summary. TAITIT's own number is still to come from the client: until then
- * WhatsApp asks which chat to send it to.
+ * TAITIT's WhatsApp number for sharing an order, set in the admin panel (Settings): digits with the
+ * country code, '' when not set. Read on demand, so a change needs no app update.
  */
-export const WHATSAPP_NUMBER = '';
-export const whatsappUrl = (text: string) =>
-  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+export async function fetchWhatsappNumber(): Promise<string> {
+  const { data, error } = await supabase.rpc('app_whatsapp_number');
+  if (error) throw error;
+  return typeof data === 'string' ? data : '';
+}
+
+/** WhatsApp link with the summary; without a number WhatsApp asks which chat to send it to. */
+export const whatsappUrl = (text: string, number: string) =>
+  `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
 /** Order date as shown in My orders (e.g. Oct 18, 2026). */
 export const formatOrderDate = (iso: string) =>

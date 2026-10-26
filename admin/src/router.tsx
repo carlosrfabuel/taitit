@@ -8,6 +8,7 @@ import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { HomePage } from './pages/HomePage';
 import { ModelsPage } from './pages/ModelsPage';
 import { ModelEditPage } from './pages/ModelEditPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PalettesPage } from './pages/PalettesPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { CustomersPage } from './pages/CustomersPage';
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'palettes', element: <PalettesPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'customers', element: <CustomersPage /> },
+      { path: 'settings', element: <SettingsPage /> },
       { path: 'orders/:id', element: <OrderDetailPage /> },
       // Component gallery, excluded from production builds.
       ...(import.meta.env.DEV ? [{ path: 'dev/ui-kit', element: <UiKitPage /> }] : []),

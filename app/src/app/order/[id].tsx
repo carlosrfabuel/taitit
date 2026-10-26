@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Linking, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { FINISH_LABEL, MATERIAL_LABEL, tokens } from '@taitit/shared';
-import { formatOrderDate, orderText, whatsappUrl } from '@/orders/orders';
-import { useOrder } from '@/orders/useOrders';
+import { formatOrderDate, orderText } from '@/orders/orders';
+import { openWhatsapp, useOrder } from '@/orders/useOrders';
 import {
   AppText,
   Button,
@@ -65,9 +65,7 @@ export default function OrderDetailScreen() {
           icon="logo-whatsapp"
           variant="secondary"
           fullWidth
-          onPress={() =>
-            Linking.openURL(whatsappUrl(orderText(o))).catch(() => toast("Couldn't open WhatsApp.", 'error'))
-          }
+          onPress={() => openWhatsapp(orderText(o)).catch(() => toast("Couldn't open WhatsApp.", 'error'))}
         />
       }
     >
