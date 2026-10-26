@@ -20,18 +20,33 @@ export type OrderItemRow = {
   sort_order: number;
 };
 
+/** One frame of an order (an order holds one or more since 2026-10-26). */
+export type OrderLineRow = {
+  id: string;
+  line_no: number;
+  /** The catalog model (null once that model is deleted); `model_name` is the name as ordered. */
+  model_id: string | null;
+  model_name: string;
+  quantity: number;
+  image_path: string | null;
+  order_items: OrderItemRow[];
+};
+
 export type OrderRow = {
   id: string;
   /** The account that sent it (null once the account was deleted). */
   user_id: string | null;
-  /** The catalog model (null once that model is deleted); `model_name` is the name as ordered. */
+  /** First frame's model (null once deleted). */
   model_id: string | null;
   number: number;
   created_at: string;
+  /** Every model of the order, e.g. "ALBA, CELEST" (the frames are in `order_lines`). */
   model_name: string;
+  /** Frames in total. */
   quantity: number;
   notes: string | null;
   shop_ref: string | null;
+  /** First frame's image. */
   image_path: string | null;
   customer_name: string | null;
   customer_email: string | null;
@@ -54,7 +69,8 @@ export type OrderRow = {
   commercial_postal_code: string | null;
   commercial_city: string | null;
   commercial_province: string | null;
-  order_items: OrderItemRow[];
+  /** The frames, in order, each with its parts in order. */
+  order_lines: OrderLineRow[];
 };
 
 export const orderKeys = {
@@ -140,7 +156,7 @@ export function filterOrders(
 }
 
 const COLUMNS =
-  'id, user_id, model_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, user_id, model_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_lines(id, line_no, model_id, model_name, quantity, image_path, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -168,7 +184,9 @@ export const ORDERS_LIMIT = 200;
 
 const sortItems = (o: OrderRow): OrderRow => ({
   ...o,
-  order_items: [...o.order_items].sort((a, b) => a.sort_order - b.sort_order),
+  order_lines: [...o.order_lines]
+    .sort((a, b) => a.line_no - b.line_no)
+    .map((l) => ({ ...l, order_items: [...l.order_items].sort((a, b) => a.sort_order - b.sort_order) })),
 });
 
 /** All orders, newest first (admins read every order: database rule). */
@@ -249,8 +267,6 @@ export async function orderImageUrl(path: string): Promise<string> {
 export const toSheetOrder = (o: OrderRow): SheetOrder => ({
   number: o.number,
   createdAt: o.created_at,
-  modelName: o.model_name,
-  quantity: o.quantity,
   notes: o.notes,
   legalName: o.legal_name,
   taxId: o.tax_id,
@@ -274,12 +290,16 @@ export const toSheetOrder = (o: OrderRow): SheetOrder => ({
   email: o.contact_email ?? o.customer_email,
   contact: o.customer_name,
   labeling: o.labeling,
-  items: o.order_items.map((i) => ({
-    zoneRole: i.zone_role,
-    swatchName: i.swatch_name,
-    ref: i.ref,
-    finish: i.finish,
-    sortOrder: i.sort_order,
+  lines: o.order_lines.map((l) => ({
+    modelName: l.model_name,
+    quantity: l.quantity,
+    items: l.order_items.map((i) => ({
+      zoneRole: i.zone_role,
+      swatchName: i.swatch_name,
+      ref: i.ref,
+      finish: i.finish,
+      sortOrder: i.sort_order,
+    })),
   })),
 });
 
@@ -306,7 +326,7 @@ export function downloadOrderSheet(o: OrderRow) {
   );
 }
 
-/** Several orders in one sheet (one row per part). */
+/** Several orders in one sheet (one row per frame). */
 export function downloadOrdersSheet(orders: OrderRow[]) {
   saveFile(
     new Blob([orderSheet(orders.map(toSheetOrder)) as Uint8Array<ArrayBuffer>], { type: XLSX_TYPE }),
@@ -314,10 +334,22 @@ export function downloadOrdersSheet(orders: OrderRow[]) {
   );
 }
 
-/** The order image, saved as order-<number>.jpg. */
-export async function downloadOrderImage(o: OrderRow) {
-  if (!o.image_path) return;
-  const { data, error } = await supabase.storage.from('orders').download(o.image_path);
+/** File name of a frame's image: order-<number>.jpg, or order-<number>-<frame>.jpg with several frames. */
+export const orderImageName = (o: OrderRow, line: OrderLineRow) =>
+  o.order_lines.length > 1 ? `order-${o.number}-${line.line_no}.jpg` : `order-${o.number}.jpg`;
+
+/** One frame's image (the order's only one by default). */
+export async function downloadOrderImage(o: OrderRow, line: OrderLineRow | undefined = o.order_lines[0]) {
+  if (!line?.image_path) return;
+  const { data, error } = await supabase.storage.from('orders').download(line.image_path);
   if (error) throw error;
-  saveFile(data, `order-${o.number}.jpg`);
+  saveFile(data, orderImageName(o, line));
 }
+
+/** Every frame's image, one file each. */
+export async function downloadOrderImages(o: OrderRow) {
+  for (const line of o.order_lines) await downloadOrderImage(o, line);
+}
+
+/** "3 frames" / "1 frame". */
+export const framesLabel = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;

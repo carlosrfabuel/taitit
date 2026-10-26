@@ -1,24 +1,18 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens } from '@taitit/shared';
+import { FINISH_LABEL, MATERIAL_LABEL, buildRenderPlan, tokens, type RenderPlan } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { addressLine, businessComplete } from '@/auth/business';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
-import { parseSelection } from '@/designs/designs';
+import type { CatalogModel } from '@/catalog/catalog';
 import {
   NOTES_MAX,
   ORDER_IMAGE_WIDTH,
   QUANTITY_MAX,
+  lineImageKey,
   linesToSelection,
   orderErrorMessage,
   orderContentKey,
@@ -27,8 +21,10 @@ import {
   placeOrder,
   uploadOrderImage,
   validateOrderInput,
+  type OrderLine,
 } from '@/orders/orders';
 import { orderKeyFor, orderPlaced } from '@/orders/pendingOrders';
+import { useCart, type CartLine } from '@/orders/cart';
 import { RecolorView, renderPlanToJpeg } from '@/render/RecolorView';
 import {
   AppText,
@@ -36,8 +32,6 @@ import {
   Card,
   EmptyState,
   Loader,
-  PhotoStage,
-  PHOTO_STAGE_INSET,
   QuantityStepper,
   Screen,
   Swatch,
@@ -45,18 +39,19 @@ import {
   useToast,
 } from '@/ui';
 
-const { spacing, colors } = tokens;
+const { spacing, colors, radius } = tokens;
 const PAGE = spacing.xl;
+const THUMB = 132;
 
-// Order summary: everything that will be ordered, part by part, who orders it (the optician's
-// details, copied into the order) and free-text notes. Opened from the customizer with the model and the chosen colors in the link
-// (/order/summary?modelId=…&sel=…), so it survives a reload. Confirm uploads the order image, then
-// creates the order (database function create_order) and opens the confirmation.
+// The order being put together: every frame added from the customizer ("Add to cart"), each with its
+// colors and quantity, who orders it (the optician's details, copied into the order) and free-text
+// notes. Send renders and uploads one image per frame, then creates the order with all of them (database
+// function create_order_lines: one transaction) and opens the confirmation.
 export default function OrderSummaryScreen() {
-  const { modelId, sel } = useLocalSearchParams<{ modelId?: string; sel?: string }>();
   const { session } = useAuth();
   const catalog = useCatalog();
   const swatches = useSwatches();
+  const cart = useCart();
 
   if (!session)
     return (
@@ -67,6 +62,18 @@ export default function OrderSummaryScreen() {
           message="Orders are sent from your account."
           actionLabel="Sign in"
           onAction={() => router.push('/sign-in')}
+        />
+      </Screen>
+    );
+  if (cart.lines.length === 0)
+    return (
+      <Screen>
+        <EmptyState
+          icon="cart-outline"
+          title="Your cart is empty"
+          message="Choose a frame in the catalog, pick its colors and tap Add to cart."
+          actionLabel="Browse the catalog"
+          onAction={() => router.dismissTo('/')}
         />
       </Screen>
     );
@@ -86,116 +93,122 @@ export default function OrderSummaryScreen() {
         />
       </Screen>
     );
-  const model = catalog.data?.find((m) => m.id === modelId);
-  if (!model)
-    return (
-      <Screen>
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Model not available"
-          message="It may have been removed from the collection."
-          actionLabel="Back to catalog"
-          onAction={() => router.dismissTo('/')}
-        />
-      </Screen>
-    );
-
-  let selection;
-  try {
-    selection = parseSelection(sel ? JSON.parse(sel) : null);
-  } catch {
-    selection = parseSelection(null); // a broken link: the model's default colors
-  }
-  return <Summary key={`${model.id}:${sel}`} userId={session.user.id} model={model} selection={selection} />;
+  return <Summary userId={session.user.id} models={catalog.data ?? []} />;
 }
 
-function Summary({
-  userId,
-  model,
-  selection,
-}: {
-  userId: string;
-  model: NonNullable<ReturnType<typeof useCatalog>['data']>[number];
-  selection: ReturnType<typeof parseSelection>;
-}) {
-  const { width } = useWindowDimensions();
+/** A frame of the order as it will be sent (null model: no longer in the catalog). */
+type Frame = {
+  line: CartLine;
+  model: CatalogModel | null;
+  parts: OrderLine[];
+  replaced: string[];
+  missing: string[];
+  plan: RenderPlan | null;
+};
+
+function Summary({ userId, models }: { userId: string; models: CatalogModel[] }) {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const cart = useCart();
   const [notes, setNotes] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [errors, setErrors] = useState<{ notes?: string }>({});
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   // Guards a second tap before the re-render (the button's own disabled state comes one frame later).
   const sending = useRef(false);
   const queryClient = useQueryClient();
   const swatchesQuery = useSwatches();
   const catalogQuery = useCatalog();
-  // Refreshing the catalog after "colors changed": confirm waits until both are back.
+  // Refreshing the catalog after "colors changed": send waits until both are back.
   const refreshing = swatchesQuery.isFetching || catalogQuery.isFetching;
   const swatches = swatchesQuery.data ?? [];
   // Accounts wait for approval by TAITIT before they can order (the server checks it too).
   const { profile, profileFailed, reloadProfile } = useAuth();
   const approved = canOrder(profile);
-  // Fresh account status and details each time the summary is shown (approval may have happened).
+  // Fresh account status and details each time the order is shown (approval may have happened).
   useFocusEffect(useCallback(() => reloadProfile(), [reloadProfile]));
   const hasBusiness = businessComplete(profile);
 
-  const { lines, replaced, missing } = orderLines(model, swatches, selection);
-  const picks = Object.fromEntries(lines.map((l) => [l.zoneId, { swatchId: l.swatchId, finish: l.finish }]));
-  const plan = buildRenderPlan({
-    baseUrl: model.plan.baseUrl,
-    width: model.plan.width,
-    height: model.plan.height,
-    zones: model.zones,
-    swatches,
-    picks,
+  const frames: Frame[] = cart.lines.map((line) => {
+    const model = models.find((m) => m.id === line.modelId) ?? null;
+    if (!model) return { line, model: null, parts: [], replaced: [], missing: [], plan: null };
+    const { lines: parts, replaced, missing } = orderLines(model, swatches, line.selection);
+    const picks = Object.fromEntries(
+      parts.map((p) => [p.zoneId, { swatchId: p.swatchId, finish: p.finish }]),
+    );
+    const plan = buildRenderPlan({
+      baseUrl: model.plan.baseUrl,
+      width: model.plan.width,
+      height: model.plan.height,
+      zones: model.zones,
+      swatches,
+      picks,
+    });
+    return { line, model, parts, replaced, missing, plan };
   });
+  const unavailable = frames.some((f) => !f.model || f.missing.length > 0 || f.parts.length === 0);
+  const totalFrames = cart.frames;
 
   const confirm = async () => {
     if (sending.current) return;
     const input = validateOrderInput({ notes });
     if ('errors' in input) return setErrors(input.errors);
     sending.current = true;
-    setBusy(true);
-    // The key belongs to what is ordered (model + every line as shown): a retry of the same content,
-    // even from a new screen or after a restart, gets the same key and so the same order. Changed
-    // content gets a new key, so its image is uploaded fresh and always matches the order.
-    const content = orderContentKey(userId, model.id, lines, input.notes, quantity);
+    setBusy('Preparing your order…');
+    // The key belongs to what is ordered (every frame as shown + notes): a retry of the same content,
+    // even from a new screen or after a restart, gets the same key and so the same order and images.
+    const content = orderContentKey(
+      userId,
+      frames.map((f) => ({ modelId: f.model!.id, lines: f.parts, quantity: f.line.quantity })),
+      input.notes,
+    );
     try {
       const key = await orderKeyFor(content);
-      // 1. The image, uploaded first (the order points to it). 2. The order, in one transaction.
-      const jpeg = await renderPlanToJpeg(plan, ORDER_IMAGE_WIDTH);
-      await uploadOrderImage(userId, key, jpeg);
+      // 1. The images, one per frame, uploaded first (the order points to them).
+      const imageKeys: string[] = [];
+      for (const [i, f] of frames.entries()) {
+        setBusy(
+          frames.length > 1 ? `Preparing images ${i + 1} of ${frames.length}…` : 'Preparing your order…',
+        );
+        const imageKey = await lineImageKey(key, i);
+        await uploadOrderImage(userId, imageKey, await renderPlanToJpeg(f.plan!, ORDER_IMAGE_WIDTH));
+        imageKeys.push(imageKey);
+      }
+      // 2. The order with every frame, in one transaction.
+      setBusy('Sending…');
       const order = await placeOrder({
         key,
-        modelId: model.id,
-        selection: linesToSelection(lines),
+        frames: frames.map((f, i) => ({
+          modelId: f.model!.id,
+          selection: linesToSelection(f.parts),
+          quantity: f.line.quantity,
+          imageKey: imageKeys[i]!,
+        })),
         notes: input.notes,
-        quantity,
       });
       await orderPlaced(content);
+      cart.clear();
       void queryClient.invalidateQueries({ queryKey: orderKeys.all });
       // An earlier attempt had already gone through (its answer was lost): say so, show that order.
       if (!order.created) toast('This order had already been sent.', 'info');
-      // Replace: "back" from the confirmation must not return to a summary that was already sent.
+      // Replace: "back" from the confirmation must not return to an order that was already sent.
       router.replace({ pathname: '/order/done', params: { id: order.id, number: String(order.number) } });
     } catch (e) {
       toast(orderErrorMessage(e), 'error');
       const message = (e as { message?: string } | null)?.message ?? '';
       // Refused because of the account (approval changed, details missing): show its current state.
       if (/account_not_approved|business_details_missing|row-level security/.test(message)) reloadProfile();
-      if (message.includes('order_colors_changed')) {
-        // Show the current catalog (the summary then flags what changed); confirm waits for it.
+      if (/order_colors_changed|order_model_unavailable/.test(message)) {
+        // Show the current catalog (the order then flags what changed); send waits for it.
         void swatchesQuery.refetch();
         void catalogQuery.refetch();
       }
     } finally {
       sending.current = false;
-      setBusy(false);
+      setBusy(null);
     }
   };
 
-  // Why Confirm is off, said next to the button (the details are further up the page).
+  // Why Send is off, said next to the button (the details are further up the page).
   const blockedReason = refreshing
     ? null
     : !profile
@@ -208,20 +221,118 @@ function Summary({
           : 'Waiting for TAITIT to approve your account.'
         : !hasBusiness
           ? 'Add your business details first.'
-          : missing.length > 0
-            ? "A part has no color available, so this model can't be ordered now."
+          : unavailable
+            ? 'Remove the frames that are no longer available.'
             : null;
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <PhotoStage>
-          <RecolorView plan={plan} width={width - (PAGE + PHOTO_STAGE_INSET) * 2} />
-        </PhotoStage>
-        <View>
-          <AppText variant="title">{model.name}</AppText>
-          {model.sizeRef ? <AppText variant="small">{model.sizeRef}</AppText> : null}
-        </View>
+        <AppText variant="small" color={colors.muted}>
+          {frames.length === 1
+            ? 'One frame. Add more to send them together in this order.'
+            : `${frames.length} different frames, ${totalFrames} in total, sent together in one order.`}
+        </AppText>
+
+        {frames.map((f, i) => {
+          // Changing a frame's colors: back to the customizer with them ("Update frame").
+          const edit = f.model
+            ? () =>
+                router.push({
+                  pathname: '/customize/[modelId]',
+                  params: { modelId: f.model!.id, lineId: f.line.id },
+                })
+            : undefined;
+          return (
+            <Card key={f.line.id} style={styles.frame}>
+              <View style={styles.frameTop}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Change the colors of frame ${i + 1}`}
+                  disabled={!edit || !!busy}
+                  onPress={edit}
+                  style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}
+                >
+                  {f.plan ? <RecolorView plan={f.plan} width={THUMB} /> : null}
+                </Pressable>
+                <View style={styles.frameHead}>
+                  <AppText variant="tiny" color={colors.muted}>
+                    {`FRAME ${i + 1}`}
+                  </AppText>
+                  <AppText variant="subheading">{f.model?.name ?? 'Model no longer available'}</AppText>
+                  <View style={styles.frameActions}>
+                    {edit ? (
+                      <Button
+                        title="Edit"
+                        variant="ghost"
+                        size="sm"
+                        icon="create-outline"
+                        disabled={!!busy}
+                        onPress={edit}
+                        accessibilityLabel={`Change the colors of frame ${i + 1}, ${f.model!.name}`}
+                      />
+                    ) : null}
+                    <Button
+                      title="Remove"
+                      variant="dangerGhost"
+                      size="sm"
+                      icon="trash-outline"
+                      disabled={!!busy}
+                      onPress={() => cart.remove(f.line.id)}
+                      accessibilityLabel={`Remove frame ${i + 1}${f.model ? `, ${f.model.name}` : ''}`}
+                    />
+                  </View>
+                </View>
+              </View>
+              {f.replaced.length > 0 ? (
+                <AppText variant="small" color={colors.onHighlight} style={styles.inlineNotice}>
+                  {`Some colors are no longer available and were replaced by the original ones: ${f.replaced.join(', ')}.`}
+                </AppText>
+              ) : null}
+              {f.parts.map((p) => (
+                <View key={p.zoneId} style={styles.part}>
+                  <Swatch
+                    hex={p.hex}
+                    alpha={p.alpha}
+                    texture={p.textureUrl}
+                    size={tokens.swatch.sm}
+                    accessibilityLabel={`Color ${p.ref}`}
+                  />
+                  <AppText variant="small" style={styles.partText}>
+                    {`${p.zoneName} · ${MATERIAL_LABEL[p.material]}: Color ${p.ref}${p.finish ? ` · ${FINISH_LABEL[p.finish]}` : ''}`}
+                  </AppText>
+                </View>
+              ))}
+              {!f.model ? (
+                <AppText variant="small" color={colors.danger}>
+                  This model was removed from the collection. Remove it to send the order.
+                </AppText>
+              ) : null}
+              {f.missing.map((name) => (
+                <AppText key={name} variant="small" color={colors.danger}>
+                  {`${name}: no color available. Remove this frame to send the order.`}
+                </AppText>
+              ))}
+              <QuantityStepper
+                label="Frames"
+                value={f.line.quantity}
+                onChange={(q) => cart.setQuantity(f.line.id, q)}
+                max={QUANTITY_MAX}
+                disabled={!!busy}
+              />
+            </Card>
+          );
+        })}
+
+        <Button
+          title="Add another frame"
+          variant="secondary"
+          icon="add"
+          fullWidth
+          disabled={!!busy}
+          onPress={() => router.dismissTo('/')}
+        />
+
         {profileFailed && !profile ? (
           <Card style={styles.notice}>
             <AppText variant="small" color={colors.onHighlight}>
@@ -251,14 +362,6 @@ function Summary({
               onPress={reloadProfile}
               style={styles.editBusiness}
             />
-          </Card>
-        ) : null}
-        {replaced.length > 0 ? (
-          <Card style={styles.notice}>
-            <AppText variant="small" color={colors.onHighlight}>
-              Some colors are no longer available and were replaced by the original ones:{' '}
-              {replaced.join(', ')}. Check them before confirming.
-            </AppText>
           </Card>
         ) : null}
         <Card style={styles.business}>
@@ -306,40 +409,6 @@ function Summary({
             style={styles.editBusiness}
           />
         </Card>
-        <Card style={styles.lines}>
-          {lines.map((l, i) => (
-            <View key={l.zoneId} style={[styles.line, i > 0 && styles.lineBorder]}>
-              <Swatch
-                hex={l.hex}
-                alpha={l.alpha}
-                texture={l.textureUrl}
-                size={tokens.swatch.md}
-                accessibilityLabel={`Color ${l.ref}`}
-              />
-              <View style={styles.lineText}>
-                <AppText variant="label">
-                  {l.zoneName} · {MATERIAL_LABEL[l.material]}
-                </AppText>
-                <AppText>
-                  Color {l.ref}
-                  {l.finish ? ` · ${FINISH_LABEL[l.finish]}` : ''}
-                </AppText>
-              </View>
-            </View>
-          ))}
-          {missing.map((name) => (
-            <AppText key={name} variant="small" color={colors.danger}>
-              {`${name}: no color available. This model can't be ordered right now.`}
-            </AppText>
-          ))}
-        </Card>
-        <QuantityStepper
-          label="Frames"
-          value={quantity}
-          onChange={setQuantity}
-          max={QUANTITY_MAX}
-          disabled={busy}
-        />
         <TextField
           label="Notes (optional)"
           value={notes}
@@ -358,16 +427,20 @@ function Summary({
         </AppText>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
-        {blockedReason ? (
+        {busy ? (
+          <AppText variant="small" align="center" style={styles.blocked}>
+            {busy}
+          </AppText>
+        ) : blockedReason ? (
           <AppText variant="small" align="center" style={styles.blocked}>
             {blockedReason}
           </AppText>
         ) : null}
         <Button
-          title="Confirm order"
+          title={`Send order · ${totalFrames} ${totalFrames === 1 ? 'frame' : 'frames'}`}
           fullWidth
-          loading={busy}
-          disabled={missing.length > 0 || lines.length === 0 || refreshing || !approved || !hasBusiness}
+          loading={!!busy}
+          disabled={unavailable || refreshing || !approved || !hasBusiness}
           onPress={confirm}
         />
       </View>
@@ -378,14 +451,26 @@ function Summary({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: PAGE, gap: spacing.lg },
+  frame: { gap: spacing.md },
+  frameTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
+  thumb: {
+    width: THUMB,
+    minHeight: THUMB * 0.45,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  frameHead: { flex: 1, gap: 2 },
+  frameActions: { flexDirection: 'row', flexWrap: 'wrap', marginLeft: -spacing.sm },
+  pressed: { opacity: 0.7 },
+  part: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  partText: { flex: 1 },
+  inlineNotice: { backgroundColor: colors.highlight, padding: spacing.sm, borderRadius: radius.sm },
   notice: { backgroundColor: colors.highlight, borderColor: colors.highlight },
   blocked: { marginBottom: spacing.sm },
   business: { gap: 2 },
   editBusiness: { alignSelf: 'flex-start', marginTop: tokens.spacing.xs },
-  lines: { gap: 0, paddingVertical: spacing.sm },
-  line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
-  lineBorder: { borderTopWidth: 1, borderTopColor: colors.border },
-  lineText: { flex: 1, gap: 2 },
   notes: { minHeight: 96, textAlignVertical: 'top' },
   footer: {
     padding: spacing.lg,

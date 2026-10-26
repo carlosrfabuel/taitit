@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
@@ -7,9 +7,13 @@ import { AppText } from './AppText';
 import { Icon } from './Icon';
 
 type ToastType = 'info' | 'success' | 'error';
-type ToastState = { id: number; message: string; type: ToastType } | null;
+/** A button on the toast, e.g. "View" after adding a frame to the order. */
+type ToastAction = { label: string; onPress: () => void };
+type ToastState = { id: number; message: string; type: ToastType; action?: ToastAction } | null;
 
-const ToastContext = createContext<(message: string, type?: ToastType) => void>(() => {});
+const ToastContext = createContext<(message: string, type?: ToastType, action?: ToastAction) => void>(
+  () => {},
+);
 
 export function useToast() {
   return useContext(ToastContext);
@@ -22,10 +26,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
 
-  const show = useCallback((message: string, type: ToastType = 'info') => {
+  const show = useCallback((message: string, type: ToastType = 'info', action?: ToastAction) => {
     if (timer.current) clearTimeout(timer.current);
-    setToast({ id: Date.now(), message, type });
-    timer.current = setTimeout(() => setToast(null), 2500);
+    setToast({ id: Date.now(), message, type, action });
+    // Longer with a button, so there is time to press it.
+    timer.current = setTimeout(() => setToast(null), action ? 4000 : 2500);
   }, []);
 
   useEffect(
@@ -51,6 +56,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <AppText variant="body" color={tokens.colors.onPrimary} style={styles.text}>
             {toast.message}
           </AppText>
+          {toast.action ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={12}
+              onPress={() => {
+                const { onPress } = toast.action!;
+                setToast(null);
+                onPress();
+              }}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <AppText variant="label" color={tokens.colors.onPrimary} style={styles.action}>
+                {toast.action.label}
+              </AppText>
+            </Pressable>
+          ) : null}
         </Animated.View>
       ) : null}
     </ToastContext.Provider>
@@ -71,4 +92,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   text: { flex: 1 },
+  action: { textDecorationLine: 'underline' },
+  pressed: { opacity: 0.7 },
 });

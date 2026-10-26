@@ -25,6 +25,9 @@ import {
   useToast,
 } from '@/ui';
 import { useAuth, useRequireAuth } from '@/auth/AuthProvider';
+import { CART_MAX, useCart, type CartLine } from '@/orders/cart';
+import { CartButton } from '@/orders/CartButton';
+import { QUANTITY_MAX } from '@/orders/orders';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { restorePicks, selectionKey, storedFor, toSelection, type Design } from '@/designs/designs';
@@ -65,10 +68,22 @@ const saveError = (e: unknown) => {
 
 // Customizer: the model photo recolored live, one zone at a time, with finish, undo / reset, a
 // before/after view of the original combination, and saving as a design.
-// Opened from the catalog (/customize/<model>) or from My designs (/customize/<model>?designId=<id>).
+// Opened from the catalog (/customize/<model>), from My designs (/customize/<model>?designId=<id>) or
+// from the order screen to change a frame's colors (/customize/<model>?lineId=<frame id>).
 export default function CustomizeScreen() {
-  const { modelId, designId } = useLocalSearchParams<{ modelId: string; designId?: string }>();
+  const { modelId, designId, lineId } = useLocalSearchParams<{
+    modelId: string;
+    designId?: string;
+    lineId?: string;
+  }>();
   const { session } = useAuth();
+  const cart = useCart();
+  // The frame being changed (gone, e.g. the order was sent meanwhile: a plain "Add to cart"). Held once
+  // open, like a design: joining it into another frame on "Update frame" must not reset the screen as it closes.
+  const foundLine = lineId ? cart.lines.find((l) => l.id === lineId && l.modelId === modelId) : undefined;
+  const [openedLine, setOpenedLine] = useState<CartLine | undefined>(undefined);
+  if (foundLine && openedLine?.id !== foundLine.id) setOpenedLine(foundLine);
+  const line = openedLine?.id === lineId ? openedLine : foundLine;
   const catalog = useCatalog();
   const swatchesQuery = useSwatches();
   const designs = useDesigns();
@@ -138,10 +153,11 @@ export default function CustomizeScreen() {
   // Keyed: opening another design (or the plain model) starts from its own state.
   return (
     <Customizer
-      key={design?.id ?? model.id}
+      key={line?.id ?? design?.id ?? model.id}
       model={model}
       swatches={swatchesQuery.data ?? []}
       design={design}
+      line={line}
     />
   );
 }
@@ -150,10 +166,12 @@ function Customizer({
   model,
   swatches,
   design,
+  line,
 }: {
   model: CatalogModel;
   swatches: CatalogSwatch[];
   design: Design | undefined;
+  line?: CartLine;
 }) {
   const { width } = useWindowDimensions();
   // Swatch rows fill the width: as many as fit at the minimum size, then grown to share it equally.
@@ -168,11 +186,14 @@ function Customizer({
   const insets = useSafeAreaInsets();
   // Ordering needs an account (guests are sent to sign in, then come back here).
   const requireAuth = useRequireAuth();
+  const cart = useCart();
   const { create, update } = useDesignMutations();
-  // A saved design opens as saved; colors or finishes no longer offered are replaced (listed in the notice).
-  const [restored] = useState(() =>
-    design ? restorePicks(model.zones, swatches, design.selection) : { picks: {}, replaced: [] as string[] },
-  );
+  // A saved design (or a frame of the order) opens as it was; colors or finishes no longer offered are
+  // replaced (listed in the notice).
+  const [restored] = useState(() => {
+    const from = design?.selection ?? line?.selection;
+    return from ? restorePicks(model.zones, swatches, from) : { picks: {}, replaced: [] as string[] };
+  });
   const [history, setHistory] = useState<History>({ ...emptyHistory, picks: restored.picks });
   const [zoneId, setZoneId] = useState<string | null>(null);
   const [holding, setHolding] = useState(false);
@@ -293,7 +314,10 @@ function Customizer({
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: saved?.name ?? model.name }} />
+      {/* The bag leads to the order; not while changing one of its frames (the order is right behind). */}
+      <Stack.Screen
+        options={{ title: saved?.name ?? model.name, headerRight: line ? undefined : () => <CartButton /> }}
+      />
       <Pressable
         style={styles.photo}
         onPressIn={() => setHolding(true)}
@@ -379,8 +403,8 @@ function Customizer({
         {noticeOpen ? (
           <View style={styles.notice}>
             <AppText variant="small" style={styles.noticeText}>
-              Some colors or finishes of this design are no longer available and were replaced:{' '}
-              {restored.replaced.join(', ')}.
+              Some colors or finishes of this {line && !design ? 'frame' : 'design'} are no longer available
+              and were replaced: {restored.replaced.join(', ')}.
             </AppText>
             <Button title="OK" variant="ghost" size="sm" onPress={() => setNoticeOpen(false)} />
           </View>
@@ -465,16 +489,40 @@ function Customizer({
           )}
         </Pressable>
         <Button
-          title="Order"
-          onPress={() =>
-            requireAuth(() =>
-              router.push({
-                pathname: '/order/summary',
-                params: { modelId: model.id, sel: JSON.stringify(selection) },
-              }),
-            )
-          }
-          arrow
+          title={line ? 'Update frame' : 'Add to cart'}
+          onPress={() => {
+            if (line) {
+              // Back to the order with the new colors (the same as another frame: they become one).
+              const result = cart.update(line.id, selection);
+              toast(
+                result === 'merged' ? 'Same as another frame: joined into one' : 'Frame updated',
+                'success',
+              );
+              router.back();
+              return;
+            }
+            requireAuth(() => {
+              // The frame joins the order being put together (several frames per order). The optician
+              // stays here to add more; the bag above, or "View", opens the order.
+              const result = cart.add(model.id, selection);
+              if (result === 'too_many_frames') {
+                toast(`Your cart can hold up to ${CART_MAX} different frames.`, 'error');
+                return;
+              }
+              if (result === 'too_many_of_one') {
+                toast(`Up to ${QUANTITY_MAX} of the same frame per order.`, 'error');
+                return;
+              }
+              toast(
+                result === 'more'
+                  ? `One more ${model.name} in your cart`
+                  : `${model.name} added to your cart`,
+                'success',
+                { label: 'View', onPress: () => router.push('/order/summary') },
+              );
+            });
+          }}
+          arrow={!line}
           style={styles.footerButton}
         />
       </View>

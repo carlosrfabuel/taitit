@@ -1,3 +1,4 @@
+import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import type { Finish, Material, SwatchKind } from '@taitit/shared';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { currentPick } from '@/customize/customizer';
@@ -79,12 +80,22 @@ export function validateOrderInput(input: {
   return { notes: notes || null };
 }
 
-/** Storage path of an order image: one per order attempt, named after its idempotency key. */
+/** Storage path of an order image: one per frame of an order attempt (see lineImageKey). */
 export const orderImagePath = (userId: string, key: string) => `${userId}/${key}.jpg`;
 
 /**
- * Uploads the order image to the private bucket. A retry of the same attempt (same key) finds the
- * file already there and treats that as done: the file name is the key, so it is the same image.
+ * The image key of frame `index` of the order placed with `orderKey`: derived from both, so a retry of
+ * the same attempt names (and finds) the same files, and changed content (a new order key) gets new
+ * ones. Formatted as a UUID: the storage rules only accept "<user id>/<uuid>.jpg".
+ */
+export async function lineImageKey(orderKey: string, index: number): Promise<string> {
+  const h = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${orderKey}:${index}`);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+/**
+ * Uploads a frame's image to the private bucket. A retry of the same attempt (same key) finds the
+ * file already there and treats that as done: the file name comes from the key, so it is the same image.
  */
 export async function uploadOrderImage(userId: string, key: string, jpeg: Uint8Array): Promise<string> {
   const path = orderImagePath(userId, key);
@@ -144,52 +155,52 @@ export const linesToSelection = (lines: OrderLine[]): OrderSelection => ({
   ),
 });
 
+/** One frame as it will be ordered: the model, its parts as shown, and how many. */
+export type OrderFrame = { modelId: string; lines: OrderLine[]; quantity: number };
+
 /**
- * Identity of what is ordered: same model, same lines, same notes and quantity = same content. Used to keep
- * one order key per content until that order succeeds (see pendingOrders.ts). The notes count: the
- * same design for another patient (other notes) must be a new order, not the earlier one.
+ * Identity of what is ordered: same frames (model, every part as shown, quantity, in order) and same
+ * notes = same content. Used to keep one order key per content until that order succeeds (see
+ * pendingOrders.ts). The notes count: the same frames for another patient must be a new order.
  */
-export const orderContentKey = (
-  userId: string,
-  modelId: string,
-  lines: OrderLine[],
-  notes: string | null,
-  quantity: number,
-) =>
+export const orderContentKey = (userId: string, frames: OrderFrame[], notes: string | null) =>
   JSON.stringify([
     userId,
-    modelId,
     notes ?? '',
-    quantity,
-    lines.map((l) => [
-      l.zoneId,
-      l.swatchId,
-      l.finish,
-      l.hex,
-      l.ref,
-      l.swatchName,
-      l.kind,
-      l.alpha,
-      l.texturePath,
+    frames.map((f) => [
+      f.modelId,
+      f.quantity,
+      f.lines.map((l) => [
+        l.zoneId,
+        l.swatchId,
+        l.finish,
+        l.hex,
+        l.ref,
+        l.swatchName,
+        l.kind,
+        l.alpha,
+        l.texturePath,
+      ]),
     ]),
   ]);
 
 /**
- * Creates the order (database function: one transaction, colors recomputed on the server). The same
- * key returns the order already created, so retries and double taps never order twice.
+ * Creates the order with all its frames (database function: one transaction, colors recomputed on the
+ * server). The same key returns the order already created, so retries and double taps never order twice.
  */
 export async function placeOrder(input: {
   key: string;
-  modelId: string;
-  selection: OrderSelection;
+  frames: { modelId: string; selection: OrderSelection; quantity: number; imageKey: string }[];
   notes: string | null;
-  quantity: number;
 }): Promise<{ id: string; number: number; created: boolean }> {
-  const { data, error } = await supabase.rpc('create_order', {
+  const { data, error } = await supabase.rpc('create_order_lines', {
     p_key: input.key,
-    p_model_id: input.modelId,
-    p_selection: input.selection,
-    p_quantity: input.quantity,
+    p_lines: input.frames.map((f) => ({
+      model_id: f.modelId,
+      selection: f.selection,
+      quantity: f.quantity,
+      image_key: f.imageKey,
+    })),
     ...(input.notes ? { p_notes: input.notes } : {}),
   });
   if (error) throw error;
@@ -205,8 +216,10 @@ export function orderErrorMessage(error: unknown): string {
   if (message.includes('account_not_approved'))
     return 'Your account is not approved for orders yet. TAITIT reviews new accounts; please contact them if this takes long.';
   if (message.includes('order_colors_changed'))
-    return 'Some colors changed in the meantime. Review your design and try again.';
-  if (message.includes('order_model_unavailable')) return 'This model is no longer available.';
+    return 'Some colors changed in the meantime. Review your cart and try again.';
+  if (message.includes('order_model_unavailable'))
+    return 'A model in your cart is no longer available. Remove it and try again.';
+  if (message.includes('order_lines_invalid')) return 'Your cart is empty or has too many frames.';
   if (message.includes('order_quantity_invalid')) return `Choose a quantity between 1 and ${QUANTITY_MAX}.`;
   if (message.includes('not_signed_in') || message.includes('JWT'))
     return 'Your session has expired. Please sign in again.';
@@ -235,11 +248,23 @@ export type OrderItem = {
   textureUrl: string | null;
 };
 
+/** One frame of a sent order. */
+export type OrderFrameView = {
+  lineNo: number;
+  modelName: string;
+  quantity: number;
+  imagePath: string | null;
+  /** Temporary link to the private image (valid for an hour), null if it can't be made. */
+  imageUrl: string | null;
+  items: OrderItem[];
+};
+
 export type Order = {
   id: string;
   number: number;
+  /** Every model of the order, e.g. "ALBA, CELEST". */
   modelName: string;
-  /** Identical frames of this design. */
+  /** Frames in total. */
   quantity: number;
   notes: string | null;
   shopRef: string | null;
@@ -254,9 +279,10 @@ export type Order = {
     labeling: string | null;
     delivery: string | null;
   };
-  /** Temporary link to the private image (valid for an hour), null if it can't be made. */
+  /** The first frame's image (lists). */
   imageUrl: string | null;
-  items: OrderItem[];
+  /** The frames, in order. */
+  frames: OrderFrameView[];
 };
 
 export const orderKeys = {
@@ -266,7 +292,7 @@ export const orderKeys = {
 };
 
 const ORDER_COLUMNS =
-  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, labeling, delivery_address, delivery_postal_code, delivery_city, delivery_province, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order)';
+  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, labeling, delivery_address, delivery_postal_code, delivery_city, delivery_province, order_lines(line_no, model_name, quantity, image_path, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
 
 type OrderRow = {
   id: string;
@@ -288,18 +314,26 @@ type OrderRow = {
   delivery_postal_code: string | null;
   delivery_city: string | null;
   delivery_province: string | null;
-  order_items: {
-    zone_name: string;
-    material: Material;
-    swatch_name: string;
-    hex: string;
-    ref: string;
-    finish: Finish | null;
-    kind: SwatchKind;
-    alpha: number | null;
-    texture_path: string | null;
-    sort_order: number;
+  order_lines: {
+    line_no: number;
+    model_name: string;
+    quantity: number;
+    image_path: string | null;
+    order_items: ItemRow[];
   }[];
+};
+
+type ItemRow = {
+  zone_name: string;
+  material: Material;
+  swatch_name: string;
+  hex: string;
+  ref: string;
+  finish: Finish | null;
+  kind: SwatchKind;
+  alpha: number | null;
+  texture_path: string | null;
+  sort_order: number;
 };
 
 /** An address as one line, e.g. "Calle Mayor 1, 46001 Valencia, Valencia". */
@@ -307,7 +341,7 @@ const addressLine = (...parts: [string | null, string | null, string | null, str
   [parts[0], [parts[1], parts[2]].filter(Boolean).join(' '), parts[3]].filter(Boolean).join(', ') || null;
 
 async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
-  const paths = rows.map((r) => r.image_path).filter((p): p is string => !!p);
+  const paths = rows.flatMap((r) => r.order_lines.map((l) => l.image_path)).filter((p): p is string => !!p);
   const urls = new Map<string, string>();
   if (paths.length) {
     // One request for every image; a failure only leaves the images out.
@@ -335,23 +369,32 @@ async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
         : null,
     },
     imageUrl: r.image_path ? (urls.get(r.image_path) ?? null) : null,
-    items: [...r.order_items]
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((i) => ({
-        zoneName: i.zone_name,
-        material: i.material,
-        swatchName: i.swatch_name,
-        hex: i.hex,
-        ref: i.ref,
-        finish: i.finish,
-        kind: i.kind,
-        alpha: i.alpha,
-        textureUrl: i.texture_path
-          ? supabase.storage.from('textures').getPublicUrl(i.texture_path).data.publicUrl
-          : null,
+    frames: [...r.order_lines]
+      .sort((a, b) => a.line_no - b.line_no)
+      .map((l) => ({
+        lineNo: l.line_no,
+        modelName: l.model_name,
+        quantity: l.quantity,
+        imagePath: l.image_path,
+        imageUrl: l.image_path ? (urls.get(l.image_path) ?? null) : null,
+        items: [...l.order_items].sort((a, b) => a.sort_order - b.sort_order).map(toItem),
       })),
   }));
 }
+
+const toItem = (i: ItemRow): OrderItem => ({
+  zoneName: i.zone_name,
+  material: i.material,
+  swatchName: i.swatch_name,
+  hex: i.hex,
+  ref: i.ref,
+  finish: i.finish,
+  kind: i.kind,
+  alpha: i.alpha,
+  textureUrl: i.texture_path
+    ? supabase.storage.from('textures').getPublicUrl(i.texture_path).data.publicUrl
+    : null,
+});
 
 /** Most recent orders listed (older ones: later, if anyone needs them). */
 export const ORDERS_LIMIT = 100;
@@ -388,7 +431,7 @@ export async function fetchOrder(userId: string, id: string): Promise<Order | nu
 
 /** Order summary as plain text (WhatsApp). */
 export function orderText(
-  order: Pick<Order, 'number' | 'modelName' | 'quantity' | 'items' | 'shopRef' | 'notes' | 'business'>,
+  order: Pick<Order, 'number' | 'quantity' | 'frames' | 'shopRef' | 'notes' | 'business'>,
 ): string {
   const finishName = { gloss: 'gloss', matte: 'matte' } as const;
   return [
@@ -397,11 +440,14 @@ export function orderText(
       ? [`From: ${order.business.name}${order.business.taxId ? ` (${order.business.taxId})` : ''}`]
       : []),
     ...(order.business.labeling ? [`Name on the glasses: ${order.business.labeling}`] : []),
-    `Model: ${order.modelName}`,
-    `Quantity: ${order.quantity}`,
-    ...order.items.map(
-      (i) => `• ${i.zoneName}: color ${i.ref}${i.finish ? ` (${finishName[i.finish]})` : ''}`,
-    ),
+    ...(order.frames.length > 1 ? [`Frames: ${order.quantity}`] : []),
+    ...order.frames.flatMap((f) => [
+      '',
+      `${order.frames.length > 1 ? `${f.lineNo}. ` : ''}Model: ${f.modelName}`,
+      `Quantity: ${f.quantity}`,
+      ...f.items.map((i) => `• ${i.zoneName}: color ${i.ref}${i.finish ? ` (${finishName[i.finish]})` : ''}`),
+    ]),
+    ...(order.shopRef || order.notes ? [''] : []),
     ...(order.shopRef ? [`Reference: ${order.shopRef}`] : []),
     ...(order.notes ? [`Notes: ${order.notes}`] : []),
   ].join('\n');

@@ -20,6 +20,8 @@ type Props = {
   /** A trailing arrow (→). Default: on full-width primary buttons without their own icon (forward actions). */
   arrow?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** What screen readers say, when the visible title alone is ambiguous (e.g. several "Remove"). */
+  accessibilityLabel?: string;
 };
 
 const PALETTE: Record<ButtonVariant, { bg: string; fg: string; border: string }> = {
@@ -43,6 +45,7 @@ export function Button({
   fullWidth = false,
   arrow,
   style,
+  accessibilityLabel,
 }: Props) {
   const p = PALETTE[variant];
   const inactive = disabled || loading;
@@ -50,7 +53,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}
       onPress={onPress}

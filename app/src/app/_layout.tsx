@@ -11,6 +11,7 @@ import { ToastProvider } from '@/ui';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { WelcomeProvider } from '@/lib/welcome';
+import { CartProvider } from '@/orders/cart';
 import { FONT_FILES, fonts } from '@/ui/fonts';
 
 // Keep the splash screen until the stored session is read, so
@@ -44,7 +45,7 @@ function RootStack() {
       <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="auth/callback" options={{ title: 'Confirm account' }} />
       <Stack.Screen name="customize/[modelId]" options={{ title: 'Customize' }} />
-      <Stack.Screen name="order/summary" options={{ title: 'Order summary' }} />
+      <Stack.Screen name="order/summary" options={{ title: 'Your cart' }} />
       <Stack.Screen name="order/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
       <Stack.Screen name="business" options={{ title: 'Business details' }} />
@@ -62,8 +63,10 @@ export default function RootLayout() {
           <ToastProvider>
             <AuthProvider>
               <WelcomeProvider>
-                <StatusBar style="dark" />
-                <RootStack />
+                <CartProvider>
+                  <StatusBar style="dark" />
+                  <RootStack />
+                </CartProvider>
               </WelcomeProvider>
             </AuthProvider>
           </ToastProvider>

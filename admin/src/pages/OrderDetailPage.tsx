@@ -4,13 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, FileSpreadsheet, ImageDown, Printer } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Button, Card, EmptyState, Spinner, Swatch, Table, type Column } from '../components/ui';
+import { OrderLineImage } from '../components/OrderLineImage';
 import {
-  downloadOrderImage,
+  downloadOrderImages,
   downloadOrderSheet,
   formatOrderDate,
+  framesLabel,
   getOrder,
-  isMissingFile,
-  orderImageUrl,
   orderKeys,
   type OrderItemRow,
 } from '../lib/orders';
@@ -19,21 +19,13 @@ import { textureUrl } from '../lib/swatches';
 import { readMessage } from '../lib/errors';
 import { FINISH_LABEL, KIND_LABEL, MATERIAL_LABEL, swatchLabel } from '../lib/labels';
 
-// One order, exactly as it was sent: image, part sheet, notes, and the optician's details at that
-// moment. Downloads: the image and the Excel sheet (the same file the order email carries).
+// One order, exactly as it was sent: each frame with its image, part sheet and quantity, the notes,
+// and the optician's details at that moment. Downloads: the images and the Excel sheet (the same file
+// the order email carries).
 export function OrderDetailPage() {
   const { id = '' } = useParams();
   const order = useQuery({ queryKey: orderKeys.one(id), queryFn: () => getOrder(id) });
   const o = order.data;
-  const image = useQuery({
-    queryKey: ['orders', id, 'image', o?.image_path],
-    queryFn: () => orderImageUrl(o!.image_path!),
-    enabled: !!o?.image_path,
-    staleTime: 30 * 60_000, // the link lasts an hour
-    retry: (count, error) => !isMissingFile(error) && count < 2,
-  });
-  // The file no longer exists (not a connection problem): said calmly, and nothing to download.
-  const imageGone = image.isError && isMissingFile(image.error);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const back = (
@@ -62,6 +54,7 @@ export function OrderDetailPage() {
       </>
     );
 
+  const several = o.order_lines.length > 1;
   const columns: Column<OrderItemRow>[] = [
     {
       key: 'zone',
@@ -100,7 +93,7 @@ export function OrderDetailPage() {
   const download = async (what: 'image' | 'sheet') => {
     setDownloadError(null);
     try {
-      if (what === 'image') await downloadOrderImage(o);
+      if (what === 'image') await downloadOrderImages(o);
       else downloadOrderSheet(o);
     } catch (e) {
       setDownloadError(`Couldn't download. ${readMessage(e as { message?: string })}`);
@@ -120,7 +113,7 @@ export function OrderDetailPage() {
       <PageHeader
         crumbs={[{ label: 'Orders', to: '/orders' }, { label: `#${o.number}` }]}
         title={`Order #${o.number}`}
-        note={`${formatOrderDate(o.created_at)} · ${o.model_name} · ${o.quantity} ${o.quantity === 1 ? 'unit' : 'units'}`}
+        note={`${formatOrderDate(o.created_at)} · ${several ? `${o.order_lines.length} different frames, ` : `${o.model_name} · `}${framesLabel(o.quantity)}`}
         actions={
           // Not printed: the printed page is the technical sheet itself.
           <div className="flex gap-2 print:hidden">
@@ -134,10 +127,10 @@ export function OrderDetailPage() {
             <Button
               variant="secondary"
               icon={<ImageDown className="size-4" aria-hidden />}
-              disabled={!o.image_path || imageGone}
+              disabled={!o.order_lines.some((l) => l.image_path)}
               onClick={() => void download('image')}
             >
-              Download image
+              {several ? 'Download images' : 'Download image'}
             </Button>
             <Button
               icon={<FileSpreadsheet className="size-4" aria-hidden />}
@@ -155,34 +148,28 @@ export function OrderDetailPage() {
       )}
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="flex flex-col gap-6">
-          <Card>
-            {image.data ? (
-              <img
-                src={image.data}
-                alt={`Design of order ${o.number}`}
-                className="h-auto w-full rounded-lg"
+          {o.order_lines.map((line) => (
+            <Card key={line.id} className="flex flex-col gap-4 break-inside-avoid">
+              {several && (
+                <h2 className="text-lg font-bold text-ink">
+                  {line.line_no}. {line.model_name} · {framesLabel(line.quantity)}
+                </h2>
+              )}
+              <OrderLineImage
+                line={line}
+                alt={
+                  several
+                    ? `Design of order ${o.number}, frame ${line.line_no}`
+                    : `Design of order ${o.number}`
+                }
               />
-            ) : imageGone ? (
-              <p className="text-sm text-muted">The image for this order is no longer available.</p>
-            ) : image.isError ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-danger">Couldn't load the image. Check your connection.</p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => void image.refetch()}
-                  className="print:hidden"
-                >
-                  Try again
-                </Button>
-              </div>
-            ) : o.image_path ? (
-              <Spinner label="Loading image…" />
-            ) : (
-              <p className="text-sm text-muted">This order has no image.</p>
-            )}
-          </Card>
-          <Table columns={columns} rows={o.order_items} rowKey={(i) => `${i.sort_order}-${i.zone_name}`} />
+              <Table
+                columns={columns}
+                rows={line.order_items}
+                rowKey={(i) => `${i.sort_order}-${i.zone_name}`}
+              />
+            </Card>
+          ))}
           <Card>
             <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Notes</h2>
             <p className="whitespace-pre-wrap text-ink">{o.notes || 'No notes.'}</p>

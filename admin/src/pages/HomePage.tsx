@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, Check, Glasses, Pencil, Receipt, Sparkles, Users } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
-import { OrderColors } from '../components/OrderColors';
+import { OrderLinesColors } from '../components/OrderColors';
 import { ModelThumb } from '../components/ModelThumb';
 import { Button, Card, Spinner } from '../components/ui';
 import { customerKeys, listCustomers, setAccountStatus, type CustomerRow } from '../lib/customers';
 import {
   countOrdersSince,
+  framesLabel,
   filterOrders,
   formatOrderDate,
   listOrders,
@@ -165,11 +166,10 @@ export function HomePage() {
                           {o.business_name ?? o.customer_name ?? '—'}
                         </span>
                         <span className="truncate text-xs text-muted">
-                          {o.model_name} · {o.quantity} {o.quantity === 1 ? 'unit' : 'units'} ·{' '}
-                          {formatOrderDate(o.created_at)}
+                          {o.model_name} · {framesLabel(o.quantity)} · {formatOrderDate(o.created_at)}
                         </span>
                       </span>
-                      <OrderColors items={o.order_items} />
+                      <OrderLinesColors order={o} />
                     </button>
                   </li>
                 ))}

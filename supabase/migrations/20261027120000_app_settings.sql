@@ -17,9 +17,9 @@ values (true, '34647942967', 'admin@taititeyewear.com');
 alter table public.app_settings enable row level security;
 
 create policy "app_settings: admin reads" on public.app_settings
-  for select to authenticated using ((select public.is_admin()));
+  for select to authenticated using ((select private.is_admin()));
 create policy "app_settings: admin updates" on public.app_settings
-  for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+  for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
 
 grant select on public.app_settings to authenticated;
 grant update (whatsapp_number, order_email) on public.app_settings to authenticated;

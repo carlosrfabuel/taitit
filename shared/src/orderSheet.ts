@@ -2,17 +2,16 @@
 import type { Finish, ZoneRole } from './types.ts';
 import { buildXlsx, type Cell } from './xlsx.ts';
 
-// The order as a spreadsheet for TAITIT's accounting. One row per order with the columns Carlos
-// listed (2026-10-20), headers in his words: the optician's details from registration (company name
-// … single labeling, in his order), then the order's (model, main colour, secondary colour, end tips
-// colour, quantity). Order number and date go first so rows can be matched; notes last. The same
-// file is downloaded in the admin panel and attached to the order email.
+// The order as a spreadsheet for TAITIT's accounting. One row per frame of the order (an order holds
+// one or more frames since 2026-10-26) with the columns Carlos listed (2026-10-20), headers in his
+// words: the optician's details from registration (company name … single labeling, in his order),
+// then the frame's (model, main colour, secondary colour, end tips colour, quantity). Order number and
+// date go first so rows can be matched; notes last. The same file is downloaded in the admin panel and
+// attached to the order email.
 
 export type SheetOrder = {
   number: number;
   createdAt: string;
-  modelName: string;
-  quantity: number;
   notes: string | null;
   /** The optician as copied into the order (orders before 2026-10-21 have no delivery, commercial
    * address, bank account or labeling: those cells stay empty). */
@@ -27,6 +26,13 @@ export type SheetOrder = {
   email: string | null;
   contact: string | null;
   labeling: string | null;
+  /** The frames, in order: one row each. */
+  lines: SheetLine[];
+};
+
+export type SheetLine = {
+  modelName: string;
+  quantity: number;
   items: {
     /** Null on orders placed before zones had roles: then the part's position decides. */
     zoneRole: ZoneRole | null;
@@ -72,50 +78,51 @@ export const sheetDate = (iso: string) =>
 
 /** A part's colour in one cell: the number and finish, e.g. "38 (gloss)". Colours have no names
  * (Carlos, 2026-10-21): each client and sales rep has a sample set with the numbers. */
-export const sheetColour = (i: SheetOrder['items'][number]) =>
+export const sheetColour = (i: SheetLine['items'][number]) =>
   `${i.ref}${i.finish ? ` (${FINISH[i.finish]})` : ''}`;
 
 const ROLES: ZoneRole[] = ['main', 'secondary', 'tips'];
 
 /** The part for each role: by its role, or (older orders) by position: 1st main, 2nd secondary, 3rd tips. */
-function byRole(items: SheetOrder['items']): Record<ZoneRole, SheetOrder['items'][number] | undefined> {
+function byRole(items: SheetLine['items']): Record<ZoneRole, SheetLine['items'][number] | undefined> {
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
   const withRoles = sorted.some((i) => i.zoneRole);
   return Object.fromEntries(
     ROLES.map((role, n) => [role, withRoles ? sorted.find((i) => i.zoneRole === role) : sorted[n]]),
-  ) as Record<ZoneRole, SheetOrder['items'][number] | undefined>;
+  ) as Record<ZoneRole, SheetLine['items'][number] | undefined>;
 }
 
 export function orderSheetRows(orders: SheetOrder[]): Cell[][] {
   const rows: Cell[][] = [[...ORDER_SHEET_COLUMNS]];
-  for (const o of orders) {
-    const parts = byRole(o.items);
-    const colour = (role: ZoneRole) => {
-      const part = parts[role];
-      return part ? sheetColour(part) : null;
-    };
-    rows.push([
-      o.number,
-      sheetDate(o.createdAt),
-      o.legalName,
-      o.taxId,
-      o.address,
-      o.deliveryAddress,
-      o.bankAccount,
-      o.businessName,
-      o.commercialAddress,
-      o.phone,
-      o.email,
-      o.contact,
-      o.labeling,
-      o.modelName,
-      colour('main'),
-      colour('secondary'),
-      colour('tips'),
-      o.quantity,
-      o.notes,
-    ]);
-  }
+  for (const o of orders)
+    for (const line of o.lines) {
+      const parts = byRole(line.items);
+      const colour = (role: ZoneRole) => {
+        const part = parts[role];
+        return part ? sheetColour(part) : null;
+      };
+      rows.push([
+        o.number,
+        sheetDate(o.createdAt),
+        o.legalName,
+        o.taxId,
+        o.address,
+        o.deliveryAddress,
+        o.bankAccount,
+        o.businessName,
+        o.commercialAddress,
+        o.phone,
+        o.email,
+        o.contact,
+        o.labeling,
+        line.modelName,
+        colour('main'),
+        colour('secondary'),
+        colour('tips'),
+        line.quantity,
+        o.notes,
+      ]);
+    }
   return rows;
 }
 

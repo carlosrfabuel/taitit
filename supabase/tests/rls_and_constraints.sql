@@ -10,7 +10,8 @@ declare
   b constant uuid := 'bbbbbbbb-0000-4000-8000-000000000002';  -- customer B
   adm constant uuid := 'cccccccc-0000-4000-8000-000000000003'; -- admin
   m_pub uuid; m_draft uuid; sw_metal uuid; sw_acet uuid; sw_off uuid;
-  o_a uuid; o_b uuid; d_b uuid;
+  o_a uuid; o_b uuid; d_b uuid; l_a uuid; l_b uuid;
+  z1 uuid; z2 uuid; sel jsonb; res jsonb; res2 jsonb; k1 uuid; k2 uuid; k3 uuid; o_multi uuid;
   n integer; n2 integer; t1 timestamptz; t2 timestamptz; txt text;
   seq_before bigint; seq_after bigint;
   m_new uuid; z_new uuid; arr text[];
@@ -87,9 +88,11 @@ begin
     values (900001, a, 'Cliente A', 'test-a@example.com', m_pub, 'TEST PUB', gen_random_uuid()) returning id into o_a;
   insert into public.orders (number, user_id, customer_name, customer_email, model_id, model_name, idempotency_key)
     values (900002, b, 'Cliente B', 'test-b@example.com', m_pub, 'TEST PUB', gen_random_uuid()) returning id into o_b;
-  insert into public.order_items (order_id, zone_name, material, swatch_name, hex, ref, kind) values
-    (o_a, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal'),
-    (o_b, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal');
+  insert into public.order_lines (order_id, line_no, model_id, model_name, quantity) values (o_a, 1, m_pub, 'TEST PUB', 1) returning id into l_a;
+  insert into public.order_lines (order_id, line_no, model_id, model_name, quantity) values (o_b, 1, m_pub, 'TEST PUB', 1) returning id into l_b;
+  insert into public.order_items (order_id, line_id, zone_name, material, swatch_name, hex, ref, kind) values
+    (o_a, l_a, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal'),
+    (o_b, l_b, 'Frente', 'metal', 'T metal', '#111111', 'T-M', 'metal');
 
   -- 1. Sign-up trigger
   select count(*) into n from public.profiles where id in (a, b, adm) and email like 'test-%@example.com';
@@ -221,6 +224,10 @@ begin
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s orders (expected own 1)', n); end if;
   select count(*) into n from public.order_items;
   if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s order items (expected own 1)', n); end if;
+  select count(*) into n from public.order_lines;
+  if n = 1 then passed := passed + 1; else failed := failed || format(E'\n3 customer sees %s order lines (expected own 1)', n); end if;
+  begin insert into public.order_lines (order_id, line_no, model_name) values (o_a, 2, 'X'); failed := failed || E'\n3 customer added a frame to an order directly';
+  exception when insufficient_privilege then passed := passed + 1; end;
   begin insert into public.orders (user_id, model_name, idempotency_key) values (a, 'X', gen_random_uuid()); failed := failed || E'\n3 customer inserted an order directly';
   exception when insufficient_privilege then passed := passed + 1; end;
   begin update public.orders set notes = 'x' where id = o_a; failed := failed || E'\n3 customer edited order notes';
@@ -254,6 +261,97 @@ begin
   begin insert into storage.objects (bucket_id, name, owner_id) values ('models', 'hack.png', a::text); failed := failed || E'\n3 customer uploaded a catalog image';
   exception when insufficient_privilege then passed := passed + 1; end;
 
+  -- 3b. Orders with several frames (20261028120000): create_order_lines, and create_order (one frame,
+  -- the app version already installed) on top of it. Real order numbers come from a sequence that
+  -- rollback does not rewind, so these orders take theirs from a sequence created (and dropped) here.
+  perform set_config('role', 'postgres', true);
+  create sequence public.test_order_seq start with 900100;
+  alter table public.orders alter column number set default nextval('public.test_order_seq');
+  select id into z1 from public.model_zones where model_id = m_pub and name = 'Frente';
+  select id into z2 from public.model_zones where model_id = m_pub and name = 'Aros';
+  perform set_config('role', 'authenticated', true);
+  sel := jsonb_build_object('v', 1, 'zones', jsonb_build_object(
+    z1::text, jsonb_build_object('swatchId', sw_metal, 'hex', '#111111', 'ref', 'T-M', 'name', 'T metal', 'kind', 'metal', 'finish', 'gloss'),
+    z2::text, jsonb_build_object('swatchId', sw_acet, 'hex', '#222222', 'ref', 'T-A', 'name', 'T acet', 'kind', 'solid')));
+  k1 := gen_random_uuid(); k2 := gen_random_uuid(); k3 := gen_random_uuid();
+  insert into storage.objects (bucket_id, name, owner_id) values
+    ('orders', a::text || '/' || k1 || '.jpg', a::text),
+    ('orders', a::text || '/' || k2 || '.jpg', a::text),
+    ('orders', a::text || '/' || k3 || '.jpg', a::text);
+
+  res := public.create_order_lines(k3, jsonb_build_array(
+    jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 2, 'image_key', k1),
+    jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 3, 'image_key', k2)), '  Paciente 12 ', 'REF-9');
+  o_multi := (res ->> 'id')::uuid;
+  if (res ->> 'created')::boolean and (res ->> 'number')::integer >= 900100 then passed := passed + 1; else failed := failed || E'\n3b two-frame order not created: ' || res::text; end if;
+  select count(*) into n from public.orders
+    where id = o_multi and quantity = 5 and model_name = 'TEST PUB' and notes = 'Paciente 12' and shop_ref = 'REF-9'
+      and image_path = a::text || '/' || k1 || '.jpg' and business_name = 'Optica A';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3b order summary wrong (total frames, names, first image, notes, optician)'; end if;
+  select count(*) into n from public.order_lines
+    where order_id = o_multi and ((line_no = 1 and quantity = 2 and image_path = a::text || '/' || k1 || '.jpg')
+                               or (line_no = 2 and quantity = 3 and image_path = a::text || '/' || k2 || '.jpg'));
+  if n = 2 then passed := passed + 1; else failed := failed || format(E'\n3b %s of 2 frames stored right', n); end if;
+  select count(*) into n from public.order_items i join public.order_lines l on l.id = i.line_id
+    where i.order_id = o_multi and l.order_id = o_multi
+      and ((i.zone_name = 'Frente' and i.ref = 'T-M' and i.finish = 'gloss')
+        or (i.zone_name = 'Aros' and i.ref = 'T-A' and i.finish is null));
+  if n = 4 then passed := passed + 1; else failed := failed || format(E'\n3b %s of 4 parts stored on their frame', n); end if;
+  -- Both test zones share sort_order 0, so which one is first follows their ids: only check 0, 1 per frame.
+  select count(*) into n from public.order_lines l
+    where l.order_id = o_multi and (select array_agg(i.sort_order order by i.sort_order) from public.order_items i where i.line_id = l.id) = '{0,1}';
+  if n = 2 then passed := passed + 1; else failed := failed || E'\n3b parts of a frame not numbered 0, 1'; end if;
+  -- Retry / double tap: same key returns the same order, writes nothing.
+  res2 := public.create_order_lines(k3, '[]'::jsonb);
+  select count(*) into n from public.orders where idempotency_key = k3;
+  if res2 ->> 'id' = res ->> 'id' and not (res2 ->> 'created')::boolean and n = 1 then passed := passed + 1; else failed := failed || E'\n3b retry with the same key ordered again'; end if;
+  select count(*) into n from public.order_lines;
+  if n = 3 then passed := passed + 1; else failed := failed || format(E'\n3b customer sees %s order lines (expected own 3)', n); end if;
+
+  -- Refused, and nothing written: bad line lists, quantities, images, models, colors.
+  select count(*) into n2 from public.orders;
+  begin perform public.create_order_lines(gen_random_uuid(), '[]'::jsonb); failed := failed || E'\n3b empty order accepted';
+  exception when check_violation then if sqlerrm = 'order_lines_invalid' then passed := passed + 1; else failed := failed || E'\n3b empty order: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), (select jsonb_agg(jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1)) from generate_series(1, 51))); failed := failed || E'\n3b 51 frames accepted';
+  exception when check_violation then if sqlerrm = 'order_lines_invalid' then passed := passed + 1; else failed := failed || E'\n3b 51 frames: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 100, 'image_key', k1))); failed := failed || E'\n3b quantity 100 accepted';
+  exception when check_violation then if sqlerrm = 'order_quantity_invalid' then passed := passed + 1; else failed := failed || E'\n3b quantity 100: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1.5, 'image_key', k1))); failed := failed || E'\n3b quantity 1.5 accepted';
+  exception when check_violation then if sqlerrm = 'order_quantity_invalid' then passed := passed + 1; else failed := failed || E'\n3b quantity 1.5: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1),
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1))); failed := failed || E'\n3b two frames with one image accepted';
+  exception when check_violation then if sqlerrm = 'order_image_missing' then passed := passed + 1; else failed := failed || E'\n3b shared image: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1),
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', gen_random_uuid()))); failed := failed || E'\n3b frame without uploaded image accepted';
+  exception when check_violation then if sqlerrm = 'order_image_missing' then passed := passed + 1; else failed := failed || E'\n3b missing image: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1),
+      jsonb_build_object('model_id', m_draft, 'selection', sel, 'quantity', 1, 'image_key', k2))); failed := failed || E'\n3b frame of an unpublished model accepted';
+  exception when check_violation then if sqlerrm = 'order_model_unavailable' then passed := passed + 1; else failed := failed || E'\n3b unpublished model: ' || sqlerrm; end if; end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(
+      jsonb_build_object('model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1),
+      jsonb_build_object('model_id', m_pub, 'selection', jsonb_set(sel, array['zones', z2::text, 'hex'], '"#999999"'), 'quantity', 1, 'image_key', k2))); failed := failed || E'\n3b changed color accepted';
+  exception when check_violation then if sqlerrm = 'order_colors_changed' then passed := passed + 1; else failed := failed || E'\n3b changed color: ' || sqlerrm; end if; end;
+  select count(*) into n from public.orders;
+  if n = n2 then passed := passed + 1; else failed := failed || E'\n3b a refused order left rows behind'; end if;
+
+  -- The installed app's call: one frame, image named after the order key, quantity kept.
+  k1 := gen_random_uuid();
+  insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/' || k1 || '.jpg', a::text);
+  res := public.create_order(k1, m_pub, sel, null, null, 4);
+  select count(*) into n from public.orders o join public.order_lines l on l.order_id = o.id
+    where o.id = (res ->> 'id')::uuid and o.quantity = 4 and l.line_no = 1 and l.quantity = 4
+      and l.image_path = a::text || '/' || k1 || '.jpg' and o.image_path = l.image_path
+      and (select count(*) from public.order_items i where i.line_id = l.id) = 2;
+  if (res ->> 'created')::boolean and n = 1 then passed := passed + 1; else failed := failed || E'\n3b old create_order did not place a one-frame order'; end if;
+
+  perform set_config('role', 'postgres', true);
+  alter table public.orders alter column number set default nextval('public.order_number_seq');
+  drop sequence public.test_order_seq;
+  perform set_config('role', 'authenticated', true);
+
   -- Customer B cannot read A's order image
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);
   -- B is pending approval: may not upload order images (nor order: create_order checks the same rule).
@@ -263,8 +361,14 @@ begin
   exception when insufficient_privilege then
     if sqlerrm = 'account_not_approved' then passed := passed + 1; else failed := failed || E'\n3 pending order refused for the wrong reason: ' || sqlerrm; end if;
   end;
+  begin perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object('model_id', m_pub, 'selection', '{}'::jsonb, 'quantity', 1, 'image_key', gen_random_uuid()))); failed := failed || E'\n3 pending account placed a multi-frame order';
+  exception when insufficient_privilege then
+    if sqlerrm = 'account_not_approved' then passed := passed + 1; else failed := failed || E'\n3 pending multi-frame order refused for the wrong reason: ' || sqlerrm; end if;
+  end;
   select count(*) into n from storage.objects where bucket_id = 'orders' and name = a::text || '/11111111-2222-4333-8444-555555555555.jpg';
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer B can see customer A''s order image'; end if;
+  select count(*) into n from public.order_lines where order_id = o_multi;
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n3b customer B can see customer A''s frames'; end if;
 
   -- -------------------------------------------------------------------------
   -- 4. Admin
@@ -613,6 +717,8 @@ begin
   if n = 0 then passed := passed + 1; else failed := failed || E'\n6 designs kept after account deletion'; end if;
   select count(*) into n from public.orders where id = o_a and user_id is null and customer_email = 'test-a@example.com';
   if n = 1 then passed := passed + 1; else failed := failed || E'\n6 order not kept with email copy and cleared user_id'; end if;
+  select count(*) into n from public.order_lines where order_id = o_multi;
+  if n = 2 then passed := passed + 1; else failed := failed || E'\n6 frames of an order lost with the account'; end if;
 
   select last_value into seq_after from public.order_number_seq;
   if seq_after = seq_before then passed := passed + 1; else failed := failed || E'\n7 the test consumed order numbers'; end if;

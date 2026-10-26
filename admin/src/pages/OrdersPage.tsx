@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileSpreadsheet, Receipt, Search } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
-import { OrderColors } from '../components/OrderColors';
+import { OrderLinesColors } from '../components/OrderColors';
 import { OrderPanel } from '../components/OrderPanel';
 import { ModelThumb } from '../components/ModelThumb';
 import { listModels, modelKeys } from '../lib/models';
@@ -39,7 +39,7 @@ export function OrdersPage() {
   // By id, not name: a renamed model keeps its orders' pictures, a new one reusing a name gets none.
   const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
   // The design each optician ordered (private images): links for every listed order in one request.
-  const imagePaths = rows.map((o) => o.image_path).filter((p): p is string => !!p);
+  const imagePaths = rows.map((o) => o.order_lines[0]?.image_path).filter((p): p is string => !!p);
   const images = useQuery({
     queryKey: ['orders', 'images', imagePaths],
     queryFn: () => orderImageUrls(imagePaths),
@@ -108,7 +108,14 @@ export function OrdersPage() {
       render: (o) => (
         <span className="flex items-center gap-3">
           <ModelThumb model={o.model_id ? byId.get(o.model_id) : undefined} className="h-9 w-16" />
-          {o.model_name}
+          <span className="flex min-w-0 flex-col">
+            <span className="max-w-48 truncate" title={o.model_name}>
+              {o.model_name}
+            </span>
+            {o.order_lines.length > 1 && (
+              <span className="text-xs text-muted">{o.order_lines.length} different frames</span>
+            )}
+          </span>
         </span>
       ),
     },
@@ -116,9 +123,17 @@ export function OrdersPage() {
       key: 'design',
       header: 'Design',
       render: (o) => {
-        const url = o.image_path ? images.data?.get(o.image_path) : undefined;
+        // The first frame's design; with several frames, how many more there are.
+        const first = o.order_lines[0]?.image_path ?? null;
+        const url = first ? images.data?.get(first) : undefined;
+        const more = o.order_lines.length - 1;
         return (
-          <span className="inline-flex h-9 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white">
+          <span className="relative inline-flex h-9 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-white">
+            {more > 0 && (
+              <span className="absolute right-0.5 bottom-0.5 z-10 rounded-full bg-ink px-1.5 text-[10px] font-bold text-white">
+                +{more}
+              </span>
+            )}
             {url ? (
               <img
                 src={url}
@@ -126,15 +141,15 @@ export function OrdersPage() {
                 loading="lazy"
                 className="size-full object-contain"
               />
-            ) : o.image_path && images.isPending ? null : (
+            ) : first && images.isPending ? null : (
               <span className="text-[10px] leading-tight text-muted">No image</span>
             )}
           </span>
         );
       },
     },
-    { key: 'colors', header: 'Colors', render: (o) => <OrderColors items={o.order_items} /> },
-    { key: 'quantity', header: 'Quantity', className: 'w-24', render: (o) => o.quantity },
+    { key: 'colors', header: 'Colors', render: (o) => <OrderLinesColors order={o} /> },
+    { key: 'quantity', header: 'Frames', className: 'w-24', render: (o) => o.quantity },
   ];
 
   const filtered = query.trim() !== '' || period !== 'all';

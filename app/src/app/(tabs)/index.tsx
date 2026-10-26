@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MATERIAL_LABEL, tokens, type Material } from '@taitit/shared';
 import { AppText, BrandLogo, EmptyState, GradientFill, Icon, Skeleton, WARM_GLOWS } from '@/ui';
 import { useAuth } from '@/auth/AuthProvider';
+import { CartButton } from '@/orders/CartButton';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import {
   categoriesOf,
@@ -78,6 +79,7 @@ export default function CatalogScreen() {
     <View style={styles.topBlock}>
       <View style={styles.topRow}>
         <BrandLogo width={118} />
+        <CartButton />
       </View>
       <View style={styles.greetingText}>
         {session ? (

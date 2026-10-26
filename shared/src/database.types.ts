@@ -210,6 +210,7 @@ export type Database = {
           hex: string
           id: string
           kind: Database["public"]["Enums"]["swatch_kind"]
+          line_id: string
           material: Database["public"]["Enums"]["material"]
           order_id: string
           ref: string
@@ -225,6 +226,7 @@ export type Database = {
           hex: string
           id?: string
           kind: Database["public"]["Enums"]["swatch_kind"]
+          line_id: string
           material: Database["public"]["Enums"]["material"]
           order_id: string
           ref: string
@@ -240,6 +242,7 @@ export type Database = {
           hex?: string
           id?: string
           kind?: Database["public"]["Enums"]["swatch_kind"]
+          line_id?: string
           material?: Database["public"]["Enums"]["material"]
           order_id?: string
           ref?: string
@@ -251,7 +254,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "order_items_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "order_lines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_lines: {
+        Row: {
+          id: string
+          image_path: string | null
+          line_no: number
+          model_id: string | null
+          model_name: string
+          order_id: string
+          quantity: number
+        }
+        Insert: {
+          id?: string
+          image_path?: string | null
+          line_no: number
+          model_id?: string | null
+          model_name: string
+          order_id: string
+          quantity: number
+        }
+        Update: {
+          id?: string
+          image_path?: string | null
+          line_no?: number
+          model_id?: string | null
+          model_name?: string
+          order_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_lines_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_lines_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -544,6 +599,15 @@ export type Database = {
           p_notes?: string
           p_quantity?: number
           p_selection: Json
+          p_shop_ref?: string
+        }
+        Returns: Json
+      }
+      create_order_lines: {
+        Args: {
+          p_key: string
+          p_lines: Json
+          p_notes?: string
           p_shop_ref?: string
         }
         Returns: Json

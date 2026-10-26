@@ -170,7 +170,13 @@ export function patternMatrix(hex: string, patternHex?: string | null): number[]
   }
   const k = PATTERN_SCALE;
   const round = (v: number) => Math.round(v * 1e4) / 1e4;
-  const row =(c: number) => [round(k * y * (1 - w)), round(k * (c - y) * (1 - w)), round(k * y * w), 0, round((c - y) * w)];
+  const row = (c: number) => [
+    round(k * y * (1 - w)),
+    round(k * (c - y) * (1 - w)),
+    round(k * y * w),
+    0,
+    round((c - y) * w),
+  ];
   return [...row(r), ...row(g), ...row(b), 0, 0, 0, 1, 0];
 }
 

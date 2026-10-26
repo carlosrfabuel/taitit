@@ -3,7 +3,7 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { FINISH_LABEL, MATERIAL_LABEL, tokens } from '@taitit/shared';
-import { formatOrderDate, orderText } from '@/orders/orders';
+import { formatOrderDate, orderText, type OrderFrameView } from '@/orders/orders';
 import { openWhatsapp, useOrder } from '@/orders/useOrders';
 import {
   AppText,
@@ -24,10 +24,7 @@ const { spacing, colors } = tokens;
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const order = useOrder(id);
-  const { width } = useWindowDimensions();
   const toast = useToast();
-  // Width / height of the order image, read from the file once loaded (models differ in shape).
-  const [aspect, setAspect] = useState(1600 / 556);
 
   if (order.isPending) return <Loader message="Loading order…" />;
   if (order.isError && !order.data)
@@ -56,7 +53,7 @@ export default function OrderDetailScreen() {
       </Screen>
     );
 
-  const imageWidth = width - (spacing.xl + PHOTO_STAGE_INSET) * 2;
+  const several = o.frames.length > 1;
   return (
     <Screen
       footer={
@@ -70,46 +67,15 @@ export default function OrderDetailScreen() {
       }
     >
       <Stack.Screen options={{ title: `Order #${o.number}` }} />
-      {o.imageUrl ? (
-        <PhotoStage>
-          <Image
-            source={{ uri: o.imageUrl, cacheKey: o.imagePath ?? undefined }}
-            style={{ width: imageWidth, height: imageWidth / aspect }}
-            onLoad={(e) => e.source.width && e.source.height && setAspect(e.source.width / e.source.height)}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            accessibilityLabel={`Design of order ${o.number}`}
-          />
-        </PhotoStage>
-      ) : null}
       <View>
-        <AppText variant="title">{o.modelName}</AppText>
+        <AppText variant="title">{several ? `${o.frames.length} different frames` : o.modelName}</AppText>
         <AppText variant="small">
           Sent {formatOrderDate(o.createdAt)} · {o.quantity} {o.quantity === 1 ? 'frame' : 'frames'}
         </AppText>
       </View>
-      <Card style={styles.lines}>
-        {o.items.map((i, n) => (
-          <View key={`${i.zoneName}-${n}`} style={[styles.line, n > 0 && styles.lineBorder]}>
-            <Swatch
-              hex={i.hex}
-              alpha={i.alpha}
-              texture={i.textureUrl}
-              size={tokens.swatch.md}
-              accessibilityLabel={`Color ${i.ref}`}
-            />
-            <View style={styles.lineText}>
-              <AppText variant="label">
-                {i.zoneName} · {MATERIAL_LABEL[i.material]}
-              </AppText>
-              <AppText>
-                Color {i.ref}
-                {i.finish ? ` · ${FINISH_LABEL[i.finish]}` : ''}
-              </AppText>
-            </View>
-          </View>
-        ))}
-      </Card>
+      {o.frames.map((f) => (
+        <Frame key={f.lineNo} frame={f} orderNumber={o.number} several={several} />
+      ))}
       {o.business.name ? (
         <View style={styles.field}>
           <AppText variant="tiny">SENT BY</AppText>
@@ -142,7 +108,69 @@ export default function OrderDetailScreen() {
   );
 }
 
+/** One frame of the order: its design, model, quantity and colors per part. */
+function Frame({
+  frame: f,
+  orderNumber,
+  several,
+}: {
+  frame: OrderFrameView;
+  orderNumber: number;
+  several: boolean;
+}) {
+  const { width } = useWindowDimensions();
+  // Width / height of the image, read from the file once loaded (models differ in shape).
+  const [aspect, setAspect] = useState(1600 / 556);
+  const imageWidth = width - (spacing.xl + PHOTO_STAGE_INSET) * 2;
+  return (
+    <View style={styles.frame}>
+      {f.imageUrl ? (
+        <PhotoStage>
+          <Image
+            source={{ uri: f.imageUrl, cacheKey: f.imagePath ?? undefined }}
+            style={{ width: imageWidth, height: imageWidth / aspect }}
+            onLoad={(e) => e.source.width && e.source.height && setAspect(e.source.width / e.source.height)}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            accessibilityLabel={
+              several ? `Design of order ${orderNumber}, frame ${f.lineNo}` : `Design of order ${orderNumber}`
+            }
+          />
+        </PhotoStage>
+      ) : null}
+      {several ? (
+        <AppText variant="subheading">
+          {f.lineNo}. {f.modelName} · {f.quantity} {f.quantity === 1 ? 'frame' : 'frames'}
+        </AppText>
+      ) : null}
+      <Card style={styles.lines}>
+        {f.items.map((i, n) => (
+          <View key={`${i.zoneName}-${n}`} style={[styles.line, n > 0 && styles.lineBorder]}>
+            <Swatch
+              hex={i.hex}
+              alpha={i.alpha}
+              texture={i.textureUrl}
+              size={tokens.swatch.md}
+              accessibilityLabel={`Color ${i.ref}`}
+            />
+            <View style={styles.lineText}>
+              <AppText variant="label">
+                {i.zoneName} · {MATERIAL_LABEL[i.material]}
+              </AppText>
+              <AppText>
+                Color {i.ref}
+                {i.finish ? ` · ${FINISH_LABEL[i.finish]}` : ''}
+              </AppText>
+            </View>
+          </View>
+        ))}
+      </Card>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  frame: { gap: spacing.md },
   lines: { paddingVertical: spacing.sm },
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
   lineBorder: { borderTopWidth: 1, borderTopColor: colors.border },
