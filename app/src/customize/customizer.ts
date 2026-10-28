@@ -41,9 +41,17 @@ export function currentPick(
   const pick = picks[zone.id];
   const picked = pick && usable(zone, swatches, pick.swatchId);
   const swatch = picked || usable(zone, swatches, zone.defaultSwatchId);
-  const finish = picked ? pick.finish : zone.defaultFinish;
-  // A finish the color doesn't offer is not shown (the renderer ignores it too).
-  return { swatch, finish: swatch && finish && swatch.finishes.includes(finish) ? finish : null };
+  if (!swatch || swatch.finishes.length === 0) return { swatch, finish: null };
+  // A color with finishes always shows one (acetate: matte / gloss): the one picked, else the zone's
+  // default, else the color's first (matte). A finish the color doesn't offer is never shown.
+  const offered = (f: Finish | null | undefined): f is Finish => !!f && swatch.finishes.includes(f);
+  const wanted = picked ? pick.finish : zone.defaultFinish;
+  const finish = offered(wanted)
+    ? wanted
+    : offered(zone.defaultFinish)
+      ? zone.defaultFinish
+      : swatch.finishes[0]!;
+  return { swatch, finish };
 }
 
 /** Picks that are still valid, for the renderer (invalid ones are dropped, so the default shows). */

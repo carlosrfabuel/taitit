@@ -19,19 +19,16 @@ export type Database = {
           id: boolean
           order_email: string
           updated_at: string
-          whatsapp_number: string
         }
         Insert: {
           id?: boolean
           order_email?: string
           updated_at?: string
-          whatsapp_number?: string
         }
         Update: {
           id?: boolean
           order_email?: string
           updated_at?: string
-          whatsapp_number?: string
         }
         Relationships: []
       }
@@ -271,31 +268,49 @@ export type Database = {
       }
       order_lines: {
         Row: {
+          bridge_size: number | null
           id: string
           image_path: string | null
           line_no: number
           model_id: string | null
           model_name: string
+          notes: string | null
           order_id: string
           quantity: number
+          ring_size_a: number | null
+          ring_size_b: number | null
+          temple_labeling: string | null
+          temple_length: number | null
         }
         Insert: {
+          bridge_size?: number | null
           id?: string
           image_path?: string | null
           line_no: number
           model_id?: string | null
           model_name: string
+          notes?: string | null
           order_id: string
           quantity: number
+          ring_size_a?: number | null
+          ring_size_b?: number | null
+          temple_labeling?: string | null
+          temple_length?: number | null
         }
         Update: {
+          bridge_size?: number | null
           id?: string
           image_path?: string | null
           line_no?: number
           model_id?: string | null
           model_name?: string
+          notes?: string | null
           order_id?: string
           quantity?: number
+          ring_size_a?: number | null
+          ring_size_b?: number | null
+          temple_labeling?: string | null
+          temple_length?: number | null
         }
         Relationships: [
           {
@@ -591,7 +606,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      app_whatsapp_number: { Args: never; Returns: string }
       create_order: {
         Args: {
           p_key: string

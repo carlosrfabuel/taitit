@@ -3,20 +3,11 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { FINISH_LABEL, MATERIAL_LABEL, tokens } from '@taitit/shared';
-import { formatOrderDate, orderText, type OrderFrameView } from '@/orders/orders';
-import { openWhatsapp, useOrder } from '@/orders/useOrders';
-import {
-  AppText,
-  Button,
-  Card,
-  EmptyState,
-  Loader,
-  PhotoStage,
-  PHOTO_STAGE_INSET,
-  Screen,
-  Swatch,
-  useToast,
-} from '@/ui';
+import { formatOrderDate, type OrderFrameView } from '@/orders/orders';
+import { formSummary } from '@/orders/frameForm';
+import { PrintOrderButton } from '@/orders/PrintOrderButton';
+import { useOrder } from '@/orders/useOrders';
+import { AppText, Card, EmptyState, Loader, PhotoStage, PHOTO_STAGE_INSET, Screen, Swatch } from '@/ui';
 
 const { spacing, colors } = tokens;
 
@@ -24,7 +15,6 @@ const { spacing, colors } = tokens;
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const order = useOrder(id);
-  const toast = useToast();
 
   if (order.isPending) return <Loader message="Loading order…" />;
   if (order.isError && !order.data)
@@ -55,17 +45,7 @@ export default function OrderDetailScreen() {
 
   const several = o.frames.length > 1;
   return (
-    <Screen
-      footer={
-        <Button
-          title="Send via WhatsApp"
-          icon="logo-whatsapp"
-          variant="secondary"
-          fullWidth
-          onPress={() => openWhatsapp(orderText(o)).catch(() => toast("Couldn't open WhatsApp.", 'error'))}
-        />
-      }
-    >
+    <Screen footer={<PrintOrderButton order={o} variant="secondary" />}>
       <Stack.Screen options={{ title: `Order #${o.number}` }} />
       <View>
         <AppText variant="title">{several ? `${o.frames.length} different frames` : o.modelName}</AppText>
@@ -165,6 +145,16 @@ function Frame({
           </View>
         ))}
       </Card>
+      {formSummary(f.form).length > 0 ? (
+        <Card style={styles.form}>
+          <AppText variant="tiny" color={colors.muted}>
+            CUSTOMIZING FORM
+          </AppText>
+          {formSummary(f.form).map((t) => (
+            <AppText key={t}>{t}</AppText>
+          ))}
+        </Card>
+      ) : null}
     </View>
   );
 }
@@ -176,4 +166,5 @@ const styles = StyleSheet.create({
   lineBorder: { borderTopWidth: 1, borderTopColor: colors.border },
   lineText: { flex: 1, gap: 2 },
   field: { gap: spacing.xs },
+  form: { gap: spacing.xs },
 });

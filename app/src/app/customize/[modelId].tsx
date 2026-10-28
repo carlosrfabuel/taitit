@@ -33,6 +33,8 @@ import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { restorePicks, selectionKey, storedFor, toSelection, type Design } from '@/designs/designs';
 import { useDesignMutations, useDesigns } from '@/designs/useDesigns';
 import { NameSheet } from '@/designs/NameSheet';
+import { FrameFormSheet } from '@/orders/FrameFormSheet';
+import { EMPTY_FORM, FORM_FIELDS, filledCount, type FrameForm } from '@/orders/frameForm';
 import { RecolorView } from '@/render/RecolorView';
 import {
   chooseFinish,
@@ -220,6 +222,11 @@ function Customizer({
   );
   const [naming, setNaming] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The customizing form of this frame (2026-10-27): kept with it in the cart; a frame being changed
+  // starts from its own.
+  const [form, setForm] = useState<FrameForm>(line?.form ?? EMPTY_FORM);
+  const [formOpen, setFormOpen] = useState(false);
+  const filled = filledCount(form);
   // A guest pressed "Save design" and was sent to sign in. A ref, not state: setting it must not
   // re-run the focus effect below while this screen is still focused.
   const saveAfterSignIn = useRef(false);
@@ -467,6 +474,22 @@ function Customizer({
           Colors may vary slightly depending on your screen.
         </AppText>
       </ScrollView>
+      {/* Always in view above the buttons (not below the palette, where it would be missed). */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Customizing form, ${filled === 0 ? 'optional' : `${filled} of ${FORM_FIELDS} filled`}`}
+        onPress={() => setFormOpen(true)}
+        style={({ pressed }) => [styles.formRow, pressed && styles.savePressed]}
+      >
+        <Icon name="create-outline" size={20} color={colors.text} />
+        <AppText variant="label" style={styles.formTitle}>
+          Customizing form
+        </AppText>
+        <AppText variant="small" color={filled ? colors.text : colors.muted}>
+          {filled === 0 ? 'Optional' : `${filled} of ${FORM_FIELDS} filled`}
+        </AppText>
+        <Icon name="chevron-forward" size={18} color={colors.muted} />
+      </Pressable>
       <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
         {/* Save as a round heart beside the order button (benchmarks 2026-10-23): outlined while
             there is something to save, filled once the design is saved as it is. */}
@@ -493,7 +516,7 @@ function Customizer({
           onPress={() => {
             if (line) {
               // Back to the order with the new colors (the same as another frame: they become one).
-              const result = cart.update(line.id, selection);
+              const result = cart.update(line.id, selection, form);
               toast(
                 result === 'merged' ? 'Same as another frame: joined into one' : 'Frame updated',
                 'success',
@@ -504,7 +527,7 @@ function Customizer({
             requireAuth(() => {
               // The frame joins the order being put together (several frames per order). The optician
               // stays here to add more; the bag above, or "View", opens the order.
-              const result = cart.add(model.id, selection);
+              const result = cart.add(model.id, selection, form);
               if (result === 'too_many_frames') {
                 toast(`Your cart can hold up to ${CART_MAX} different frames.`, 'error');
                 return;
@@ -526,6 +549,15 @@ function Customizer({
           style={styles.footerButton}
         />
       </View>
+      <FrameFormSheet
+        visible={formOpen}
+        value={form}
+        onDone={(f) => {
+          setForm(f);
+          setFormOpen(false);
+        }}
+        onClose={() => setFormOpen(false)}
+      />
       <NameSheet
         visible={naming}
         title="Save design"
@@ -571,6 +603,17 @@ const styles = StyleSheet.create({
   },
   noticeText: { flex: 1, color: colors.onHighlight },
   footerButton: { flex: 1 },
+  formRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: tokens.touch.minSize,
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  formTitle: { flex: 1 },
   saveButton: {
     width: 52,
     height: 52,

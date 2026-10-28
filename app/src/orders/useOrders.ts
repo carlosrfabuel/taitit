@@ -1,7 +1,6 @@
-import { Linking } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/auth/AuthProvider';
-import { fetchOrder, fetchOrders, fetchWhatsappNumber, orderKeys, whatsappUrl } from './orders';
+import { fetchOrder, fetchOrders, orderKeys } from './orders';
 
 // Image links are valid for an hour: refreshed well before that.
 const STALE = 30 * 60_000;
@@ -29,13 +28,4 @@ export function useOrder(id: string | undefined) {
     staleTime: STALE,
     refetchInterval: STALE,
   });
-}
-
-/**
- * Opens WhatsApp with an order's summary, to TAITIT's number from the admin panel (read fresh each
- * time: a number just changed there is used right away). If it can't be read, WhatsApp asks which chat.
- */
-export async function openWhatsapp(text: string): Promise<void> {
-  const number = await fetchWhatsappNumber().catch(() => '');
-  await Linking.openURL(whatsappUrl(text, number));
 }

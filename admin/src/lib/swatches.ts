@@ -75,7 +75,7 @@ export function validateSwatch(input: SwatchInput): SwatchErrors {
   // 5–100 %, as the form says; stored with 2 decimals (numeric(3,2)).
   if (input.kind === 'translucent' && (input.alpha == null || !(input.alpha >= 0.05 && input.alpha <= 1)))
     e.alpha = 'Enter an opacity between 5% and 100%.';
-  if (input.material === 'metal' && input.finishes.length === 0) e.finishes = 'Choose at least one finish.';
+  if (input.material === 'acetate' && input.finishes.length === 0) e.finishes = 'Choose at least one finish.';
   return e;
 }
 
@@ -87,8 +87,8 @@ const toColumns = (input: SwatchInput) => ({
   ref: input.ref.trim(),
   kind: input.material === 'metal' ? ('metal' as const) : input.kind,
   alpha: input.kind === 'translucent' && input.alpha != null ? Math.round(input.alpha * 100) / 100 : null,
-  // Finishes are a metal choice (gloss / matte); acetate colors have none.
-  finishes: input.material === 'metal' ? input.finishes : [],
+  // Finishes are an acetate choice (matte / gloss; Carlos, 2026-10-27); metal colors have none.
+  finishes: input.material === 'acetate' ? input.finishes : [],
   active: input.active,
 });
 

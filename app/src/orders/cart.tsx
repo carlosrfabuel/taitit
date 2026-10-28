@@ -13,14 +13,22 @@ import { randomUUID } from 'expo-crypto';
 import { useAuth } from '@/auth/AuthProvider';
 import { parseSelection, selectionKey, type Selection } from '@/designs/designs';
 import { QUANTITY_MAX } from './orders';
+import { EMPTY_FORM, formKey, parseForm, type FrameForm } from './frameForm';
 
 // The order being put together (Carlos, 2026-10-26: several different frames in one order). Each
 // frame is a model with its colors and a quantity; "Add to cart" in the customizer adds one (the same
 // model in the same colors adds 1 to that frame instead), the order screen sends them all at once and
-// can reopen a frame in the customizer to change its colors. Kept on the phone per account, so it
-// survives closing the app.
+// can reopen a frame in the customizer to change its colors. Each frame also has its customizing form
+// (measurements, temple labeling, notes; 2026-10-27). Kept on the phone per account, so it survives
+// closing the app.
 
-export type CartLine = { id: string; modelId: string; selection: Selection; quantity: number };
+export type CartLine = {
+  id: string;
+  modelId: string;
+  selection: Selection;
+  form: FrameForm;
+  quantity: number;
+};
 
 /** Frames in one order (database limit). */
 export const CART_MAX = 50;
@@ -28,16 +36,18 @@ export const CART_MAX = 50;
 /** What "Add to cart" did: a new frame, one more of a frame already there, or nothing (a limit). */
 export type AddResult = 'added' | 'more' | 'too_many_frames' | 'too_many_of_one';
 
-const sameFrame = (a: { modelId: string; selection: Selection }, modelId: string, key: string) =>
-  a.modelId === modelId && selectionKey(a.selection) === key;
+/** Same model, colors and customizing form: one frame (its quantity grows instead). */
+const frameKey = (modelId: string, selection: Selection, form: FrameForm) =>
+  JSON.stringify([modelId, selectionKey(selection), formKey(form)]);
+const keyOf = (l: CartLine) => frameKey(l.modelId, l.selection, l.form);
 
 type CartValue = {
   lines: CartLine[];
   /** Frames in total (quantities added up). */
   frames: number;
-  add: (modelId: string, selection: Selection) => AddResult;
-  /** New colors for a frame; if that makes it the same as another frame, the two become one. */
-  update: (id: string, selection: Selection) => 'updated' | 'merged';
+  add: (modelId: string, selection: Selection, form: FrameForm) => AddResult;
+  /** New colors and form for a frame; if that makes it the same as another frame, the two become one. */
+  update: (id: string, selection: Selection, form: FrameForm) => 'updated' | 'merged';
   setQuantity: (id: string, quantity: number) => void;
   remove: (id: string) => void;
   /** Empties the order (after sending it). */
@@ -62,6 +72,8 @@ function parseLines(raw: string | null): CartLine[] {
         id: l.id,
         modelId: l.modelId,
         selection: parseSelection(l.selection),
+        // Frames saved before the form existed have an empty one.
+        form: l.form ? parseForm(l.form) : EMPTY_FORM,
         quantity: Math.min(QUANTITY_MAX, Math.max(1, l.quantity)),
       }));
   } catch {
@@ -125,30 +137,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const add = useCallback(
-    (modelId: string, selection: Selection): AddResult => {
-      const key = selectionKey(selection);
-      const same = lines.find((l) => sameFrame(l, modelId, key));
+    (modelId: string, selection: Selection, form: FrameForm): AddResult => {
+      const key = frameKey(modelId, selection, form);
+      const same = lines.find((l) => keyOf(l) === key);
       if (same?.quantity === QUANTITY_MAX) return 'too_many_of_one';
       if (!same && lines.length >= CART_MAX) return 'too_many_frames';
       // Decided again on the latest lines: a second tap before the re-render joins the first frame.
       change((ls) => {
-        const now = ls.find((l) => sameFrame(l, modelId, key));
+        const now = ls.find((l) => keyOf(l) === key);
         if (now)
           return ls.map((l) =>
             l.id === now.id ? { ...l, quantity: Math.min(QUANTITY_MAX, l.quantity + 1) } : l,
           );
         if (ls.length >= CART_MAX) return ls;
-        return [...ls, { id: randomUUID(), modelId, selection, quantity: 1 }];
+        return [...ls, { id: randomUUID(), modelId, selection, form, quantity: 1 }];
       });
       return same ? 'more' : 'added';
     },
     [change, lines],
   );
   const update = useCallback(
-    (id: string, selection: Selection) => {
+    (id: string, selection: Selection, form: FrameForm) => {
       const line = lines.find((l) => l.id === id);
-      const key = selectionKey(selection);
-      const same = line && lines.find((l) => l.id !== id && sameFrame(l, line.modelId, key));
+      const key = line && frameKey(line.modelId, selection, form);
+      const same = line && lines.find((l) => l.id !== id && keyOf(l) === key);
       if (same) {
         // Kept where the other frame is; quantities added up (within the limit per frame).
         change((ls) =>
@@ -160,7 +172,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         );
         return 'merged';
       }
-      change((ls) => ls.map((l) => (l.id === id ? { ...l, selection } : l)));
+      change((ls) => ls.map((l) => (l.id === id ? { ...l, selection, form } : l)));
       return 'updated';
     },
     [change, lines],

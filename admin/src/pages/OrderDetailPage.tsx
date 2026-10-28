@@ -9,6 +9,7 @@ import {
   downloadOrderImages,
   downloadOrderSheet,
   formatOrderDate,
+  frameFormRows,
   framesLabel,
   getOrder,
   orderKeys,
@@ -168,10 +169,25 @@ export function OrderDetailPage() {
                 rows={line.order_items}
                 rowKey={(i) => `${i.sort_order}-${i.zone_name}`}
               />
+              {frameFormRows(line).length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">
+                    Customizing form
+                  </h3>
+                  <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5 text-sm">
+                    {frameFormRows(line).map((r) => (
+                      <div key={r.label} className="contents">
+                        <dt className="text-muted">{r.label}</dt>
+                        <dd className="whitespace-pre-wrap text-ink">{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </Card>
           ))}
           <Card>
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Notes</h2>
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Order notes</h2>
             <p className="whitespace-pre-wrap text-ink">{o.notes || 'No notes.'}</p>
             {o.shop_ref && <p className="mt-2 text-sm text-muted">Reference: {o.shop_ref}</p>}
           </Card>
@@ -182,7 +198,7 @@ export function OrderDetailPage() {
             {field('Commercial name', o.business_name)}
             {field('Company name', o.legal_name)}
             {field('VAT number', o.tax_id)}
-            {field('Name on the glasses', o.labeling)}
+            {field('Name on the glasses (optician)', o.labeling)}
             {field('Contact', o.customer_name)}
             {field('Email', o.customer_email)}
             {o.contact_email &&

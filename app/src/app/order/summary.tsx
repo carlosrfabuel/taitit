@@ -25,6 +25,7 @@ import {
 } from '@/orders/orders';
 import { orderKeyFor, orderPlaced } from '@/orders/pendingOrders';
 import { useCart, type CartLine } from '@/orders/cart';
+import { formSummary } from '@/orders/frameForm';
 import { RecolorView, renderPlanToJpeg } from '@/render/RecolorView';
 import {
   AppText,
@@ -158,7 +159,12 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
     // even from a new screen or after a restart, gets the same key and so the same order and images.
     const content = orderContentKey(
       userId,
-      frames.map((f) => ({ modelId: f.model!.id, lines: f.parts, quantity: f.line.quantity })),
+      frames.map((f) => ({
+        modelId: f.model!.id,
+        lines: f.parts,
+        form: f.line.form,
+        quantity: f.line.quantity,
+      })),
       input.notes,
     );
     try {
@@ -180,6 +186,7 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
         frames: frames.map((f, i) => ({
           modelId: f.model!.id,
           selection: linesToSelection(f.parts),
+          form: f.line.form,
           quantity: f.line.quantity,
           imageKey: imageKeys[i]!,
         })),
@@ -303,6 +310,18 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
                   </AppText>
                 </View>
               ))}
+              {formSummary(f.line.form).length > 0 ? (
+                <View style={styles.form}>
+                  <AppText variant="tiny" color={colors.muted}>
+                    CUSTOMIZING FORM
+                  </AppText>
+                  {formSummary(f.line.form).map((t) => (
+                    <AppText key={t} variant="small">
+                      {t}
+                    </AppText>
+                  ))}
+                </View>
+              ) : null}
               {!f.model ? (
                 <AppText variant="small" color={colors.danger}>
                   This model was removed from the collection. Remove it to send the order.
@@ -466,6 +485,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   part: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   partText: { flex: 1 },
+  form: { gap: 2, paddingTop: spacing.xs },
   inlineNotice: { backgroundColor: colors.highlight, padding: spacing.sm, borderRadius: radius.sm },
   notice: { backgroundColor: colors.highlight, borderColor: colors.highlight },
   blocked: { marginBottom: spacing.sm },

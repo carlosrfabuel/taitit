@@ -28,7 +28,8 @@ type Props = {
 };
 
 const ACETATE_KINDS: SwatchKind[] = ['solid', 'translucent', 'havana'];
-const FINISHES: Finish[] = ['gloss', 'matte'];
+// Matte first: the first finish is the one a new pick starts with (acetate default: matte).
+const FINISHES: Finish[] = ['matte', 'gloss'];
 
 /** A published model uses this color as a default: explain where to fix it. */
 function messageFor(error: unknown) {
@@ -47,7 +48,7 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
     ref: swatch?.ref ?? '',
     kind: swatch?.kind ?? (material === 'metal' ? 'metal' : 'solid'),
     alpha: swatch?.alpha ?? null,
-    finishes: swatch?.finishes ?? (material === 'metal' ? ['gloss', 'matte'] : []),
+    finishes: swatch?.finishes ?? (material === 'acetate' ? FINISHES : []),
     active: swatch?.active ?? true,
   });
   const [errors, setErrors] = useState<SwatchErrors & { texture?: string }>({});
@@ -262,48 +263,49 @@ export function SwatchDialog({ swatch, material, swatches, onClose }: Props) {
                   ...v,
                   material: m,
                   kind: m === 'metal' ? 'metal' : 'solid',
-                  finishes: m === 'metal' ? ['gloss', 'matte'] : [],
+                  finishes: m === 'acetate' ? FINISHES : [],
                 }));
               }}
             />
           )}
-          {isMetal ? (
-            <fieldset className="flex flex-col gap-1.5">
-              <legend className="mb-1.5 text-sm font-bold text-ink">Available finishes</legend>
-              <div className="flex gap-4">
-                {FINISHES.map((f) => (
-                  <label key={f} className="flex items-center gap-2 text-sm text-ink">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-brand"
-                      checked={values.finishes.includes(f)}
-                      onChange={(e) =>
-                        set(
-                          'finishes',
-                          e.target.checked
-                            ? FINISHES.filter((x) => x === f || values.finishes.includes(x))
-                            : values.finishes.filter((x) => x !== f),
-                        )
-                      }
-                    />
-                    {FINISH_LABEL[f]}
-                  </label>
-                ))}
-              </div>
-              {errors.finishes && <p className="text-sm text-danger">{errors.finishes}</p>}
-            </fieldset>
-          ) : (
-            <Select
-              label="Type"
-              value={kind}
-              options={ACETATE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
-              onChange={(e) => {
-                const k = e.target.value as SwatchKind;
-                set('kind', k);
-                setErrors((x) => ({ ...x, texture: undefined }));
-                if (k === 'translucent' && values.alpha == null) set('alpha', 0.55);
-              }}
-            />
+          {!isMetal && (
+            <>
+              <Select
+                label="Type"
+                value={kind}
+                options={ACETATE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
+                onChange={(e) => {
+                  const k = e.target.value as SwatchKind;
+                  set('kind', k);
+                  setErrors((x) => ({ ...x, texture: undefined }));
+                  if (k === 'translucent' && values.alpha == null) set('alpha', 0.55);
+                }}
+              />
+              <fieldset className="flex flex-col gap-1.5">
+                <legend className="mb-1.5 text-sm font-bold text-ink">Available finishes</legend>
+                <div className="flex gap-4">
+                  {FINISHES.map((f) => (
+                    <label key={f} className="flex items-center gap-2 text-sm text-ink">
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-brand"
+                        checked={values.finishes.includes(f)}
+                        onChange={(e) =>
+                          set(
+                            'finishes',
+                            e.target.checked
+                              ? FINISHES.filter((x) => x === f || values.finishes.includes(x))
+                              : values.finishes.filter((x) => x !== f),
+                          )
+                        }
+                      />
+                      {FINISH_LABEL[f]}
+                    </label>
+                  ))}
+                </div>
+                {errors.finishes && <p className="text-sm text-danger">{errors.finishes}</p>}
+              </fieldset>
+            </>
           )}
           {kind === 'translucent' && (
             <Input

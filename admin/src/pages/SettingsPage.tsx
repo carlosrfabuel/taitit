@@ -2,20 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/PageHeader';
 import { Button, Card, EmptyState, Input, Spinner } from '../components/ui';
-import {
-  formatWhatsapp,
-  getSettings,
-  normalizeWhatsapp,
-  saveSettings,
-  settingsKeys,
-  validateSettings,
-  type Settings,
-} from '../lib/settings';
+import { getSettings, saveSettings, settingsKeys, validateSettings, type Settings } from '../lib/settings';
 import { dbMessage, readMessage } from '../lib/errors';
 
-// What TAITIT changes itself (Carlos, 2026-10-26): the WhatsApp number orders are shared to and the
-// address the order emails go to. The app reads the number when an optician shares an order, so a
-// change applies at once, with no app update.
+// What TAITIT changes itself (Carlos, 2026-10-26): the address the order emails go to. (The WhatsApp
+// number for sharing orders was dropped on 2026-10-27: opticians print their order instead.)
 export function SettingsPage() {
   const settings = useQuery({ queryKey: settingsKeys.all, queryFn: getSettings });
   return (
@@ -38,14 +29,12 @@ export function SettingsPage() {
 
 function SettingsForm({ initial }: { initial: Settings }) {
   const queryClient = useQueryClient();
-  const [whatsapp, setWhatsapp] = useState(formatWhatsapp(initial.whatsapp_number));
   const [email, setEmail] = useState(initial.order_email);
-  const [errors, setErrors] = useState<{ whatsapp?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string }>({});
   const [notice, setNotice] = useState<string | null>(null);
 
   const save = useMutation({
-    mutationFn: () =>
-      saveSettings({ whatsapp_number: normalizeWhatsapp(whatsapp), order_email: email.trim() }),
+    mutationFn: () => saveSettings({ order_email: email.trim() }),
     onSuccess: () => {
       setNotice('Settings saved.');
       void queryClient.invalidateQueries({ queryKey: settingsKeys.all });
@@ -56,9 +45,9 @@ function SettingsForm({ initial }: { initial: Settings }) {
     e.preventDefault();
     if (save.isPending) return;
     setNotice(null);
-    const next = validateSettings(whatsapp, email);
+    const next = validateSettings(email);
     setErrors(next);
-    if (next.whatsapp || next.email) return;
+    if (next.email) return;
     save.mutate();
   };
 
@@ -71,21 +60,6 @@ function SettingsForm({ initial }: { initial: Settings }) {
   return (
     <form onSubmit={submit} noValidate className="max-w-2xl">
       <Card className="flex flex-col gap-5">
-        <Input
-          label="WhatsApp for orders"
-          value={whatsapp}
-          inputMode="tel"
-          autoComplete="off"
-          placeholder="+34 647 942 967"
-          error={errors.whatsapp}
-          hint="With the country code. Opticians send their order summary to this number from the app. Leave it empty to let them choose the chat."
-          onChange={(e) =>
-            edit(() => {
-              setWhatsapp(e.target.value);
-              setErrors((x) => ({ ...x, whatsapp: undefined }));
-            })
-          }
-        />
         <Input
           label="Email for orders"
           type="email"

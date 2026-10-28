@@ -29,6 +29,13 @@ export type OrderLineRow = {
   model_name: string;
   quantity: number;
   image_path: string | null;
+  /** The customizing form sent with the frame (2026-10-27; all optional, measurements in mm). */
+  temple_length: number | null;
+  bridge_size: number | null;
+  ring_size_a: number | null;
+  ring_size_b: number | null;
+  temple_labeling: string | null;
+  notes: string | null;
   order_items: OrderItemRow[];
 };
 
@@ -156,7 +163,7 @@ export function filterOrders(
 }
 
 const COLUMNS =
-  'id, user_id, model_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_lines(id, line_no, model_id, model_name, quantity, image_path, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
+  'id, user_id, model_id, number, created_at, model_name, quantity, notes, shop_ref, image_path, customer_name, customer_email, business_name, legal_name, tax_id, phone, address, postal_code, city, province, labeling, contact_email, bank_account, delivery_address, delivery_postal_code, delivery_city, delivery_province, commercial_address, commercial_postal_code, commercial_city, commercial_province, order_lines(id, line_no, model_id, model_name, quantity, image_path, temple_length, bridge_size, ring_size_a, ring_size_b, temple_labeling, notes, order_items(zone_name, zone_role, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
 
 /** Order date and time in Spain (where TAITIT reads them). */
 export const formatOrderDate = (iso: string) =>
@@ -293,6 +300,12 @@ export const toSheetOrder = (o: OrderRow): SheetOrder => ({
   lines: o.order_lines.map((l) => ({
     modelName: l.model_name,
     quantity: l.quantity,
+    templeLength: l.temple_length,
+    bridgeSize: l.bridge_size,
+    ringSizeA: l.ring_size_a,
+    ringSizeB: l.ring_size_b,
+    templeLabeling: l.temple_labeling,
+    notes: l.notes,
     items: l.order_items.map((i) => ({
       zoneRole: i.zone_role,
       swatchName: i.swatch_name,
@@ -352,4 +365,21 @@ export async function downloadOrderImages(o: OrderRow) {
 }
 
 /** "3 frames" / "1 frame". */
+/** A frame's customizing form as it reads in the panel: only what was filled in. */
+export function frameFormRows(l: OrderLineRow): { label: string; value: string }[] {
+  const mm = (n: number | null) => (n === null ? null : `${n} mm`);
+  return (
+    [
+      ['Temple length', mm(l.temple_length)],
+      ['Bridge size', mm(l.bridge_size)],
+      ['Ring size A', mm(l.ring_size_a)],
+      ['Ring size B', mm(l.ring_size_b)],
+      ['Temple labeling (this frame)', l.temple_labeling],
+      ['Frame notes', l.notes],
+    ] as const
+  )
+    .filter(([, v]) => v)
+    .map(([label, value]) => ({ label, value: value! }));
+}
+
 export const framesLabel = (n: number) => `${n} ${n === 1 ? 'frame' : 'frames'}`;

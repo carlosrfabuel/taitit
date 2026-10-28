@@ -1,9 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { tokens } from '@taitit/shared';
-import { orderText } from '@/orders/orders';
-import { openWhatsapp, useOrder } from '@/orders/useOrders';
-import { AppText, Button, Icon, Screen, useToast } from '@/ui';
+import { PrintOrderButton } from '@/orders/PrintOrderButton';
+import { useOrder } from '@/orders/useOrders';
+import { AppText, Button, Icon, Screen } from '@/ui';
 
 const { spacing, colors } = tokens;
 
@@ -11,29 +11,12 @@ const { spacing, colors } = tokens;
 export default function OrderDoneScreen() {
   const { id, number } = useLocalSearchParams<{ id?: string; number?: string }>();
   const order = useOrder(id);
-  const toast = useToast();
-
-  const share = async () => {
-    if (!order.data) return;
-    try {
-      await openWhatsapp(orderText(order.data));
-    } catch {
-      toast("Couldn't open WhatsApp.", 'error');
-    }
-  };
 
   return (
     <Screen
       footer={
         <View style={styles.actions}>
-          <Button
-            title="Send via WhatsApp"
-            icon="logo-whatsapp"
-            fullWidth
-            onPress={share}
-            loading={order.isPending}
-            disabled={!order.data}
-          />
+          <PrintOrderButton order={order.data} waiting={order.isPending} />
           <Button
             title="View my orders"
             variant="secondary"

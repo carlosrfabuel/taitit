@@ -347,6 +347,49 @@ begin
       and (select count(*) from public.order_items i where i.line_id = l.id) = 2;
   if (res ->> 'created')::boolean and n = 1 then passed := passed + 1; else failed := failed || E'\n3b old create_order did not place a one-frame order'; end if;
 
+  -- 3c. Customizing form per frame (20261029130000): whole mm 1-200, labeling <= 25, notes <= 500.
+  k2 := gen_random_uuid();
+  insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/' || k2 || '.jpg', a::text);
+  res := public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object(
+    'model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k2,
+    'form', jsonb_build_object('templeLength', 140, 'bridgeSize', 18, 'ringSizeA', 52, 'ringSizeB', 40,
+                               'templeLabeling', '  JUAN P.  ', 'notes', ' Lentes 1.6 ', 'unusedButNull', null) - 'unusedButNull')));
+  select count(*) into n from public.order_lines
+    where order_id = (res ->> 'id')::uuid and temple_length = 140 and bridge_size = 18 and ring_size_a = 52
+      and ring_size_b = 40 and temple_labeling = 'JUAN P.' and notes = 'Lentes 1.6';
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3c customizing form not stored (trimmed) on its frame'; end if;
+  k3 := gen_random_uuid();
+  insert into storage.objects (bucket_id, name, owner_id) values ('orders', a::text || '/' || k3 || '.jpg', a::text);
+  res := public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object(
+    'model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k3,
+    'form', jsonb_build_object('templeLength', null, 'templeLabeling', '   ', 'notes', ''))));
+  select count(*) into n from public.order_lines
+    where order_id = (res ->> 'id')::uuid and temple_length is null and bridge_size is null and temple_labeling is null and notes is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3c empty form fields not stored as empty'; end if;
+  select count(*) into n2 from public.orders;
+  for txt in select unnest(array[
+    '{"templeLength": 201}', '{"bridgeSize": 0}', '{"ringSizeA": 52.5}', '{"ringSizeB": "40"}',
+    '{"templeLabeling": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}', '{"notes": 5}', '{"colour": "red"}', '"140"'
+  ]) loop
+    begin
+      perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object(
+        'model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1, 'form', txt::jsonb)));
+      failed := failed || E'\n3c invalid form accepted: ' || txt;
+    exception when check_violation then
+      if sqlerrm = 'order_form_invalid' then passed := passed + 1; else failed := failed || E'\n3c ' || txt || ': ' || sqlerrm; end if;
+    end;
+  end loop;
+  begin
+    perform public.create_order_lines(gen_random_uuid(), jsonb_build_array(jsonb_build_object(
+      'model_id', m_pub, 'selection', sel, 'quantity', 1, 'image_key', k1, 'form', jsonb_build_object('notes', repeat('x', 501)))));
+    failed := failed || E'\n3c frame notes over 500 characters accepted';
+  exception when check_violation then passed := passed + 1; end;
+  select count(*) into n from public.orders;
+  if n = n2 then passed := passed + 1; else failed := failed || E'\n3c a refused form left an order behind'; end if;
+  begin update public.order_lines set temple_labeling = 'HACK' where order_id = o_a; get diagnostics n = row_count;
+    if n = 0 then passed := passed + 1; else failed := failed || E'\n3c customer edited a frame form after ordering'; end if;
+  exception when insufficient_privilege then passed := passed + 1; end;
+
   perform set_config('role', 'postgres', true);
   alter table public.orders alter column number set default nextval('public.order_number_seq');
   drop sequence public.test_order_seq;

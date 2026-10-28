@@ -7,6 +7,7 @@ import {
   downloadOrderImages,
   downloadOrderSheet,
   formatOrderDate,
+  frameFormRows,
   framesLabel,
   type OrderRow,
 } from '../lib/orders';
@@ -95,6 +96,12 @@ export function OrderPanel({ order: o, onClose }: { order: OrderRow; onClose: ()
               <dt className="w-32 shrink-0 text-muted">Quantity</dt>
               <dd className="text-ink">{line.quantity}</dd>
             </div>
+            {frameFormRows(line).map((r) => (
+              <div key={r.label} className="flex items-start gap-3">
+                <dt className="w-32 shrink-0 text-muted">{r.label}</dt>
+                <dd className="min-w-0 whitespace-pre-wrap break-words text-ink">{r.value}</dd>
+              </div>
+            ))}
           </dl>
         </section>
       ))}
@@ -106,11 +113,11 @@ export function OrderPanel({ order: o, onClose }: { order: OrderRow; onClose: ()
           {[o.customer_name, o.customer_email, o.phone].filter(Boolean).join(' · ')}
         </p>
         {address && <p className="text-sm text-muted">{address}</p>}
-        {o.labeling && <p className="mt-1 text-sm text-ink">Name on the glasses: {o.labeling}</p>}
+        {o.labeling && <p className="mt-1 text-sm text-ink">Name on the glasses (optician): {o.labeling}</p>}
       </section>
 
       <section>
-        <h3 className="mb-1.5 text-sm font-bold text-ink">Notes</h3>
+        <h3 className="mb-1.5 text-sm font-bold text-ink">Order notes</h3>
         <p className="rounded-lg bg-bg px-3 py-2 text-sm whitespace-pre-wrap text-ink">
           {o.notes || 'No notes.'}
         </p>

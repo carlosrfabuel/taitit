@@ -5,9 +5,10 @@ import { buildXlsx, type Cell } from './xlsx.ts';
 // The order as a spreadsheet for TAITIT's accounting. One row per frame of the order (an order holds
 // one or more frames since 2026-10-26) with the columns Carlos listed (2026-10-20), headers in his
 // words: the optician's details from registration (company name … single labeling, in his order),
-// then the frame's (model, main colour, secondary colour, end tips colour, quantity). Order number and
-// date go first so rows can be matched; notes last. The same file is downloaded in the admin panel and
-// attached to the order email.
+// then the frame's (model, main colour, secondary colour, end tips colour, quantity), then the frame's
+// customizing form (2026-10-27: measurements in mm, temple labeling, frame notes). Order number and
+// date go first so rows can be matched; the order notes last. The same file is downloaded in the admin
+// panel and attached to the order email.
 
 export type SheetOrder = {
   number: number;
@@ -33,6 +34,13 @@ export type SheetOrder = {
 export type SheetLine = {
   modelName: string;
   quantity: number;
+  /** The customizing form (empty on frames ordered without one). */
+  templeLength: number | null;
+  bridgeSize: number | null;
+  ringSizeA: number | null;
+  ringSizeB: number | null;
+  templeLabeling: string | null;
+  notes: string | null;
   items: {
     /** Null on orders placed before zones had roles: then the part's position decides. */
     zoneRole: ZoneRole | null;
@@ -64,7 +72,13 @@ export const ORDER_SHEET_COLUMNS = [
   'Secondary colour',
   'End tips colour',
   'Quantity',
-  'Notes',
+  'Temple length (mm)',
+  'Bridge size (mm)',
+  'Ring size A (mm)',
+  'Ring size B (mm)',
+  'Temple labeling',
+  'Frame notes',
+  'Order notes',
 ] as const;
 
 /** Date as day/month/year in Spain's time zone (what TAITIT reads), e.g. 19/10/2026. */
@@ -120,6 +134,12 @@ export function orderSheetRows(orders: SheetOrder[]): Cell[][] {
         colour('secondary'),
         colour('tips'),
         line.quantity,
+        line.templeLength,
+        line.bridgeSize,
+        line.ringSizeA,
+        line.ringSizeB,
+        line.templeLabeling,
+        line.notes,
         o.notes,
       ]);
     }

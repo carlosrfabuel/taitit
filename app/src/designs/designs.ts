@@ -72,7 +72,9 @@ export function restorePicks(
       continue;
     }
     const finishGone = saved.finish !== null && !swatch.finishes.includes(saved.finish);
-    if (finishGone) replaced.push(zone.name);
+    // Only worth telling when the color still has finishes to choose from: a color that no longer has
+    // any (metal, since 2026-10-27) simply shows none.
+    if (finishGone && swatch.finishes.length > 0) replaced.push(zone.name);
     picks[zone.id] = {
       swatchId: swatch.id,
       finish: finishGone ? (swatch.finishes[0] ?? null) : saved.finish,

@@ -1,5 +1,6 @@
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import type { Finish, Material, SwatchKind } from '@taitit/shared';
+import { formKey, formPayload, parseForm, type FrameForm } from './frameForm';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { currentPick } from '@/customize/customizer';
 import { restorePicks, type Selection } from '@/designs/designs';
@@ -155,8 +156,8 @@ export const linesToSelection = (lines: OrderLine[]): OrderSelection => ({
   ),
 });
 
-/** One frame as it will be ordered: the model, its parts as shown, and how many. */
-export type OrderFrame = { modelId: string; lines: OrderLine[]; quantity: number };
+/** One frame as it will be ordered: the model, its parts as shown, its customizing form, and how many. */
+export type OrderFrame = { modelId: string; lines: OrderLine[]; form: FrameForm; quantity: number };
 
 /**
  * Identity of what is ordered: same frames (model, every part as shown, quantity, in order) and same
@@ -170,6 +171,7 @@ export const orderContentKey = (userId: string, frames: OrderFrame[], notes: str
     frames.map((f) => [
       f.modelId,
       f.quantity,
+      formKey(f.form),
       f.lines.map((l) => [
         l.zoneId,
         l.swatchId,
@@ -190,7 +192,13 @@ export const orderContentKey = (userId: string, frames: OrderFrame[], notes: str
  */
 export async function placeOrder(input: {
   key: string;
-  frames: { modelId: string; selection: OrderSelection; quantity: number; imageKey: string }[];
+  frames: {
+    modelId: string;
+    selection: OrderSelection;
+    form: FrameForm;
+    quantity: number;
+    imageKey: string;
+  }[];
   notes: string | null;
 }): Promise<{ id: string; number: number; created: boolean }> {
   const { data, error } = await supabase.rpc('create_order_lines', {
@@ -200,6 +208,7 @@ export async function placeOrder(input: {
       selection: f.selection,
       quantity: f.quantity,
       image_key: f.imageKey,
+      form: formPayload(f.form),
     })),
     ...(input.notes ? { p_notes: input.notes } : {}),
   });
@@ -219,6 +228,8 @@ export function orderErrorMessage(error: unknown): string {
     return 'Some colors changed in the meantime. Review your cart and try again.';
   if (message.includes('order_model_unavailable'))
     return 'A model in your cart is no longer available. Remove it and try again.';
+  if (message.includes('order_form_invalid'))
+    return 'Check the customizing form of your frames (measurements: whole numbers from 1 to 200 mm).';
   if (message.includes('order_lines_invalid')) return 'Your cart is empty or has too many frames.';
   if (message.includes('order_quantity_invalid')) return `Choose a quantity between 1 and ${QUANTITY_MAX}.`;
   if (message.includes('not_signed_in') || message.includes('JWT'))
@@ -257,6 +268,8 @@ export type OrderFrameView = {
   /** Temporary link to the private image (valid for an hour), null if it can't be made. */
   imageUrl: string | null;
   items: OrderItem[];
+  /** The customizing form sent with this frame. */
+  form: FrameForm;
 };
 
 export type Order = {
@@ -292,7 +305,7 @@ export const orderKeys = {
 };
 
 const ORDER_COLUMNS =
-  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, labeling, delivery_address, delivery_postal_code, delivery_city, delivery_province, order_lines(line_no, model_name, quantity, image_path, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
+  'id, number, model_name, quantity, notes, shop_ref, created_at, image_path, business_name, tax_id, phone, address, postal_code, city, labeling, delivery_address, delivery_postal_code, delivery_city, delivery_province, order_lines(line_no, model_name, quantity, image_path, temple_length, bridge_size, ring_size_a, ring_size_b, temple_labeling, notes, order_items(zone_name, material, swatch_name, hex, ref, finish, kind, alpha, texture_path, sort_order))';
 
 type OrderRow = {
   id: string;
@@ -319,6 +332,12 @@ type OrderRow = {
     model_name: string;
     quantity: number;
     image_path: string | null;
+    temple_length: number | null;
+    bridge_size: number | null;
+    ring_size_a: number | null;
+    ring_size_b: number | null;
+    temple_labeling: string | null;
+    notes: string | null;
     order_items: ItemRow[];
   }[];
 };
@@ -378,6 +397,14 @@ async function withImageUrls(rows: OrderRow[]): Promise<Order[]> {
         imagePath: l.image_path,
         imageUrl: l.image_path ? (urls.get(l.image_path) ?? null) : null,
         items: [...l.order_items].sort((a, b) => a.sort_order - b.sort_order).map(toItem),
+        form: parseForm({
+          templeLength: l.temple_length,
+          bridgeSize: l.bridge_size,
+          ringSizeA: l.ring_size_a,
+          ringSizeB: l.ring_size_b,
+          templeLabeling: l.temple_labeling,
+          notes: l.notes,
+        }),
       })),
   }));
 }
@@ -428,44 +455,6 @@ export async function fetchOrder(userId: string, id: string): Promise<Order | nu
   if (error) throw error;
   return data ? ((await withImageUrls([data as OrderRow]))[0] ?? null) : null;
 }
-
-/** Order summary as plain text (WhatsApp). */
-export function orderText(
-  order: Pick<Order, 'number' | 'quantity' | 'frames' | 'shopRef' | 'notes' | 'business'>,
-): string {
-  const finishName = { gloss: 'gloss', matte: 'matte' } as const;
-  return [
-    `TAITIT order #${order.number}`,
-    ...(order.business.name
-      ? [`From: ${order.business.name}${order.business.taxId ? ` (${order.business.taxId})` : ''}`]
-      : []),
-    ...(order.business.labeling ? [`Name on the glasses: ${order.business.labeling}`] : []),
-    ...(order.frames.length > 1 ? [`Frames: ${order.quantity}`] : []),
-    ...order.frames.flatMap((f) => [
-      '',
-      `${order.frames.length > 1 ? `${f.lineNo}. ` : ''}Model: ${f.modelName}`,
-      `Quantity: ${f.quantity}`,
-      ...f.items.map((i) => `• ${i.zoneName}: color ${i.ref}${i.finish ? ` (${finishName[i.finish]})` : ''}`),
-    ]),
-    ...(order.shopRef || order.notes ? [''] : []),
-    ...(order.shopRef ? [`Reference: ${order.shopRef}`] : []),
-    ...(order.notes ? [`Notes: ${order.notes}`] : []),
-  ].join('\n');
-}
-
-/**
- * TAITIT's WhatsApp number for sharing an order, set in the admin panel (Settings): digits with the
- * country code, '' when not set. Read on demand, so a change needs no app update.
- */
-export async function fetchWhatsappNumber(): Promise<string> {
-  const { data, error } = await supabase.rpc('app_whatsapp_number');
-  if (error) throw error;
-  return typeof data === 'string' ? data : '';
-}
-
-/** WhatsApp link with the summary; without a number WhatsApp asks which chat to send it to. */
-export const whatsappUrl = (text: string, number: string) =>
-  `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
 /** Order date as shown in My orders (e.g. Oct 18, 2026). */
 export const formatOrderDate = (iso: string) =>
