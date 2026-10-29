@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
+import { AuthScreen } from '@/auth/AuthScreen';
 import { useAuth } from '@/auth/AuthProvider';
 import { validateEmail, validateName, validatePassword } from '@/auth/validation';
 import {
@@ -12,7 +13,7 @@ import {
   type BusinessKey,
 } from '@/auth/business';
 import { BusinessFields } from '@/auth/BusinessFields';
-import { AppText, Button, Icon, Screen, TextField, useToast } from '@/ui';
+import { AppText, Button, Icon, TextField, useToast } from '@/ui';
 import { useCloseAuth } from '@/auth/navigation';
 import { WaitingForConfirmation, type WaitReason } from '@/auth/WaitingForConfirmation';
 import { openPrivacyPolicy } from '@/lib/links';
@@ -71,7 +72,7 @@ export default function SignUpScreen() {
 
   if (sentTo) {
     return (
-      <Screen>
+      <AuthScreen>
         <WaitingForConfirmation
           email={sentTo}
           password={password}
@@ -83,12 +84,12 @@ export default function SignUpScreen() {
           onSignIn={() => router.dismissTo('/sign-in')}
           onForgotPassword={() => router.push('/forgot-password')}
         />
-      </Screen>
+      </AuthScreen>
     );
   }
 
   return (
-    <Screen>
+    <AuthScreen width="wide">
       <AppText variant="title">Create account</AppText>
       <AppText variant="small">Join TAITIT and start designing your perfect eyewear.</AppText>
       <View style={styles.form}>
@@ -184,7 +185,7 @@ export default function SignUpScreen() {
         ) : null}
         <Button title="Create account" onPress={submit} loading={loading} fullWidth />
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }
 

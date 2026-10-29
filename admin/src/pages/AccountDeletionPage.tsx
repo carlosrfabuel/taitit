@@ -54,6 +54,10 @@ export function AccountDeletionPage() {
             </a>
             .
           </p>
+          <p className="text-ink">
+            Spare part requests you have already sent (with their photos) also stay, so TAITIT can finish
+            handling them.
+          </p>
         </section>
       </article>
     </main>

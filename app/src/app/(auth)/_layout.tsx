@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { tokens } from '@taitit/shared';
-import { BrandLogo } from '@/ui';
+import { BrandLogo, useDesktop } from '@/ui';
 
 // The account screens (sign in, create account, reset and new password): Carlos's logo centered in the
 // top bar, next to the back arrow (the screens' own titles are in the page).
@@ -11,9 +11,12 @@ const logoHeader = {
 };
 
 export default function AuthLayout() {
+  // Computer: no header bar; the logo and "Back" are on the page's card (AuthScreen).
+  const desktop = useDesktop();
   return (
     <Stack
       screenOptions={{
+        ...(desktop ? { headerShown: false } : null),
         headerShadowVisible: false,
         headerStyle: { backgroundColor: tokens.colors.background },
         contentStyle: { backgroundColor: tokens.colors.background },

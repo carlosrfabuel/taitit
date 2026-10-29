@@ -6,13 +6,25 @@ import {
   StyleSheet,
   TextInput,
   View,
-  useWindowDimensions,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MATERIAL_LABEL, tokens, type Material } from '@taitit/shared';
-import { AppText, BrandLogo, EmptyState, GradientFill, Icon, Skeleton, WARM_GLOWS } from '@/ui';
+import {
+  AppText,
+  BrandLogo,
+  EmptyState,
+  GradientFill,
+  Icon,
+  Skeleton,
+  WARM_GLOWS,
+  PAGE_MAX_WIDTH,
+  useDesktop,
+  usePageWidth,
+  webNoOutline,
+} from '@/ui';
 import { useAuth } from '@/auth/AuthProvider';
 import { CartButton } from '@/orders/CartButton';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
@@ -25,19 +37,22 @@ import {
   type CatalogSwatch,
 } from '@/catalog/catalog';
 import { ModelImage } from '@/catalog/ModelImage';
+import { SiteFooter } from '@/navigation/SiteFooter';
 import { fonts } from '@/ui/fonts';
 
 const { spacing, colors, radius, touch } = tokens;
 const PAGE = spacing.lg;
 const GAP = spacing.md;
 const TILE_PAD = spacing.md;
+const CARD_PAD = spacing.md;
 const FRONTS: { key: Material; label: string }[] = [
   { key: 'metal', label: 'Metal front' },
   { key: 'acetate', label: 'Acetate front' },
 ];
 
 export default function CatalogScreen() {
-  const { width } = useWindowDimensions();
+  const width = usePageWidth();
+  const desktop = useDesktop();
   const insets = useSafeAreaInsets();
   const { session, profile } = useAuth();
   const catalog = useCatalog();
@@ -56,11 +71,22 @@ export default function CatalogScreen() {
       (!category || m.category.trim() === category) &&
       matchesSearch(m, query),
   );
-  // Two staggered columns; the reading order stays alphabetical, left then right, row by row.
-  const tileWidth = (width - PAGE * 2 - GAP) / 2;
+  // Phone: two staggered columns; the reading order stays alphabetical, left then right, row by row.
+  // Computer: a grid of equal cards (four per row, three on narrower windows).
+  // Computer: the grid's own measured width (a browser's scrollbar takes part of the window), whole
+  // pixels, so the cards always fit their row.
+  const [gridWidth, setGridWidth] = useState(0);
+  const deskWidth = gridWidth || width - PAGE * 2;
+  const cols = desktop ? (deskWidth >= 1100 ? 4 : 3) : 2;
+  const tileWidth = desktop
+    ? Math.floor((deskWidth - GAP * (cols - 1)) / cols)
+    : (width - PAGE * 2 - GAP * (cols - 1)) / cols;
+  const measureGrid = (e: LayoutChangeEvent) => setGridWidth(e.nativeEvent.layout.width);
   const imageWidth = tileWidth - TILE_PAD * 2;
   const tileHeight = imageWidth * 0.7 + TILE_PAD * 2;
-  const columns = [visible.filter((_, i) => i % 2 === 0), visible.filter((_, i) => i % 2 === 1)];
+  const columns = Array.from({ length: cols }, (_, c) => visible.filter((_, i) => i % cols === c));
+  // Every other column starts lower; the last one holds the search in that free top.
+  const staggerHeight = Math.max(touch.minSize, tileHeight * 0.45 - spacing.lg);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -77,10 +103,13 @@ export default function CatalogScreen() {
   const name = profile?.business_name?.trim() || profile?.full_name?.trim();
   const top = (
     <View style={styles.topBlock}>
-      <View style={styles.topRow}>
-        <BrandLogo width={118} />
-        <CartButton />
-      </View>
+      {/* On a computer the logo and the cart are in the top bar. */}
+      {desktop ? null : (
+        <View style={styles.topRow}>
+          <BrandLogo width={118} />
+          <CartButton />
+        </View>
+      )}
       <View style={styles.greetingText}>
         {session ? (
           <AppText variant="small" numberOfLines={1}>
@@ -111,27 +140,45 @@ export default function CatalogScreen() {
           Find your <AppText style={[styles.title, styles.titleAccent]}>next frame</AppText>
         </AppText>
       </View>
-      {/* Text tabs with a black underline on the selected one (benchmarks 2026-10-23). */}
-      <FilterTabs
-        label="Front material"
-        tabs={[
-          {
-            key: 'all',
-            label: 'All',
-            selected: !front && !category,
-            onPress: () => {
-              setFront(null);
-              setCategory(null);
-            },
-          },
-          ...FRONTS.map((f) => ({
-            key: f.key,
-            label: f.label,
-            selected: front === f.key,
-            onPress: () => setFront(front === f.key ? null : f.key),
-          })),
-        ]}
-      />
+      {/* Computer: the filters and an always-open search share one toolbar row. */}
+      <View style={desktop ? styles.toolbar : undefined}>
+        <View style={desktop ? styles.toolbarTabs : undefined}>
+          {/* Text tabs with a black underline on the selected one (benchmarks 2026-10-23). */}
+          <FilterTabs
+            label="Front material"
+            tabs={[
+              {
+                key: 'all',
+                label: 'All',
+                selected: !front && !category,
+                onPress: () => {
+                  setFront(null);
+                  setCategory(null);
+                },
+              },
+              ...FRONTS.map((f) => ({
+                key: f.key,
+                label: f.label,
+                selected: front === f.key,
+                onPress: () => setFront(front === f.key ? null : f.key),
+              })),
+            ]}
+          />
+        </View>
+        {desktop ? (
+          <View style={styles.toolbarSearch}>
+            <SearchBox
+              height={touch.minSize}
+              open
+              persistent
+              query={query}
+              onChange={setQuery}
+              onOpen={() => {}}
+              onClose={() => setQuery('')}
+            />
+          </View>
+        ) : null}
+      </View>
       {/* More than one category (today all models are Optical): a second row of tabs. */}
       {categories.length > 1 && (
         <FilterTabs
@@ -153,12 +200,67 @@ export default function CatalogScreen() {
     </View>
   );
 
+  // Nothing matches the search or filter.
+  const noMatch = (
+    <View style={styles.noMatch}>
+      <AppText variant="subheading">No models found</AppText>
+      <AppText variant="small">
+        {query.trim() ? `Nothing matches "${query.trim()}".` : 'No models with this filter.'}
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        hitSlop={10}
+        onPress={() => {
+          closeSearch();
+          setFront(null);
+          setCategory(null);
+        }}
+      >
+        <AppText variant="label" color={colors.primary}>
+          Show all models
+        </AppText>
+      </Pressable>
+    </View>
+  );
+
   let body;
-  if (catalog.isPending)
+  if (desktop && catalog.isPending)
+    body = (
+      <View style={styles.cardGrid} onLayout={measureGrid}>
+        {Array.from({ length: cols * 2 }, (_, i) => (
+          <Skeleton key={i} width={tileWidth} height={tileWidth * 0.8} radius={radius.lg} />
+        ))}
+      </View>
+    );
+  else if (desktop && !(catalog.isError && !catalog.data) && models.length > 0)
+    body =
+      visible.length === 0 ? (
+        // Computer: a centered message (the phone says it in the grid's free column).
+        <View style={styles.noMatchDesktop}>
+          <EmptyState
+            icon="search-outline"
+            title="No models found"
+            message={query.trim() ? `Nothing matches "${query.trim()}".` : 'No models with this filter.'}
+            actionLabel="Show all models"
+            onAction={() => {
+              closeSearch();
+              setFront(null);
+              setCategory(null);
+            }}
+          />
+        </View>
+      ) : (
+        <View style={styles.cardGrid} onLayout={measureGrid}>
+          {visible.map((m) => (
+            <ModelCard key={m.id} model={m} width={tileWidth} swatches={swatches.data ?? []} />
+          ))}
+        </View>
+      );
+  else if (catalog.isPending)
     body = (
       <View style={styles.grid}>
-        {[0, 1].map((col) => (
-          <View key={col} style={[styles.column, col === 1 && { paddingTop: tileHeight * 0.45 }]}>
+        {columns.map((_, col) => (
+          <View key={col} style={[styles.column, col % 2 === 1 && { paddingTop: tileHeight * 0.45 }]}>
             {[0, 1].map((i) => (
               <View key={i} style={styles.item}>
                 <Skeleton width={tileWidth} height={tileHeight} radius={radius.lg} />
@@ -191,11 +293,12 @@ export default function CatalogScreen() {
     body = (
       <View style={styles.grid}>
         {columns.map((col, c) => (
-          // The right column starts lower: a staggered, magazine-like grid.
+          // Every other column starts lower: a staggered, magazine-like grid.
           <View key={c} style={styles.column}>
-            {c === 1 && (
+            {c % 2 === 1 && c !== cols - 1 && <View style={{ height: staggerHeight }} />}
+            {c === cols - 1 && (
               <SearchBox
-                height={tileHeight * 0.45 - spacing.lg}
+                height={staggerHeight}
                 open={searching}
                 query={query}
                 onChange={setQuery}
@@ -203,28 +306,8 @@ export default function CatalogScreen() {
                 onClose={closeSearch}
               />
             )}
-            {c === 0 && visible.length === 0 && (
-              // Nothing matches: said in the left column; the search stays open in its corner.
-              <View style={styles.noMatch}>
-                <AppText variant="subheading">No models found</AppText>
-                <AppText variant="small">
-                  {query.trim() ? `Nothing matches "${query.trim()}".` : 'No models with this filter.'}
-                </AppText>
-                <Pressable
-                  accessibilityRole="button"
-                  hitSlop={10}
-                  onPress={() => {
-                    closeSearch();
-                    setFront(null);
-                    setCategory(null);
-                  }}
-                >
-                  <AppText variant="label" color={colors.primary}>
-                    Show all models
-                  </AppText>
-                </Pressable>
-              </View>
-            )}
+            {/* Nothing matches: said in the left column; the search stays open in its corner. */}
+            {c === 0 && visible.length === 0 && noMatch}
             {col.map((m) => (
               <ModelTile
                 key={m.id}
@@ -244,7 +327,13 @@ export default function CatalogScreen() {
     <View style={styles.root}>
       {background}
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm }]}
+        // Computer: the page scrolls at full width (scrollbar at the window's edge); the content is
+        // centered in it.
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.sm },
+          desktop && styles.pageColumn,
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         refreshControl={
@@ -254,6 +343,7 @@ export default function CatalogScreen() {
         {top}
         {header}
         {body}
+        <SiteFooter />
       </ScrollView>
     </View>
   );
@@ -270,6 +360,7 @@ function SearchBox({
   onChange,
   onOpen,
   onClose,
+  persistent = false,
 }: {
   height: number;
   open: boolean;
@@ -277,6 +368,8 @@ function SearchBox({
   onChange: (q: string) => void;
   onOpen: () => void;
   onClose: () => void;
+  /** Always open (computer's toolbar): no focus on load, the × only clears what was typed. */
+  persistent?: boolean;
 }) {
   const size = { height: Math.max(touch.minSize, height) };
   const icon = (
@@ -305,15 +398,22 @@ function SearchBox({
         placeholder="Search"
         placeholderTextColor={colors.muted}
         accessibilityLabel="Search models"
-        autoFocus
+        autoFocus={!persistent}
         autoCapitalize="characters"
         autoCorrect={false}
         returnKeyType="search"
         style={styles.searchInput}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel="Close search" onPress={onClose} hitSlop={10}>
-        <Icon name="close" size={18} color={colors.muted} />
-      </Pressable>
+      {!persistent || query ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={persistent ? 'Clear search' : 'Close search'}
+          onPress={onClose}
+          hitSlop={10}
+        >
+          <Icon name="close" size={18} color={colors.muted} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -367,6 +467,65 @@ function ModelTile({
       {model.description ? (
         <AppText variant="tiny" align="center" color={colors.muted} numberOfLines={2}>
           {model.description}
+        </AppText>
+      ) : null}
+    </Pressable>
+  );
+}
+
+/**
+ * A model as a card in the web's grid (computer): image, colors, name and type in one white card, all
+ * cards the same size in rows; highlighted under the mouse. The description stays on the model's screen.
+ */
+function ModelCard({
+  model,
+  width,
+  swatches,
+}: {
+  model: CatalogModel;
+  width: number;
+  swatches: CatalogSwatch[];
+}) {
+  const dots = defaultColors(model, swatches);
+  const material = frontMaterial(model);
+  const meta = [model.category, material ? `${MATERIAL_LABEL[material]} front` : null]
+    .filter(Boolean)
+    .join(' · ');
+  const imageWidth = width - CARD_PAD * 2 - 2;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${model.name}.${model.description ? ` ${model.description}.` : ''} Customize`}
+      onPress={() => router.push({ pathname: '/customize/[modelId]', params: { modelId: model.id } })}
+      style={(state) => [
+        styles.card,
+        { width },
+        (state as { hovered?: boolean }).hovered && styles.cardHovered,
+        state.pressed && styles.pressed,
+      ]}
+    >
+      <View style={[styles.cardImage, { height: imageWidth * 0.62 }]}>
+        <ModelImage model={model} width={imageWidth} />
+      </View>
+      <View style={styles.cardInfo}>
+        <AppText variant="label" numberOfLines={1}>
+          {model.name}
+        </AppText>
+        {dots.length > 0 && (
+          <View
+            style={styles.dots}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {dots.map((s, i) => (
+              <ColorDot key={`${s.id}-${i}`} swatch={s} />
+            ))}
+          </View>
+        )}
+      </View>
+      {meta ? (
+        <AppText variant="tiny" color={colors.muted} numberOfLines={1}>
+          {meta}
         </AppText>
       ) : null}
     </Pressable>
@@ -448,6 +607,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.headingMedium,
     fontSize: 17,
     color: colors.text,
+    ...webNoOutline,
   },
   noMatch: { gap: spacing.sm, paddingTop: spacing.sm },
   searchIcon: {
@@ -492,6 +652,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  // Computer: toolbar (filters + search) and a grid of equal cards.
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
+  toolbarTabs: { flex: 1 },
+  toolbarSearch: { width: 300 },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+  pageColumn: { width: '100%', maxWidth: PAGE_MAX_WIDTH, alignSelf: 'center' },
+  noMatchDesktop: { paddingVertical: spacing.xxl * 2 },
+  card: {
+    padding: CARD_PAD,
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  cardHovered: {
+    borderColor: colors.text,
+    shadowColor: colors.text,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  cardImage: { alignItems: 'center', justifyContent: 'center' },
+  cardInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   dot: {
     width: 12,
     height: 12,

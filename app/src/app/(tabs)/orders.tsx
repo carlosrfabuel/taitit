@@ -6,7 +6,8 @@ import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
 import { useOrders } from '@/orders/useOrders';
 import { formatOrderDate, type Order } from '@/orders/orders';
-import { AppText, Card, EmptyState, Icon, Screen, Skeleton } from '@/ui';
+import { AppText, Card, EmptyState, Icon, Screen, Skeleton, readingColumn, useDesktop } from '@/ui';
+import { SiteFooter } from '@/navigation/SiteFooter';
 
 const { spacing, colors, radius } = tokens;
 const THUMB = { width: 96, height: 34 }; // the model photo's proportions (1600 × 556)
@@ -15,6 +16,7 @@ export default function OrdersScreen() {
   const { session } = useAuth();
   const orders = useOrders();
   const [refreshing, setRefreshing] = useState(false);
+  const desktop = useDesktop();
 
   if (!session)
     return (
@@ -65,7 +67,15 @@ export default function OrdersScreen() {
       style={styles.root}
       data={list}
       keyExtractor={(o) => o.id}
-      contentContainerStyle={[styles.list, list.length === 0 && styles.grow]}
+      contentContainerStyle={[styles.list, list.length === 0 && styles.grow, desktop && readingColumn]}
+      // Computer: the page's heading (the top bar has no title row on the sections' pages).
+      ListHeaderComponent={
+        desktop ? (
+          <AppText variant="title" accessibilityRole="header">
+            My orders
+          </AppText>
+        ) : null
+      }
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.center}>
@@ -79,6 +89,7 @@ export default function OrdersScreen() {
         </View>
       }
       renderItem={({ item }) => <OrderRow order={item} />}
+      ListFooterComponent={desktop ? <SiteFooter /> : null}
     />
   );
 }

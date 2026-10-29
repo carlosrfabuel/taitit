@@ -31,7 +31,15 @@
           "imageWidth": 320
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TAITIT uses your photos so you can send pictures of a frame that needs a spare part.",
+          "cameraPermission": "TAITIT uses the camera so you can photograph a frame that needs a spare part.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -43,6 +51,13 @@
       "eas": {
         "projectId": "802eb207-8810-4e8b-9ede-c0463e88ecf2"
       }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "TAITIT",
+      "shortName": "TAITIT"
     }
   }
 }

@@ -553,6 +553,108 @@ export type Database = {
           },
         ]
       }
+      spare_part_requests: {
+        Row: {
+          address: string | null
+          business_name: string | null
+          city: string | null
+          contact_email: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          delivery_address: string | null
+          delivery_city: string | null
+          delivery_postal_code: string | null
+          delivery_province: string | null
+          id: string
+          idempotency_key: string
+          legal_name: string | null
+          model_id: string | null
+          model_name: string
+          note: string | null
+          number: number
+          part: Database["public"]["Enums"]["spare_part"]
+          phone: string | null
+          photo_paths: string[]
+          postal_code: string | null
+          province: string | null
+          side: Database["public"]["Enums"]["temple_side"] | null
+          tax_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
+          contact_email?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
+          id?: string
+          idempotency_key: string
+          legal_name?: string | null
+          model_id?: string | null
+          model_name: string
+          note?: string | null
+          number?: number
+          part: Database["public"]["Enums"]["spare_part"]
+          phone?: string | null
+          photo_paths: string[]
+          postal_code?: string | null
+          province?: string | null
+          side?: Database["public"]["Enums"]["temple_side"] | null
+          tax_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string | null
+          city?: string | null
+          contact_email?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          delivery_address?: string | null
+          delivery_city?: string | null
+          delivery_postal_code?: string | null
+          delivery_province?: string | null
+          id?: string
+          idempotency_key?: string
+          legal_name?: string | null
+          model_id?: string | null
+          model_name?: string
+          note?: string | null
+          number?: number
+          part?: Database["public"]["Enums"]["spare_part"]
+          phone?: string | null
+          photo_paths?: string[]
+          postal_code?: string | null
+          province?: string | null
+          side?: Database["public"]["Enums"]["temple_side"] | null
+          tax_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spare_part_requests_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spare_part_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swatches: {
         Row: {
           active: boolean
@@ -626,6 +728,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_spare_part_request: {
+        Args: {
+          p_key: string
+          p_model_id: string
+          p_note?: string
+          p_part: Database["public"]["Enums"]["spare_part"]
+          p_photo_keys: string[]
+          p_side: Database["public"]["Enums"]["temple_side"]
+        }
+        Returns: Json
+      }
       delete_customer_account: { Args: { p_user: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
       model_publish_problems: {
@@ -644,7 +757,9 @@ export type Database = {
       account_status: "pending" | "approved" | "rejected"
       finish: "gloss" | "matte"
       material: "metal" | "acetate"
+      spare_part: "front" | "temple"
       swatch_kind: "metal" | "solid" | "translucent" | "havana"
+      temple_side: "left" | "right" | "both"
       user_role: "customer" | "admin"
       zone_role: "main" | "secondary" | "tips"
     }
@@ -777,7 +892,9 @@ export const Constants = {
       account_status: ["pending", "approved", "rejected"],
       finish: ["gloss", "matte"],
       material: ["metal", "acetate"],
+      spare_part: ["front", "temple"],
       swatch_kind: ["metal", "solid", "translucent", "havana"],
+      temple_side: ["left", "right", "both"],
       user_role: ["customer", "admin"],
       zone_role: ["main", "secondary", "tips"],
     },

@@ -12,7 +12,7 @@ import {
   validateBusiness,
   type BusinessKey,
 } from '@/auth/business';
-import { AppText, Button, EmptyState, Loader, Screen, useToast } from '@/ui';
+import { AppText, Button, EmptyState, Loader, Screen, readingColumn, useDesktop, useToast } from '@/ui';
 
 // Edit the optician's business details. They are copied into each new order; orders already sent
 // keep the details they were sent with.
@@ -68,6 +68,7 @@ function BusinessForm({
   onSaved: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const desktop = useDesktop();
   const toast = useToast();
   const [values, setValues] = useState(initial);
   const [errors, setErrors] = useState<Partial<Record<BusinessKey, string | null>>>({});
@@ -97,7 +98,12 @@ function BusinessForm({
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: tokens.spacing.xl + insets.bottom }]}
+        // Computer: the form at reading width in the middle, like the other forms.
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tokens.spacing.xl + insets.bottom },
+          desktop && readingColumn,
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <AppText variant="small">

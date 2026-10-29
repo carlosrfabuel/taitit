@@ -54,7 +54,9 @@ export function GradientFill({
           </Rect>
           {glows.map((g, i) => {
             const c = vec(g.x * width, g.y * height);
-            const r = g.radius * width;
+            // At most the area's height: on a wide page a glow sized by the width would be cut off at
+            // the bottom (a hard edge). Phones are narrower than that, so nothing changes there.
+            const r = Math.min(g.radius * width, height);
             return (
               <Circle key={i} c={c} r={r}>
                 {/* The color fading to the same color fully transparent: a soft spot, no hard edge. */}

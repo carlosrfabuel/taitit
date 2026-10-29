@@ -53,3 +53,6 @@ docs/
 
 # Vercel CLI local token
 .env.local
+
+# web: CanvasKit copied from node_modules by `npm run setup:web`
+app/public/canvaskit.wasm

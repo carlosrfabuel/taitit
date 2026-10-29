@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { FINISH_LABEL, MATERIAL_LABEL, tokens } from '@taitit/shared';
@@ -7,7 +7,17 @@ import { formatOrderDate, type OrderFrameView } from '@/orders/orders';
 import { formSummary } from '@/orders/frameForm';
 import { PrintOrderButton } from '@/orders/PrintOrderButton';
 import { useOrder } from '@/orders/useOrders';
-import { AppText, Card, EmptyState, Loader, PhotoStage, PHOTO_STAGE_INSET, Screen, Swatch } from '@/ui';
+import {
+  AppText,
+  Card,
+  EmptyState,
+  Loader,
+  PhotoStage,
+  PHOTO_STAGE_INSET,
+  Screen,
+  Swatch,
+  useReadingWidth,
+} from '@/ui';
 
 const { spacing, colors } = tokens;
 
@@ -98,7 +108,8 @@ function Frame({
   orderNumber: number;
   several: boolean;
 }) {
-  const { width } = useWindowDimensions();
+  // The screen's column: the window on phones, the reading width on a computer.
+  const width = useReadingWidth();
   // Width / height of the image, read from the file once loaded (models differ in shape).
   const [aspect, setAspect] = useState(1600 / 556);
   const imageWidth = width - (spacing.xl + PHOTO_STAGE_INSET) * 2;

@@ -4,6 +4,7 @@ import { tokens } from '@taitit/shared';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { fonts } from './fonts';
+import { webNoOutline } from './layout';
 
 const { colors, spacing, radius, typography } = tokens;
 
@@ -81,5 +82,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.text,
     paddingVertical: spacing.md,
+    // Web: no browser focus outline inside the field (its border already shows the focus).
+    ...webNoOutline,
   },
 });

@@ -11,6 +11,7 @@ import { ModelEditPage } from './pages/ModelEditPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { PalettesPage } from './pages/PalettesPage';
 import { OrdersPage } from './pages/OrdersPage';
+import { SparePartsPage } from './pages/SparePartsPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
 import { UiKitPage } from './pages/UiKitPage';
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'models/:id', element: <ModelEditPage /> },
       { path: 'palettes', element: <PalettesPage /> },
       { path: 'orders', element: <OrdersPage /> },
+      { path: 'spare-parts', element: <SparePartsPage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'orders/:id', element: <OrderDetailPage /> },

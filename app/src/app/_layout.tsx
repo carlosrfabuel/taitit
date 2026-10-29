@@ -7,7 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
-import { ToastProvider } from '@/ui';
+import { ToastProvider, useDesktop } from '@/ui';
+import { DesktopStackHeader } from '@/navigation/DesktopStackHeader';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { WelcomeProvider } from '@/lib/welcome';
@@ -23,6 +24,7 @@ function RootStack() {
   // A font that fails to load falls back to the system font: never a reason to stay on the splash.
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
   const loading = initializing || (!fontsLoaded && !fontError);
+  const desktop = useDesktop();
 
   useEffect(() => {
     if (!loading) SplashScreen.hideAsync().catch(() => {});
@@ -33,6 +35,8 @@ function RootStack() {
   return (
     <Stack
       screenOptions={{
+        // Computer: the header lines up with the centered page content.
+        ...(desktop ? { header: (props) => <DesktopStackHeader {...props} /> } : null),
         headerShadowVisible: false,
         headerStyle: { backgroundColor: tokens.colors.background },
         headerTintColor: tokens.colors.text,
@@ -49,6 +53,9 @@ function RootStack() {
       <Stack.Screen name="order/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="order/done" options={{ title: 'Order sent', headerBackVisible: false }} />
       <Stack.Screen name="business" options={{ title: 'Business details' }} />
+      <Stack.Screen name="spare-parts/[modelId]" options={{ title: 'Spare part' }} />
+      <Stack.Screen name="spare-parts/requests" options={{ title: 'My requests' }} />
+      <Stack.Screen name="spare-parts/request/[id]" options={{ title: 'Request' }} />
       <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
       <Stack.Screen name="dev/ui-kit" options={{ title: 'UI kit' }} />
     </Stack>
@@ -65,6 +72,8 @@ export default function RootLayout() {
               <WelcomeProvider>
                 <CartProvider>
                   <StatusBar style="dark" />
+                  {/* Full width on a computer too: each screen centers its own content, so pages
+                      scroll with the window's scrollbar at the right edge. */}
                   <RootStack />
                 </CartProvider>
               </WelcomeProvider>

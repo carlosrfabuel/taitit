@@ -37,12 +37,16 @@ import {
   Screen,
   Swatch,
   TextField,
+  readingColumn,
+  readingFooter,
+  useDesktop,
   useToast,
 } from '@/ui';
 
 const { spacing, colors, radius } = tokens;
 const PAGE = spacing.xl;
 const THUMB = 132;
+const DESKTOP_THUMB = 220;
 
 // The order being put together: every frame added from the customizer ("Add to cart"), each with its
 // colors and quantity, who orders it (the optician's details, copied into the order) and free-text
@@ -109,6 +113,11 @@ type Frame = {
 
 function Summary({ userId, models }: { userId: string; models: CatalogModel[] }) {
   const insets = useSafeAreaInsets();
+  // On a computer the cart and its button keep a reading width in the middle of the page.
+  const desktop = useDesktop();
+  const reading = desktop ? readingColumn : null;
+  // Computer: larger frame pictures next to their colors (the column is wider than a phone).
+  const thumb = desktop ? DESKTOP_THUMB : THUMB;
   const toast = useToast();
   const cart = useCart();
   const [notes, setNotes] = useState('');
@@ -234,7 +243,7 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, reading]} keyboardShouldPersistTaps="handled">
         <AppText variant="small" color={colors.muted}>
           {frames.length === 1
             ? 'One frame. Add more to send them together in this order.'
@@ -258,9 +267,13 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
                   accessibilityLabel={`Change the colors of frame ${i + 1}`}
                   disabled={!edit || !!busy}
                   onPress={edit}
-                  style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.thumb,
+                    desktop && { width: thumb, minHeight: thumb * 0.45 },
+                    pressed && styles.pressed,
+                  ]}
                 >
-                  {f.plan ? <RecolorView plan={f.plan} width={THUMB} /> : null}
+                  {f.plan ? <RecolorView plan={f.plan} width={thumb} /> : null}
                 </Pressable>
                 <View style={styles.frameHead}>
                   <AppText variant="tiny" color={colors.muted}>
@@ -446,22 +459,24 @@ function Summary({ userId, models }: { userId: string; models: CatalogModel[] })
         </AppText>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
-        {busy ? (
-          <AppText variant="small" align="center" style={styles.blocked}>
-            {busy}
-          </AppText>
-        ) : blockedReason ? (
-          <AppText variant="small" align="center" style={styles.blocked}>
-            {blockedReason}
-          </AppText>
-        ) : null}
-        <Button
-          title={`Send order · ${totalFrames} ${totalFrames === 1 ? 'frame' : 'frames'}`}
-          fullWidth
-          loading={!!busy}
-          disabled={unavailable || refreshing || !approved || !hasBusiness}
-          onPress={confirm}
-        />
+        <View style={desktop ? readingFooter : null}>
+          {busy ? (
+            <AppText variant="small" align="center" style={styles.blocked}>
+              {busy}
+            </AppText>
+          ) : blockedReason ? (
+            <AppText variant="small" align="center" style={styles.blocked}>
+              {blockedReason}
+            </AppText>
+          ) : null}
+          <Button
+            title={`Send order · ${totalFrames} ${totalFrames === 1 ? 'frame' : 'frames'}`}
+            fullWidth
+            loading={!!busy}
+            disabled={unavailable || refreshing || !approved || !hasBusiness}
+            onPress={confirm}
+          />
+        </View>
       </View>
     </KeyboardAvoidingView>
   );

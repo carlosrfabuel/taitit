@@ -2,11 +2,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
+import { AuthScreen } from '@/auth/AuthScreen';
 import { useAuth } from '@/auth/AuthProvider';
 import { useCloseAuth } from '@/auth/navigation';
 import { WaitingForConfirmation } from '@/auth/WaitingForConfirmation';
 import { validateEmail } from '@/auth/validation';
-import { AppText, Button, Screen, TextField, useToast } from '@/ui';
+import { AppText, Button, TextField, useDesktop, useToast } from '@/ui';
 import { fonts } from '@/ui/fonts';
 
 export default function SignInScreen() {
@@ -19,6 +20,7 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
   const closeAuth = useCloseAuth();
+  const desktop = useDesktop();
   // An edited field drops its old error; the next submit validates everything again.
   const clearError = (field: 'email' | 'password') =>
     setErrors((e) => (e[field] ? { ...e, [field]: null } : e));
@@ -46,7 +48,7 @@ export default function SignInScreen() {
 
   if (unconfirmed)
     return (
-      <Screen>
+      <AuthScreen>
         <WaitingForConfirmation
           email={email}
           password={password}
@@ -58,17 +60,17 @@ export default function SignInScreen() {
           onSignIn={() => setUnconfirmed(false)}
           onForgotPassword={() => router.push('/forgot-password')}
         />
-      </Screen>
+      </AuthScreen>
     );
 
   return (
-    <Screen fill>
-      <View style={styles.intro}>
+    <AuthScreen fill>
+      <View style={[styles.intro, desktop && compact.intro]}>
         <AppText variant="title">Sign in</AppText>
         <AppText variant="small">Welcome back to your TAITIT account.</AppText>
       </View>
 
-      <View style={styles.form}>
+      <View style={[styles.form, desktop && compact.form]}>
         <TextField
           label="Email"
           value={email}
@@ -104,7 +106,7 @@ export default function SignInScreen() {
           accessibilityRole="link"
           onPress={() => router.push('/forgot-password')}
           hitSlop={10}
-          style={styles.forgot}
+          style={[styles.forgot, desktop && compact.forgot]}
         >
           <AppText variant="small" color={tokens.colors.primary} style={styles.underline}>
             Forgot password?
@@ -118,7 +120,7 @@ export default function SignInScreen() {
         <Button title="Sign in" onPress={submit} loading={loading} fullWidth />
       </View>
 
-      <View style={styles.links}>
+      <View style={[styles.links, desktop && compact.links]}>
         <Pressable accessibilityRole="link" onPress={() => router.push('/sign-up')} hitSlop={10}>
           <AppText variant="body" align="center">
             Don&apos;t have an account?{' '}
@@ -129,7 +131,7 @@ export default function SignInScreen() {
         </Pressable>
         <Button title="Continue as guest" variant="ghost" onPress={closeAuth} />
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }
 
@@ -141,4 +143,12 @@ const styles = StyleSheet.create({
   underline: { textDecorationLine: 'underline' },
   strong: { fontFamily: fonts.bodyBold },
   links: { gap: tokens.spacing.md, marginTop: tokens.spacing.xl, alignItems: 'center' },
+});
+
+// Computer: the form sits in a compact card (AuthScreen), so tighter spacing.
+const compact = StyleSheet.create({
+  intro: { gap: tokens.spacing.xs, paddingTop: 0, marginBottom: tokens.spacing.sm },
+  form: { gap: tokens.spacing.md },
+  forgot: { marginTop: -tokens.spacing.sm, marginBottom: 0 },
+  links: { gap: 0, marginTop: tokens.spacing.xs },
 });

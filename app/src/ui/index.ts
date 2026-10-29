@@ -21,3 +21,14 @@ export { GradientFill } from './GradientFill';
 export { WARM_GLOWS } from './GradientFill';
 export type { Glow } from './GradientFill';
 export { BrandLogo } from './BrandLogo';
+export {
+  DESKTOP_MIN_WIDTH,
+  PAGE_MAX_WIDTH,
+  READING_WIDTH,
+  readingColumn,
+  readingFooter,
+  webNoOutline,
+  useDesktop,
+  usePageWidth,
+  useReadingWidth,
+} from './layout';

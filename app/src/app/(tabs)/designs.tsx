@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { buildRenderPlan, tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
@@ -16,19 +8,37 @@ import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { copyName, restorePicks, type Design } from '@/designs/designs';
 import { useDesignMutations, useDesigns } from '@/designs/useDesigns';
 import { NameSheet } from '@/designs/NameSheet';
+import { SiteFooter } from '@/navigation/SiteFooter';
 import { RecolorView } from '@/render/RecolorView';
-import { AppText, Button, Card, EmptyState, Icon, Screen, Sheet, Skeleton, useToast } from '@/ui';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Icon,
+  Screen,
+  Sheet,
+  Skeleton,
+  PAGE_MAX_WIDTH,
+  useDesktop,
+  useReadingWidth,
+  useToast,
+} from '@/ui';
 
 const { spacing, colors, radius } = tokens;
 const PAGE = spacing.xl;
 const CARD_PAD = spacing.lg;
+// Computer: designs per row.
+const DESKTOP_COLUMNS = 3;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function DesignsScreen() {
   const { session } = useAuth();
-  const { width } = useWindowDimensions();
+  // A column at reading width on a computer (the window on phones).
+  const width = useReadingWidth();
+  const desktop = useDesktop();
   const designs = useDesigns();
   const catalog = useCatalog();
   const swatches = useSwatches();
@@ -37,7 +47,12 @@ export default function DesignsScreen() {
   const [menuFor, setMenuFor] = useState<Design | null>(null);
   const [renaming, setRenaming] = useState<Design | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const imageWidth = width - PAGE * 2 - CARD_PAD * 2;
+  const [listWidth, setListWidth] = useState(0);
+  const cardWidth =
+    desktop && listWidth
+      ? Math.floor((listWidth - spacing.lg * (DESKTOP_COLUMNS - 1)) / DESKTOP_COLUMNS)
+      : width - PAGE * 2;
+  const imageWidth = cardWidth - CARD_PAD * 2 - (desktop ? 2 : 0);
 
   if (!session)
     return (
@@ -104,19 +119,23 @@ export default function DesignsScreen() {
       toast("Couldn't duplicate. Check your connection and try again.", 'error');
     }
   };
-  const confirmDelete = (d: Design) =>
-    Alert.alert('Delete design?', `"${d.name}" will be deleted. This can't be undone.`, [
+  const confirmDelete = (d: Design) => {
+    const doDelete = () =>
+      remove.mutate(d.id, {
+        onSuccess: () => toast('Design deleted'),
+        onError: () => toast("Couldn't delete. Check your connection and try again.", 'error'),
+      });
+    const message = `"${d.name}" will be deleted. This can't be undone.`;
+    // Web: React Native's Alert does nothing in a browser; the browser's own confirm instead.
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Delete design?\n\n${message}`)) doDelete();
+      return;
+    }
+    Alert.alert('Delete design?', message, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          remove.mutate(d.id, {
-            onSuccess: () => toast('Design deleted'),
-            onError: () => toast("Couldn't delete. Check your connection and try again.", 'error'),
-          }),
-      },
+      { text: 'Delete', style: 'destructive', onPress: doDelete },
     ]);
+  };
   const rename = async (name: string) => {
     if (!renaming) return;
     try {
@@ -141,9 +160,24 @@ export default function DesignsScreen() {
   return (
     <View style={styles.root}>
       <FlatList
+        // Computer: a heading, then the designs in rows of three (the heading measures the space).
+        key={desktop ? 'grid' : 'list'}
+        numColumns={desktop ? DESKTOP_COLUMNS : 1}
+        columnWrapperStyle={desktop ? styles.gridRow : undefined}
+        ListHeaderComponent={
+          desktop ? (
+            <AppText
+              variant="title"
+              accessibilityRole="header"
+              onLayout={(e) => setListWidth(Math.floor(e.nativeEvent.layout.width))}
+            >
+              My designs
+            </AppText>
+          ) : null
+        }
         data={list}
         keyExtractor={(d) => d.id}
-        contentContainerStyle={[styles.list, list.length === 0 && styles.grow]}
+        contentContainerStyle={[styles.list, list.length === 0 && styles.grow, desktop && styles.pageColumn]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         windowSize={5}
         ListEmptyComponent={
@@ -157,12 +191,14 @@ export default function DesignsScreen() {
             />
           </View>
         }
+        ListFooterComponent={desktop ? <SiteFooter /> : null}
         renderItem={({ item }) => (
           <DesignCard
             design={item}
             model={models.get(item.modelId)}
             swatches={palette}
             imageWidth={imageWidth}
+            width={desktop ? cardWidth : undefined}
             onOpen={() => open(item)}
             onMenu={() => setMenuFor(item)}
           />
@@ -195,6 +231,7 @@ function DesignCard({
   model,
   swatches,
   imageWidth,
+  width,
   onOpen,
   onMenu,
 }: {
@@ -202,12 +239,18 @@ function DesignCard({
   model: CatalogModel | undefined;
   swatches: CatalogSwatch[];
   imageWidth: number;
+  /** Computer: the card's width in the grid (phones: the full column). */
+  width?: number;
   onOpen: () => void;
   onMenu: () => void;
 }) {
   const restored = model ? restorePicks(model.zones, swatches, design.selection) : null;
   return (
-    <Card onPress={onOpen} accessibilityLabel={`Open ${design.name}`} style={styles.card}>
+    <Card
+      onPress={onOpen}
+      accessibilityLabel={`Open ${design.name}`}
+      style={[styles.card, width ? { width } : null]}
+    >
       {model && restored ? (
         <RecolorView
           width={imageWidth}
@@ -257,6 +300,9 @@ function DesignCard({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   list: { padding: PAGE, gap: spacing.lg },
+  // Computer: the page's width, centered; rows of cards.
+  pageColumn: { width: '100%', maxWidth: PAGE_MAX_WIDTH, alignSelf: 'center' },
+  gridRow: { gap: spacing.lg },
   grow: { flexGrow: 1 },
   center: { flex: 1, justifyContent: 'center' },
   skeletonCard: {

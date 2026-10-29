@@ -2,10 +2,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
+import { AuthScreen } from '@/auth/AuthScreen';
 import { useAuth } from '@/auth/AuthProvider';
 import { linkErrorMessage } from '@/auth/messages';
 import { validatePassword } from '@/auth/validation';
-import { AppText, Button, EmptyState, Loader, Screen, TextField, useToast } from '@/ui';
+import { AppText, Button, EmptyState, Loader, TextField, useToast } from '@/ui';
 
 // Opened from the password-reset email link: ?code=… is exchanged for a session first.
 export default function ResetPasswordScreen() {
@@ -44,7 +45,7 @@ export default function ResetPasswordScreen() {
 
   if (linkError) {
     return (
-      <Screen>
+      <AuthScreen>
         <EmptyState
           icon="alert-circle-outline"
           title="Invalid link"
@@ -52,7 +53,7 @@ export default function ResetPasswordScreen() {
           actionLabel="Request a new link"
           onAction={() => router.replace('/forgot-password')}
         />
-      </Screen>
+      </AuthScreen>
     );
   }
 
@@ -73,7 +74,7 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <Screen>
+    <AuthScreen>
       <AppText variant="title">New password</AppText>
       <View style={styles.form}>
         <TextField
@@ -91,7 +92,7 @@ export default function ResetPasswordScreen() {
         />
         <Button title="Save password" onPress={submit} loading={loading} fullWidth />
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }
 

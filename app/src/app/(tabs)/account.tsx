@@ -7,13 +7,14 @@ import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { businessComplete } from '@/auth/business';
 import { openPrivacyPolicy } from '@/lib/links';
 import { useWelcome } from '@/lib/welcome';
-import { AppText, Badge, BrandLogo, Button, Card, EmptyState, Screen, useToast } from '@/ui';
+import { AppText, Badge, BrandLogo, Button, Card, EmptyState, Screen, useDesktop, useToast } from '@/ui';
 
 export default function AccountScreen() {
   const { session, profile, signOut } = useAuth();
   const toast = useToast();
   const welcome = useWelcome();
   const [signingOut, setSigningOut] = useState(false);
+  const desktop = useDesktop();
 
   const devKit = __DEV__ ? (
     <Button
@@ -27,7 +28,8 @@ export default function AccountScreen() {
   // At the foot of the screen: the logo, then the app version.
   const version = (
     <View style={styles.foot}>
-      <BrandLogo width={120} style={styles.footLogo} />
+      {/* On a computer the logo is in the top bar. */}
+      {desktop ? null : <BrandLogo width={120} style={styles.footLogo} />}
       <AppText variant="tiny" align="center">
         Version {Constants.expoConfig?.version ?? '—'}
       </AppText>
@@ -63,6 +65,12 @@ export default function AccountScreen() {
 
   return (
     <Screen>
+      {/* Computer: the page's heading (the top bar has no title row on the sections' pages). */}
+      {desktop ? (
+        <AppText variant="title" accessibilityRole="header">
+          Account
+        </AppText>
+      ) : null}
       <Card>
         <View style={styles.row}>
           <AppText variant="tiny">NAME</AppText>

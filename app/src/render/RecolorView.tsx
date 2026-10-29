@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import {
   Canvas,
   ColorMatrix,
@@ -41,6 +41,13 @@ const SHADE = [SHADE_GAIN, 0, 0, 0, 0, 0, SHADE_GAIN, 0, 0, 0, 0, 0, SHADE_GAIN,
 const HL = 1 / (1 - SHADE_TOP);
 const HL_OFFSET = -SHADE_TOP * HL;
 const HIGHLIGHT = [HL, 0, 0, 0, HL_OFFSET, HL, 0, 0, 0, HL_OFFSET, HL, 0, 0, 0, HL_OFFSET, 0, 0, 0, 0, 1];
+
+// TEMPORARY (Safari test, 2026-10-28): `?renderer=static` draws with Skia's off-screen renderer, to
+// compare both on a real Mac. Remove once the web renderer is chosen.
+const STATIC_RENDERER =
+  Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  window.location.search.includes('renderer=static');
 
 type Size = { width: number; height: number };
 type Loaded = {
@@ -268,7 +275,7 @@ export function RecolorView({ plan, width, style }: { plan: RenderPlan; width: n
         </Pressable>
       )}
       {loaded && (
-        <Canvas style={size}>
+        <Canvas style={size} __destroyWebGLContextAfterRender={STATIC_RENDERER}>
           <Scene plan={drawn} loaded={loaded} size={size} />
         </Canvas>
       )}

@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } fr
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { AppText } from './AppText';
+import { useDesktop } from './layout';
 
 const { colors, spacing, radius } = tokens;
 
@@ -22,12 +23,17 @@ export function Sheet({
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  // On a computer: a centered dialog instead of a sheet across the bottom of the screen.
+  const desktop = useDesktop();
   const close = () => dismissable && onClose();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close} statusBarTranslucent>
-      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={[styles.root, desktop && styles.rootCentered]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }]}>
+        <View style={[styles.sheet, { paddingBottom: spacing.xl + insets.bottom }, desktop && styles.dialog]}>
           {title ? <AppText variant="heading">{title}</AppText> : null}
           {children}
         </View>
@@ -45,4 +51,6 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.lg,
   },
+  rootCentered: { justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  dialog: { width: '100%', maxWidth: 560, borderRadius: radius.lg },
 });

@@ -15,6 +15,7 @@ declare
   n integer; n2 integer; t1 timestamptz; t2 timestamptz; txt text;
   seq_before bigint; seq_after bigint;
   m_new uuid; z_new uuid; arr text[];
+  sp_key uuid; sp_k1 uuid; sp_k2 uuid; sp_k3 uuid; sp_id uuid;
   passed integer := 0;
   failed text := '';
 
@@ -125,6 +126,11 @@ begin
   begin perform 1 from public.orders; failed := failed || E'\n2 guest can read orders';
   exception when insufficient_privilege then passed := passed + 1; end;
   begin perform 1 from public.designs; failed := failed || E'\n2 guest can read designs';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform 1 from public.spare_part_requests; failed := failed || E'\n2 guest can read spare part requests';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid()]);
+    failed := failed || E'\n2 guest sent a spare part request';
   exception when insufficient_privilege then passed := passed + 1; end;
   begin insert into public.models (name) values ('HACK'); failed := failed || E'\n2 guest can insert models';
   exception when insufficient_privilege then passed := passed + 1; end;
@@ -390,9 +396,88 @@ begin
     if n = 0 then passed := passed + 1; else failed := failed || E'\n3c customer edited a frame form after ordering'; end if;
   exception when insufficient_privilege then passed := passed + 1; end;
 
+  -- 3d. Spare parts (20261030120000): an approved optician sends a request with exactly 3 photos of
+  -- their own; request numbers from a test sequence (rollback does not rewind the real one).
+  perform set_config('role', 'postgres', true);
+  create sequence public.test_spare_seq start with 900100;
+  alter table public.spare_part_requests alter column number set default nextval('public.test_spare_seq');
+  perform set_config('role', 'authenticated', true);
+  sp_key := gen_random_uuid(); sp_k1 := gen_random_uuid(); sp_k2 := gen_random_uuid(); sp_k3 := gen_random_uuid();
+  begin
+    insert into storage.objects (bucket_id, name, owner_id) values
+      ('spare-parts', a::text || '/' || sp_k1 || '.jpg', a::text),
+      ('spare-parts', a::text || '/' || sp_k2 || '.jpg', a::text),
+      ('spare-parts', a::text || '/' || sp_k3 || '.jpg', a::text);
+    passed := passed + 1;
+  exception when others then failed := failed || E'\n3d approved optician cannot upload spare part photos: ' || sqlerrm; end;
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('spare-parts', b::text || '/' || gen_random_uuid() || '.jpg', a::text);
+    failed := failed || E'\n3d spare part photo uploaded into another user''s folder';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('spare-parts', a::text || '/photo.jpg', a::text);
+    failed := failed || E'\n3d spare part photo with a free-form name accepted';
+  exception when insufficient_privilege then passed := passed + 1; end;
+
+  res := public.create_spare_part_request(sp_key, m_pub, 'temple', 'left', array[sp_k1, sp_k2, sp_k3], '  Bisagra rota  ');
+  sp_id := (res ->> 'id')::uuid;
+  if (res ->> 'created')::boolean and (res ->> 'number')::integer >= 900100 then passed := passed + 1;
+  else failed := failed || E'\n3d spare part request not created: ' || res::text; end if;
+  select count(*) into n from public.spare_part_requests
+    where id = sp_id and user_id = a and model_id = m_pub and model_name = 'TEST PUB' and part = 'temple' and side = 'left'
+      and note = 'Bisagra rota' and business_name = 'Optica A' and customer_email = 'test-a@example.com'
+      and delivery_address is not null
+      and photo_paths = array[a::text || '/' || sp_k1 || '.jpg', a::text || '/' || sp_k2 || '.jpg', a::text || '/' || sp_k3 || '.jpg'];
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3d request stored wrong (model, part, side, note, photos, optician copy)'; end if;
+  res2 := public.create_spare_part_request(sp_key, m_pub, 'temple', 'left', array[sp_k1, sp_k2, sp_k3], 'again');
+  select count(*) into n from public.spare_part_requests where user_id = a;
+  if not (res2 ->> 'created')::boolean and res2 ->> 'id' = sp_id::text and n = 1 then passed := passed + 1;
+  else failed := failed || E'\n3d retry with the same key made a second request: ' || res2::text; end if;
+  res2 := public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k2, sp_k3], '   ');
+  select count(*) into n from public.spare_part_requests where id = (res2 ->> 'id')::uuid and part = 'front' and side is null and note is null;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n3d front request (no side, blank note) not stored right'; end if;
+  select count(*) into n2 from public.spare_part_requests;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'temple', null, array[sp_k1, sp_k2, sp_k3]);
+    failed := failed || E'\n3d temple without a side accepted';
+  exception when check_violation then
+    if sqlerrm = 'spare_part_invalid' then passed := passed + 1; else failed := failed || E'\n3d temple without side refused for the wrong reason: ' || sqlerrm; end if;
+  end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', 'both', array[sp_k1, sp_k2, sp_k3]);
+    failed := failed || E'\n3d front with a side accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k2]);
+    failed := failed || E'\n3d request with 2 photos accepted';
+  exception when check_violation then
+    if sqlerrm = 'spare_part_photos_missing' then passed := passed + 1; else failed := failed || E'\n3d 2 photos refused for the wrong reason: ' || sqlerrm; end if;
+  end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k1, sp_k2]);
+    failed := failed || E'\n3d the same photo counted twice';
+  exception when check_violation then passed := passed + 1; end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k2, gen_random_uuid()]);
+    failed := failed || E'\n3d request with a photo that was never uploaded accepted';
+  exception when check_violation then passed := passed + 1; end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_draft, 'front', null, array[sp_k1, sp_k2, sp_k3]);
+    failed := failed || E'\n3d request for an unpublished model accepted';
+  exception when check_violation then
+    if sqlerrm = 'spare_part_model_unavailable' then passed := passed + 1; else failed := failed || E'\n3d draft model refused for the wrong reason: ' || sqlerrm; end if;
+  end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k2, sp_k3], repeat('x', 501));
+    failed := failed || E'\n3d note over 500 characters accepted';
+  exception when check_violation then passed := passed + 1; end;
+  select count(*) into n from public.spare_part_requests;
+  if n = n2 then passed := passed + 1; else failed := failed || E'\n3d a refused request left a row behind'; end if;
+  begin
+    insert into public.spare_part_requests (number, user_id, idempotency_key, model_name, part, photo_paths)
+    values (1, a, gen_random_uuid(), 'X', 'front', array['a', 'b', 'c']);
+    failed := failed || E'\n3d CRITICAL customer inserted a request directly (no checks)';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin update public.spare_part_requests set note = 'changed' where id = sp_id; get diagnostics n = row_count;
+    if n = 0 then passed := passed + 1; else failed := failed || E'\n3d customer edited a sent request'; end if;
+  exception when insufficient_privilege then passed := passed + 1; end;
+
   perform set_config('role', 'postgres', true);
   alter table public.orders alter column number set default nextval('public.order_number_seq');
   drop sequence public.test_order_seq;
+  alter table public.spare_part_requests alter column number set default nextval('public.spare_part_number_seq');
+  drop sequence public.test_spare_seq;
   perform set_config('role', 'authenticated', true);
 
   -- Customer B cannot read A's order image
@@ -412,11 +497,39 @@ begin
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3 customer B can see customer A''s order image'; end if;
   select count(*) into n from public.order_lines where order_id = o_multi;
   if n = 0 then passed := passed + 1; else failed := failed || E'\n3b customer B can see customer A''s frames'; end if;
+  -- Spare parts: B (pending) may not upload photos or send a request, and sees none of A's.
+  begin insert into storage.objects (bucket_id, name, owner_id) values ('spare-parts', b::text || '/' || gen_random_uuid() || '.jpg', b::text);
+    failed := failed || E'\n3d pending account uploaded a spare part photo';
+  exception when insufficient_privilege then passed := passed + 1; end;
+  begin perform public.create_spare_part_request(gen_random_uuid(), m_pub, 'front', null, array[sp_k1, sp_k2, sp_k3]);
+    failed := failed || E'\n3d pending account sent a spare part request';
+  exception when insufficient_privilege then
+    if sqlerrm = 'account_not_approved' then passed := passed + 1; else failed := failed || E'\n3d pending request refused for the wrong reason: ' || sqlerrm; end if;
+  end;
+  select count(*) into n from public.spare_part_requests;
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n3d CRITICAL customer B can see customer A''s spare part requests'; end if;
+  select count(*) into n from storage.objects where bucket_id = 'spare-parts';
+  if n = 0 then passed := passed + 1; else failed := failed || E'\n3d CRITICAL customer B can see customer A''s spare part photos'; end if;
+  -- Nobody but an admin may delete a spare part photo (the policy decides; the Storage API applies it).
+  select count(*) into n from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and cmd = 'DELETE' and qual like '%spare-parts%';
+  select count(*) into n2 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and cmd = 'DELETE' and qual like '%spare-parts%' and qual like '%is_admin%';
+  if n = 1 and n2 = 1 then passed := passed + 1; else failed := failed || format(E'\n3d spare part photo delete rules: %s, admin-only %s (expected 1 and 1)', n, n2); end if;
 
   -- -------------------------------------------------------------------------
   -- 4. Admin
   -- -------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', adm, 'role', 'authenticated')::text, true);
+
+  -- Admin reads every spare part request and its photos (the panel), but can't change them.
+  select count(*) into n from public.spare_part_requests where user_id = a;
+  if n = 2 then passed := passed + 1; else failed := failed || format(E'\n4 admin sees %s of 2 spare part requests', n); end if;
+  select count(*) into n from storage.objects where bucket_id = 'spare-parts' and (storage.foldername(name))[1] = a::text;
+  if n = 3 then passed := passed + 1; else failed := failed || format(E'\n4 admin sees %s of 3 spare part photos', n); end if;
+  begin update public.spare_part_requests set note = 'admin edit' where id = sp_id; get diagnostics n = row_count;
+    if n = 0 then passed := passed + 1; else failed := failed || E'\n4 a spare part request was edited (no status: nothing to change)'; end if;
+  exception when insufficient_privilege then passed := passed + 1; end;
 
   -- Admin approves B (and can undo it); never their own account.
   if public.set_account_status(b, 'approved') = 'approved' then passed := passed + 1; else failed := failed || E'\n4 admin approval returned a wrong status'; end if;
@@ -762,6 +875,9 @@ begin
   if n = 1 then passed := passed + 1; else failed := failed || E'\n6 order not kept with email copy and cleared user_id'; end if;
   select count(*) into n from public.order_lines where order_id = o_multi;
   if n = 2 then passed := passed + 1; else failed := failed || E'\n6 frames of an order lost with the account'; end if;
+  select count(*) into n from public.spare_part_requests
+    where id = sp_id and user_id is null and customer_email = 'test-a@example.com' and cardinality(photo_paths) = 3;
+  if n = 1 then passed := passed + 1; else failed := failed || E'\n6 spare part request not kept with email copy and cleared user_id'; end if;
 
   select last_value into seq_after from public.order_number_seq;
   if seq_after = seq_before then passed := passed + 1; else failed := failed || E'\n7 the test consumed order numbers'; end if;

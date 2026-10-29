@@ -46,7 +46,8 @@ export default function DeleteAccountScreen() {
         <AppText>• your business details</AppText>
         <AppText>• your saved designs</AppText>
         <AppText variant="label" style={styles.kept}>
-          Orders you have already sent stay with TAITIT for their records, with your name and email.
+          Orders and spare part requests you have already sent stay with TAITIT for their records, with your
+          name and email.
         </AppText>
       </Card>
       <TextField

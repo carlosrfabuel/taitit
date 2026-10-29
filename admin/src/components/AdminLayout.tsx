@@ -8,6 +8,7 @@ import {
   Settings,
   Shapes,
   Users,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -21,6 +22,7 @@ const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/models', label: 'Models', icon: Glasses },
   { to: '/palettes', label: 'Palettes', icon: Palette },
   { to: '/orders', label: 'Orders', icon: Receipt },
+  { to: '/spare-parts', label: 'Spare parts', icon: Wrench },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/settings', label: 'Settings', icon: Settings },
   ...(import.meta.env.DEV ? [{ to: '/dev/ui-kit', label: 'UI kit (dev)', icon: Shapes }] : []),

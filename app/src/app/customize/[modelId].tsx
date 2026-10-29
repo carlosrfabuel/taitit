@@ -7,6 +7,7 @@ import {
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
+  type ViewStyle,
 } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +23,9 @@ import {
   PHOTO_STAGE_INSET,
   Screen,
   Swatch,
+  PAGE_MAX_WIDTH,
+  useDesktop,
+  usePageWidth,
   useToast,
 } from '@/ui';
 import { useAuth, useRequireAuth } from '@/auth/AuthProvider';
@@ -55,6 +59,12 @@ const PAGE = spacing.xl;
 const SWATCH_GAP = spacing.sm;
 // The photo stage (PhotoStage), almost edge to edge.
 const STAGE_MARGIN = spacing.sm;
+// On a computer, the photo's share of the page width (the rest is the panel with the colors).
+const STAGE_SHARE = 0.62;
+// On a computer: the top bar (72 + its 1 px line) and the title row (64) above the page.
+const DESKTOP_HEADER_HEIGHT = 137;
+// Web: kept in view while the page scrolls (React Native's types don't list `sticky`).
+const sticky = { position: 'sticky' } as unknown as ViewStyle;
 // Fade over the right end of the zone chips while more are hidden there (opacity per 8 px strip).
 const FADE = [0.2, 0.45, 0.7, 0.9, 1];
 const FADE_STRIP = 8;
@@ -175,9 +185,16 @@ function Customizer({
   design: Design | undefined;
   line?: CartLine;
 }) {
-  const { width } = useWindowDimensions();
+  // On a computer: the frame on the left, the parts, colors and buttons on the right. Phones: one column.
+  const pageWidth = usePageWidth();
+  const windowHeight = useWindowDimensions().height;
+  const desktop = useDesktop();
+  const stageWidth = desktop ? Math.round(pageWidth * STAGE_SHARE) : pageWidth;
+  const panelWidth = desktop ? pageWidth - stageWidth : pageWidth;
   // Swatch rows fill the width: as many as fit at the minimum size, then grown to share it equally.
-  const paletteWidth = width - PAGE * 2;
+  // Computer: the palette's measured inner width (its scrollbar, when it shows, takes part of it).
+  const [paletteInner, setPaletteInner] = useState(0);
+  const paletteWidth = (desktop && paletteInner ? paletteInner : panelWidth) - PAGE * 2;
   const swatchColumns = Math.max(
     1,
     Math.floor((paletteWidth + SWATCH_GAP) / (tokens.swatch.lg + SWATCH_GAP)),
@@ -319,235 +336,280 @@ function Customizer({
   const saveLabel = !saved ? 'Save design' : unsaved ? 'Save changes' : 'Saved';
   const saveDisabled = !unsaved || zones.length === 0;
 
+  // Computer: a product page that scrolls with the window. The frame stays in view on the left (sticky);
+  // the colors flow on the right, with the form row and the buttons kept at the bottom of the window.
+  // Phones: one fixed column, the palette scrolling inside it.
+  const Root = desktop ? ScrollView : View;
+  const rootProps = desktop
+    ? { style: styles.root, contentContainerStyle: styles.rootDesktop }
+    : { style: styles.root };
+  const Palette = desktop ? View : ScrollView;
+  const paletteProps = desktop
+    ? { style: styles.paletteContent }
+    : { style: styles.palette, contentContainerStyle: styles.paletteContent };
+  // The visible page below the top bar and the title row (computer).
+  const viewHeight = windowHeight - DESKTOP_HEADER_HEIGHT;
+
   return (
-    <View style={styles.root}>
+    <Root {...rootProps}>
       {/* The bag leads to the order; not while changing one of its frames (the order is right behind). */}
       <Stack.Screen
         options={{ title: saved?.name ?? model.name, headerRight: line ? undefined : () => <CartButton /> }}
       />
-      <Pressable
-        style={styles.photo}
-        onPressIn={() => setHolding(true)}
-        onPressOut={() => setHolding(false)}
-        accessibilityLabel="Design preview. Touch and hold to see the original colors."
+      <View
+        style={
+          desktop ? [styles.stage, sticky, { width: stageWidth, top: 0, height: viewHeight }] : undefined
+        }
       >
-        <PhotoStage>
-          <RecolorView plan={plan} width={width - (STAGE_MARGIN + PHOTO_STAGE_INSET) * 2} />
-        </PhotoStage>
-        {showOriginal ? (
-          <View style={styles.badge} pointerEvents="none">
-            <AppText variant="tiny" color={colors.onPrimary}>
-              Original
-            </AppText>
-          </View>
-        ) : null}
-      </Pressable>
-      <View style={styles.tools}>
-        <Button
-          title="Undo"
-          icon="arrow-undo-outline"
-          variant="ghost"
-          size="sm"
-          disabled={history.past.length === 0}
-          onPress={() => change(undo)}
-        />
-        <Button
-          title="Reset"
-          icon="refresh-outline"
-          variant="ghost"
-          size="sm"
-          disabled={!customized}
-          onPress={() => change((h) => reset(h, model.zones, swatches))}
-        />
-        <Button
-          title={compare ? 'My design' : 'Original'}
-          icon={compare ? 'eye-off-outline' : 'eye-outline'}
-          variant="ghost"
-          size="sm"
-          disabled={!customized && !compare}
-          onPress={() => setCompare((c) => !c)}
-        />
-      </View>
-      {zones.length > 0 ? (
-        <View>
-          <ScrollView
-            ref={zonesRow}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.zonesBar}
-            contentContainerStyle={styles.zones}
-            onLayout={(e) => updateZonesMore({ width: e.nativeEvent.layout.width })}
-            onContentSizeChange={(w) => updateZonesMore({ content: w })}
-            onScroll={(e) => updateZonesMore({ x: e.nativeEvent.contentOffset.x })}
-            scrollEventThrottle={48}
-          >
-            {zones.map((z) => (
-              <View key={z.id} onLayout={(e) => rememberChip(z.id, e)}>
-                <Chip
-                  label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
-                  selected={z.id === zone?.id}
-                  onPress={() => chooseZone(z.id)}
-                />
-              </View>
-            ))}
-          </ScrollView>
-          {zonesMore ? (
-            <View pointerEvents="none" style={styles.fade}>
-              {FADE.map((o) => (
-                <View key={o} style={[styles.fadeStrip, { opacity: o }]} />
-              ))}
+        <Pressable
+          style={styles.photo}
+          onPressIn={() => setHolding(true)}
+          onPressOut={() => setHolding(false)}
+          accessibilityLabel="Design preview. Touch and hold to see the original colors."
+        >
+          <PhotoStage>
+            <RecolorView plan={plan} width={stageWidth - (STAGE_MARGIN + PHOTO_STAGE_INSET) * 2} />
+          </PhotoStage>
+          {showOriginal ? (
+            <View style={styles.badge} pointerEvents="none">
+              <AppText variant="tiny" color={colors.onPrimary}>
+                Original
+              </AppText>
             </View>
           ) : null}
+        </Pressable>
+        <View style={styles.tools}>
+          <Button
+            title="Undo"
+            icon="arrow-undo-outline"
+            variant="ghost"
+            size="sm"
+            disabled={history.past.length === 0}
+            onPress={() => change(undo)}
+          />
+          <Button
+            title="Reset"
+            icon="refresh-outline"
+            variant="ghost"
+            size="sm"
+            disabled={!customized}
+            onPress={() => change((h) => reset(h, model.zones, swatches))}
+          />
+          <Button
+            title={compare ? 'My design' : 'Original'}
+            icon={compare ? 'eye-off-outline' : 'eye-outline'}
+            variant="ghost"
+            size="sm"
+            disabled={!customized && !compare}
+            onPress={() => setCompare((c) => !c)}
+          />
         </View>
-      ) : null}
-      <ScrollView style={styles.palette} contentContainerStyle={styles.paletteContent}>
-        {/* The model's description from the admin panel (proposal: image, name and description). */}
-        {model.description ? (
-          <AppText variant="small" color={colors.muted}>
-            {model.description}
-          </AppText>
-        ) : null}
-        {noticeOpen ? (
-          <View style={styles.notice}>
-            <AppText variant="small" style={styles.noticeText}>
-              Some colors or finishes of this {line && !design ? 'frame' : 'design'} are no longer available
-              and were replaced: {restored.replaced.join(', ')}.
-            </AppText>
-            <Button title="OK" variant="ghost" size="sm" onPress={() => setNoticeOpen(false)} />
+      </View>
+      <View style={[styles.panel, desktop && [styles.panelDesktop, { minHeight: viewHeight }]]}>
+        {zones.length > 0 && desktop ? (
+          // Computer: every part chip in view, wrapping onto a second line when needed.
+          <View style={[styles.zones, styles.zonesWrap]}>
+            {zones.map((z) => (
+              <Chip
+                key={z.id}
+                label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
+                selected={z.id === zone?.id}
+                onPress={() => chooseZone(z.id)}
+              />
+            ))}
           </View>
-        ) : null}
-        {selected ? (
-          <View style={styles.selection}>
-            {/* Only the number (Carlos, 2026-10-21): every client and sales rep has a sample set numbered the same. */}
-            <AppText variant="subheading">Color {selected.ref}</AppText>
-            {selected.finishes.length > 1 ? (
-              <View style={styles.finishes}>
-                {selected.finishes.map((f) => (
+        ) : zones.length > 0 ? (
+          <View>
+            <ScrollView
+              ref={zonesRow}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.zonesBar}
+              contentContainerStyle={styles.zones}
+              onLayout={(e) => updateZonesMore({ width: e.nativeEvent.layout.width })}
+              onContentSizeChange={(w) => updateZonesMore({ content: w })}
+              onScroll={(e) => updateZonesMore({ x: e.nativeEvent.contentOffset.x })}
+              scrollEventThrottle={48}
+            >
+              {zones.map((z) => (
+                <View key={z.id} onLayout={(e) => rememberChip(z.id, e)}>
                   <Chip
-                    key={f}
-                    label={FINISH_LABEL[f]}
-                    selected={current?.finish === f}
-                    onPress={() =>
-                      change((h) => commit(h, chooseFinish(h.picks, model.zones, zone!, swatches, f)))
-                    }
+                    label={`${z.name} · ${MATERIAL_LABEL[z.material]}`}
+                    selected={z.id === zone?.id}
+                    onPress={() => chooseZone(z.id)}
                   />
+                </View>
+              ))}
+            </ScrollView>
+            {zonesMore ? (
+              <View pointerEvents="none" style={styles.fade}>
+                {FADE.map((o) => (
+                  <View key={o} style={[styles.fadeStrip, { opacity: o }]} />
                 ))}
               </View>
-            ) : selected.finishes.length === 1 ? (
-              <AppText variant="small">Finish: {FINISH_LABEL[selected.finishes[0]!]}</AppText>
             ) : null}
           </View>
         ) : null}
-        {zone && groups.length === 0 ? (
-          <EmptyState
-            icon="color-palette-outline"
-            title="No colors available"
-            message="This part has no colors to choose from right now."
-          />
-        ) : null}
-        {zone
-          ? groups.map((g) => (
-              <View key={g.kind} style={styles.group}>
-                <AppText variant="label" color={colors.muted}>
-                  {g.label}
-                </AppText>
-                <View style={styles.swatches}>
-                  {g.swatches.map((s) => (
-                    <Swatch
-                      key={s.id}
-                      hex={s.hex}
-                      alpha={s.kind === 'translucent' ? s.alpha : null}
-                      texture={s.kind === 'havana' ? s.textureUrl : null}
-                      size={swatchSize}
-                      selected={s.id === selected?.id}
+        <Palette {...paletteProps}>
+          {desktop ? (
+            // Measures the space inside the palette (out of the layout: no gap, nothing drawn).
+            <View
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+              onLayout={(e) => setPaletteInner(Math.floor(e.nativeEvent.layout.width))}
+            />
+          ) : null}
+          {/* The model's description from the admin panel (proposal: image, name and description). */}
+          {model.description ? (
+            <AppText variant="small" color={colors.muted}>
+              {model.description}
+            </AppText>
+          ) : null}
+          {noticeOpen ? (
+            <View style={styles.notice}>
+              <AppText variant="small" style={styles.noticeText}>
+                Some colors or finishes of this {line && !design ? 'frame' : 'design'} are no longer available
+                and were replaced: {restored.replaced.join(', ')}.
+              </AppText>
+              <Button title="OK" variant="ghost" size="sm" onPress={() => setNoticeOpen(false)} />
+            </View>
+          ) : null}
+          {selected ? (
+            <View style={styles.selection}>
+              {/* Only the number (Carlos, 2026-10-21): every client and sales rep has a sample set numbered the same. */}
+              <AppText variant="subheading">Color {selected.ref}</AppText>
+              {selected.finishes.length > 1 ? (
+                <View style={styles.finishes}>
+                  {selected.finishes.map((f) => (
+                    <Chip
+                      key={f}
+                      label={FINISH_LABEL[f]}
+                      selected={current?.finish === f}
                       onPress={() =>
-                        change((h) => commit(h, chooseSwatch(h.picks, model.zones, zone, swatches, s)))
+                        change((h) => commit(h, chooseFinish(h.picks, model.zones, zone!, swatches, f)))
                       }
-                      accessibilityLabel={`Color ${s.ref}`}
                     />
                   ))}
                 </View>
-              </View>
-            ))
-          : null}
-        <AppText variant="tiny" color={colors.muted}>
-          Colors may vary slightly depending on your screen.
-        </AppText>
-      </ScrollView>
-      {/* Always in view above the buttons (not below the palette, where it would be missed). */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Customizing form, ${filled === 0 ? 'optional' : `${filled} of ${FORM_FIELDS} filled`}`}
-        onPress={() => setFormOpen(true)}
-        style={({ pressed }) => [styles.formRow, pressed && styles.savePressed]}
-      >
-        <Icon name="create-outline" size={20} color={colors.text} />
-        <AppText variant="label" style={styles.formTitle}>
-          Customizing form
-        </AppText>
-        <AppText variant="small" color={filled ? colors.text : colors.muted}>
-          {filled === 0 ? 'Optional' : `${filled} of ${FORM_FIELDS} filled`}
-        </AppText>
-        <Icon name="chevron-forward" size={18} color={colors.muted} />
-      </Pressable>
-      <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
-        {/* Save as a round heart beside the order button (benchmarks 2026-10-23): outlined while
-            there is something to save, filled once the design is saved as it is. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={saveLabel}
-          accessibilityState={{ disabled: saveDisabled, busy }}
-          disabled={saveDisabled || busy}
-          onPress={onSave}
-          style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Icon
-              name={saved && !unsaved ? 'heart' : 'heart-outline'}
-              size={24}
-              color={saveDisabled && !(saved && !unsaved) ? colors.muted : colors.primary}
+              ) : selected.finishes.length === 1 ? (
+                <AppText variant="small">Finish: {FINISH_LABEL[selected.finishes[0]!]}</AppText>
+              ) : null}
+            </View>
+          ) : null}
+          {zone && groups.length === 0 ? (
+            <EmptyState
+              icon="color-palette-outline"
+              title="No colors available"
+              message="This part has no colors to choose from right now."
             />
-          )}
-        </Pressable>
-        <Button
-          title={line ? 'Update frame' : 'Add to cart'}
-          onPress={() => {
-            if (line) {
-              // Back to the order with the new colors (the same as another frame: they become one).
-              const result = cart.update(line.id, selection, form);
-              toast(
-                result === 'merged' ? 'Same as another frame: joined into one' : 'Frame updated',
-                'success',
-              );
-              router.back();
-              return;
-            }
-            requireAuth(() => {
-              // The frame joins the order being put together (several frames per order). The optician
-              // stays here to add more; the bag above, or "View", opens the order.
-              const result = cart.add(model.id, selection, form);
-              if (result === 'too_many_frames') {
-                toast(`Your cart can hold up to ${CART_MAX} different frames.`, 'error');
-                return;
-              }
-              if (result === 'too_many_of_one') {
-                toast(`Up to ${QUANTITY_MAX} of the same frame per order.`, 'error');
-                return;
-              }
-              toast(
-                result === 'more'
-                  ? `One more ${model.name} in your cart`
-                  : `${model.name} added to your cart`,
-                'success',
-                { label: 'View', onPress: () => router.push('/order/summary') },
-              );
-            });
-          }}
-          arrow={!line}
-          style={styles.footerButton}
-        />
+          ) : null}
+          {zone
+            ? groups.map((g) => (
+                <View key={g.kind} style={styles.group}>
+                  <AppText variant="label" color={colors.muted}>
+                    {g.label}
+                  </AppText>
+                  <View style={styles.swatches}>
+                    {g.swatches.map((s) => (
+                      <Swatch
+                        key={s.id}
+                        hex={s.hex}
+                        alpha={s.kind === 'translucent' ? s.alpha : null}
+                        texture={s.kind === 'havana' ? s.textureUrl : null}
+                        size={swatchSize}
+                        selected={s.id === selected?.id}
+                        onPress={() =>
+                          change((h) => commit(h, chooseSwatch(h.picks, model.zones, zone, swatches, s)))
+                        }
+                        accessibilityLabel={`Color ${s.ref}`}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ))
+            : null}
+          <AppText variant="tiny" color={colors.muted}>
+            Colors may vary slightly depending on your screen.
+          </AppText>
+        </Palette>
+        {/* Computer: kept at the bottom of the window while the colors scroll by (sticky). */}
+        <View style={desktop ? [sticky, styles.actionsDesktop] : undefined}>
+          {/* Always in view above the buttons (not below the palette, where it would be missed). */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Customizing form, ${filled === 0 ? 'optional' : `${filled} of ${FORM_FIELDS} filled`}`}
+            onPress={() => setFormOpen(true)}
+            style={({ pressed }) => [styles.formRow, pressed && styles.savePressed]}
+          >
+            <Icon name="create-outline" size={20} color={colors.text} />
+            <AppText variant="label" style={styles.formTitle}>
+              Customizing form
+            </AppText>
+            <AppText variant="small" color={filled ? colors.text : colors.muted}>
+              {filled === 0 ? 'Optional' : `${filled} of ${FORM_FIELDS} filled`}
+            </AppText>
+            <Icon name="chevron-forward" size={18} color={colors.muted} />
+          </Pressable>
+          <View style={[styles.footer, { paddingBottom: spacing.lg + insets.bottom }]}>
+            {/* Save as a round heart beside the order button (benchmarks 2026-10-23): outlined while
+            there is something to save, filled once the design is saved as it is. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={saveLabel}
+              accessibilityState={{ disabled: saveDisabled, busy }}
+              disabled={saveDisabled || busy}
+              onPress={onSave}
+              style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Icon
+                  name={saved && !unsaved ? 'heart' : 'heart-outline'}
+                  size={24}
+                  color={saveDisabled && !(saved && !unsaved) ? colors.muted : colors.primary}
+                />
+              )}
+            </Pressable>
+            <Button
+              title={line ? 'Update frame' : 'Add to cart'}
+              onPress={() => {
+                if (line) {
+                  // Back to the order with the new colors (the same as another frame: they become one).
+                  const result = cart.update(line.id, selection, form);
+                  toast(
+                    result === 'merged' ? 'Same as another frame: joined into one' : 'Frame updated',
+                    'success',
+                  );
+                  router.back();
+                  return;
+                }
+                requireAuth(() => {
+                  // The frame joins the order being put together (several frames per order). The optician
+                  // stays here to add more; the bag above, or "View", opens the order.
+                  const result = cart.add(model.id, selection, form);
+                  if (result === 'too_many_frames') {
+                    toast(`Your cart can hold up to ${CART_MAX} different frames.`, 'error');
+                    return;
+                  }
+                  if (result === 'too_many_of_one') {
+                    toast(`Up to ${QUANTITY_MAX} of the same frame per order.`, 'error');
+                    return;
+                  }
+                  toast(
+                    result === 'more'
+                      ? `One more ${model.name} in your cart`
+                      : `${model.name} added to your cart`,
+                    'success',
+                    { label: 'View', onPress: () => router.push('/order/summary') },
+                  );
+                });
+              }}
+              arrow={!line}
+              style={styles.footerButton}
+            />
+          </View>
+        </View>
       </View>
       <FrameFormSheet
         visible={formOpen}
@@ -566,12 +628,26 @@ function Customizer({
         onSubmit={createNamed}
         onClose={() => setNaming(false)}
       />
-    </View>
+    </Root>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  // Computer: both columns centered in the full-width window.
+  rootDesktop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    width: '100%',
+    maxWidth: PAGE_MAX_WIDTH,
+    alignSelf: 'center',
+  },
+  // Computer: the form row and the buttons at the bottom of the window, over the colors scrolling by.
+  actionsDesktop: { bottom: 0, zIndex: 1, backgroundColor: colors.background },
+  // Desktop: the photo and its tools, centered in the height beside the panel.
+  stage: { justifyContent: 'center', paddingBottom: spacing.xl },
+  panel: { flex: 1 },
+  panelDesktop: { borderLeftWidth: 1, borderLeftColor: colors.border },
   photo: { paddingHorizontal: STAGE_MARGIN, paddingTop: spacing.md, paddingBottom: spacing.sm },
   fade: { position: 'absolute', top: 0, right: 0, bottom: 0, flexDirection: 'row' },
   fadeStrip: { width: FADE_STRIP, backgroundColor: colors.background },
@@ -589,6 +665,7 @@ const styles = StyleSheet.create({
   finishes: { flexDirection: 'row', gap: spacing.sm },
   zonesBar: { flexGrow: 0 },
   zones: { paddingHorizontal: PAGE, gap: spacing.sm, paddingVertical: spacing.sm },
+  zonesWrap: { flexDirection: 'row', flexWrap: 'wrap', paddingTop: spacing.lg },
   palette: { flex: 1 },
   paletteContent: { padding: PAGE, gap: spacing.xl },
   group: { gap: spacing.sm },
