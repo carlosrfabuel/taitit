@@ -82,16 +82,22 @@ export async function fetchSwatches(): Promise<CatalogSwatch[]> {
   }));
 }
 
-/** Published models in alphabetical order (client decision 2026-10-20), each with its default-color plan. */
-export async function fetchCatalog(swatches: CatalogSwatch[]): Promise<CatalogModel[]> {
-  const { data, error } = await supabase
-    .from('models')
-    .select(
-      // One literal string: the client infers the row type from it.
-      'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, model_zones(id, name, material, layer_path, default_swatch_id, default_finish, sort_order, role, pattern_path, pattern_hex, pattern_own)',
-    )
-    .eq('published', true)
-    .order('name');
+/**
+ * Published models in alphabetical order (client decision 2026-10-20), each with its default-color plan.
+ * The models load while the colors still do (the plans need both).
+ */
+export async function fetchCatalog(colors: Promise<CatalogSwatch[]>): Promise<CatalogModel[]> {
+  const [{ data, error }, swatches] = await Promise.all([
+    supabase
+      .from('models')
+      .select(
+        // One literal string: the client infers the row type from it.
+        'id, name, category, size_ref, description, base_path, base_width, base_height, thumb_path, thumb_key, model_zones(id, name, material, layer_path, default_swatch_id, default_finish, sort_order, role, pattern_path, pattern_hex, pattern_own)',
+      )
+      .eq('published', true)
+      .order('name'),
+    colors,
+  ]);
   if (error) throw error;
   const result: CatalogModel[] = [];
   for (const m of data) {

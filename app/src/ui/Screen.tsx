@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import { createContext, ReactNode, useContext } from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { readingColumn, useDesktop } from './layout';
 import { SiteFooter } from '@/navigation/SiteFooter';
@@ -18,18 +19,29 @@ type Props = {
   fill?: boolean;
 };
 
+/**
+ * Set by the tab layout: its floating bar already sits above the phone's navigation buttons, so
+ * screens in a tab need no room of their own for them.
+ */
+export const InTabsContext = createContext(false);
+
 // Standard screen body. Headers come from the navigator, so only the bottom edge needs care.
 export function Screen({ children, scroll = true, footer, contentStyle, fill = false }: Props) {
   // On a computer, the content keeps a reading width in the middle of the page, and the footer's
   // buttons follow the content (like a website's) instead of sitting at the bottom of the window.
   const desktop = useDesktop();
+  const insets = useSafeAreaInsets();
+  const inTabs = useContext(InTabsContext);
+  // Without a pinned footer the content's end clears the phone's navigation buttons or gesture bar
+  // (the app draws behind them), unless the tab bar already does.
+  const end = !footer && !inTabs ? { paddingBottom: tokens.spacing.xl + insets.bottom } : null;
   const reading = desktop ? readingColumn : null;
   const inlineFooter = desktop && footer ? <View style={styles.inlineFooter}>{footer}</View> : null;
   return (
     <View style={styles.root}>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={[styles.content, fill && styles.fill, contentStyle, reading]}
+          contentContainerStyle={[styles.content, end, fill && styles.fill, contentStyle, reading]}
           keyboardShouldPersistTaps="handled"
         >
           {children}
@@ -37,12 +49,15 @@ export function Screen({ children, scroll = true, footer, contentStyle, fill = f
           <SiteFooter />
         </ScrollView>
       ) : (
-        <View style={[styles.content, styles.fixed, contentStyle, reading]}>
+        <View style={[styles.content, end, styles.fixed, contentStyle, reading]}>
           {children}
           {inlineFooter}
         </View>
       )}
-      {footer && !desktop ? <View style={styles.footer}>{footer}</View> : null}
+      {/* Above the phone's own navigation buttons or gesture bar (the app draws behind them). */}
+      {footer && !desktop ? (
+        <View style={[styles.footer, { paddingBottom: tokens.spacing.lg + insets.bottom }]}>{footer}</View>
+      ) : null}
     </View>
   );
 }

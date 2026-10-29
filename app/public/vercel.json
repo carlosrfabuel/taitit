@@ -1,6 +1,14 @@
 {
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
-    { "source": "/canvaskit.wasm", "headers": [{ "key": "Content-Type", "value": "application/wasm" }] }
+    { "source": "/canvaskit.wasm", "headers": [{ "key": "Content-Type", "value": "application/wasm" }] },
+    {
+      "source": "/_expo/static/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
   ]
 }

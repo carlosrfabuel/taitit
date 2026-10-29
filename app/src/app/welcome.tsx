@@ -143,7 +143,8 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  // Clips the picture's cropped sides (in a browser they would otherwise scroll the page sideways).
+  root: { flex: 1, backgroundColor: '#000000', overflow: 'hidden' },
   centered: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   headline: { fontFamily: fonts.heading, color: WARM_WHITE },
   button: {

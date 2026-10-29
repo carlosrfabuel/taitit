@@ -6,17 +6,18 @@ export function useSwatches() {
 }
 
 /**
- * Published models with their default-color plans. Colors and models load together (one refresh
- * updates both); the colors are also stored for the customizer.
+ * Published models with their default-color plans. Colors and models load together, at the same time
+ * (one refresh updates both); the colors go through their own query, so a screen asking for them too
+ * shares the one request, and the customizer finds them stored.
  */
 export function useCatalog() {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: catalogKeys.all,
-    queryFn: async () => {
-      const swatches = await fetchSwatches();
-      queryClient.setQueryData(catalogKeys.swatches, swatches);
-      return fetchCatalog(swatches);
-    },
+    queryFn: () =>
+      // staleTime 0: fresh colors on every catalog load (a refresh too); one already loading is shared.
+      fetchCatalog(
+        queryClient.fetchQuery({ queryKey: catalogKeys.swatches, queryFn: fetchSwatches, staleTime: 0 }),
+      ),
   });
 }
