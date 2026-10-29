@@ -105,7 +105,7 @@ export function OrderDetailPage() {
     value ? (
       <div>
         <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</dt>
-        <dd className="text-ink">{value}</dd>
+        <dd className="break-words text-ink">{value}</dd>
       </div>
     ) : null;
 
@@ -147,7 +147,9 @@ export function OrderDetailPage() {
           {downloadError}
         </p>
       )}
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      {/* Side by side from 1280 px (with the sidebar, a 1024 px window leaves too little room): the
+          optician's details go below the frames on narrower windows. */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">
           {o.order_lines.map((line) => (
             <Card key={line.id} className="flex flex-col gap-4 break-inside-avoid">
