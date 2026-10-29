@@ -1,5 +1,5 @@
 import { useEffect, type ComponentProps } from 'react';
-import type { Tabs } from 'expo-router';
+import { useIsFocused, type Tabs } from 'expo-router';
 import { TopBar, setPageTitle, type Section } from './TopBar';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -14,7 +14,11 @@ const sectionOf = (name: string) => (name === 'index' ? 'catalog' : name) as Sec
 export function DesktopNav({ state, descriptors, navigation }: TabBarProps) {
   const route = state.routes[state.index]!;
   const title = descriptors[route.key]?.options.title;
-  useEffect(() => setPageTitle(title), [title]);
+  // Also when the tabs are shown again (back from an inner page, which had its own title).
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (focused) setPageTitle(title);
+  }, [focused, title]);
 
   const go = (key: Section) => {
     const index = state.routes.findIndex((r) => sectionOf(r.name) === key);

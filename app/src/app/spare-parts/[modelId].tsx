@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Stack, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
@@ -24,6 +24,7 @@ import {
   type SparePart,
   type TempleSide,
 } from '@/spareParts/spareParts';
+import { SparePartsSignIn } from '@/spareParts/SparePartsSignIn';
 import {
   AppText,
   Button,
@@ -47,9 +48,24 @@ const SIDES: TempleSide[] = ['left', 'right', 'both'];
 
 export default function SparePartScreen() {
   const { modelId } = useLocalSearchParams<{ modelId: string }>();
+  const { session } = useAuth();
   const catalog = useCatalog();
   const model = catalog.data?.find((m) => m.id === modelId);
+  // Opened by its address while signed out: nothing could be sent.
+  if (!session) return <SparePartsSignIn />;
   if (catalog.isPending) return <Loader />;
+  if (catalog.isError && !catalog.data)
+    return (
+      <Screen>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load the model"
+          message="Check your connection and try again."
+          actionLabel="Try again"
+          onAction={() => void catalog.refetch()}
+        />
+      </Screen>
+    );
   if (!model)
     return (
       <Screen>
@@ -82,8 +98,9 @@ function RequestForm({ model }: { model: CatalogModel }) {
   const [photos, setPhotos] = useState<(PreparedPhoto | null)[]>(() => Array(PHOTOS_REQUIRED).fill(null));
   const [preparing, setPreparing] = useState<number | null>(null);
   const [note, setNote] = useState('');
-  // The same key for every retry of this request: a lost answer never sends it twice.
-  const [key] = useState(() => randomUUID());
+  // One key per content: a retry of the same request reuses it (a lost answer never sends it twice);
+  // a changed request (part, side, photos or note) gets a new key, so it isn't answered with the old one.
+  const sentKey = useRef<{ content: string; key: string } | null>(null);
   const [busy, setBusy] = useState(false);
   // The photo slot asking "camera or library" (phones; the web opens the file picker directly).
   const [choosing, setChoosing] = useState<number | null>(null);
@@ -131,15 +148,24 @@ function RequestForm({ model }: { model: CatalogModel }) {
 
   const send = async () => {
     if (!session || !part || busy) return;
+    const chosen = photos.filter((p): p is PreparedPhoto => !!p);
+    const content = JSON.stringify([
+      model.id,
+      part,
+      part === 'temple' ? side : null,
+      chosen.map((p) => p.key),
+      note.trim(),
+    ]);
+    if (sentKey.current?.content !== content) sentKey.current = { content, key: randomUUID() };
     setBusy(true);
     try {
       const sent = await sendSparePartRequest({
         userId: session.user.id,
-        key,
+        key: sentKey.current.key,
         modelId: model.id,
         part,
         side,
-        photos: photos.filter((p): p is PreparedPhoto => !!p),
+        photos: chosen,
         note,
       });
       await queryClient.invalidateQueries({ queryKey: sparePartKeys.all });
@@ -147,7 +173,8 @@ function RequestForm({ model }: { model: CatalogModel }) {
       router.replace({ pathname: '/spare-parts/request/[id]', params: { id: sent.id } });
     } catch (e) {
       const message = (e as { message?: string } | null)?.message ?? '';
-      if (/account_not_approved|business_details_missing/.test(message)) reloadProfile();
+      if (/account_not_approved|business_details_missing|spare_part_upload_refused/.test(message))
+        reloadProfile();
       toast(sparePartErrorMessage(e), 'error');
     } finally {
       setBusy(false);

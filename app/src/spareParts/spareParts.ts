@@ -138,8 +138,16 @@ export async function preparePhoto(
   };
 }
 
-const isAlreadyThere = (error: { message?: string; statusCode?: string }) =>
+type StorageError = { message?: string; statusCode?: string; status?: number };
+
+const isAlreadyThere = (error: StorageError) =>
   error.statusCode === '409' || /already exists|duplicate/i.test(error.message ?? '');
+
+/** The server said no (only approved opticians may upload): not a connection problem. */
+const isRefused = (error: StorageError) =>
+  error.statusCode === '403' ||
+  error.status === 403 ||
+  /row-level security|unauthorized/i.test(error.message ?? '');
 
 /** Uploads a photo to the optician's folder. A retry finds it already there (same key): that is done. */
 async function uploadPhoto(userId: string, photo: PreparedPhoto): Promise<void> {
@@ -150,7 +158,9 @@ async function uploadPhoto(userId: string, photo: PreparedPhoto): Promise<void> 
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(`${userId}/${photo.key}.jpg`, body, { contentType: 'image/jpeg', upsert: false });
-  if (error && !isAlreadyThere(error)) throw error;
+  if (!error || isAlreadyThere(error)) return;
+  if (isRefused(error)) throw new Error('spare_part_upload_refused');
+  throw error;
 }
 
 /**
@@ -190,5 +200,7 @@ export function sparePartErrorMessage(e: unknown): string {
   if (message.includes('spare_part_model_unavailable')) return 'This model is no longer available.';
   if (message.includes('spare_part_photos_missing')) return 'Add 3 photos, then send again.';
   if (message.includes('spare_part_note_too_long')) return `The note can have up to ${NOTE_MAX} characters.`;
+  if (message.includes('spare_part_upload_refused'))
+    return "Your account can't send requests right now. Please contact TAITIT.";
   return "Couldn't send the request. Check your connection and try again.";
 }

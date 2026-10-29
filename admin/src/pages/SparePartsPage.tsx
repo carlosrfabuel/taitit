@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Search, Wrench } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { ModelThumb } from '../components/ModelThumb';
@@ -31,13 +31,16 @@ export function SparePartsPage() {
   const shown = filterSparePartRequests(rows, query);
   const models = useQuery({ queryKey: modelKeys.all, queryFn: listModels });
   const byId = new Map((models.data ?? []).map((m) => [m.id, m]));
-  // Links to every listed request's photos in one call (private files, an hour).
+  // Links to every listed request's photos in one call (private files, an hour): renewed every half
+  // hour even if the page just stays open; while a new request's links load, the others stay shown.
   const paths = rows.flatMap((r) => r.photo_paths);
   const photos = useQuery({
     queryKey: sparePartKeys.photos(paths),
     queryFn: () => sparePartPhotoUrls(paths),
     enabled: paths.length > 0,
     staleTime: 30 * 60_000,
+    refetchInterval: 30 * 60_000,
+    placeholderData: keepPreviousData,
   });
   // The request in the panel: the one clicked, else the first one shown; none once closed.
   const [picked, setPicked] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function SparePartsPage() {
                 loading="lazy"
                 className="size-full object-cover"
               />
-            ) : photos.isPending ? null : (
+            ) : photos.isFetching ? null : (
               <span className="text-[10px] text-muted">—</span>
             )}
           </span>
@@ -197,7 +200,12 @@ export function SparePartsPage() {
               <SparePartPanel
                 key={selected.id}
                 request={selected}
-                photoUrls={photos.data}
+                photos={{
+                  urls: photos.data,
+                  loading: photos.isFetching,
+                  failed: photos.isError,
+                  retry: () => void photos.refetch(),
+                }}
                 onClose={() => setPanelClosed(true)}
               />
             )}

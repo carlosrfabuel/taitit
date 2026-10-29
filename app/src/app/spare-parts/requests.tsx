@@ -6,6 +6,8 @@ import { tokens } from '@taitit/shared';
 import { formatOrderDate } from '@/orders/orders';
 import { partSummary, type SparePartRequest } from '@/spareParts/spareParts';
 import { useSparePartRequests } from '@/spareParts/useSpareParts';
+import { SparePartsSignIn } from '@/spareParts/SparePartsSignIn';
+import { useAuth } from '@/auth/AuthProvider';
 import { AppText, Card, EmptyState, Icon, Screen, Skeleton, readingColumn, useDesktop } from '@/ui';
 import { SiteFooter } from '@/navigation/SiteFooter';
 
@@ -14,10 +16,13 @@ const THUMB = 56;
 
 /** The spare part requests the optician has sent, newest first. */
 export default function SparePartRequestsScreen() {
+  const { session } = useAuth();
   const requests = useSparePartRequests();
   const desktop = useDesktop();
   const [refreshing, setRefreshing] = useState(false);
 
+  // Opened by its address while signed out (the list is never loaded for guests).
+  if (!session) return <SparePartsSignIn />;
   if (requests.isPending)
     return (
       <View style={[styles.list, desktop && readingColumn]}>

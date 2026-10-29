@@ -6,6 +6,8 @@ import { tokens } from '@taitit/shared';
 import { formatOrderDate } from '@/orders/orders';
 import { partSummary } from '@/spareParts/spareParts';
 import { useSparePartRequest } from '@/spareParts/useSpareParts';
+import { SparePartsSignIn } from '@/spareParts/SparePartsSignIn';
+import { useAuth } from '@/auth/AuthProvider';
 import { AppText, Card, EmptyState, Icon, Loader, Screen, useDesktop, useReadingWidth } from '@/ui';
 
 const { spacing, colors, radius } = tokens;
@@ -16,7 +18,10 @@ export default function SparePartRequestScreen() {
   const request = useSparePartRequest(id);
   const width = useReadingWidth() - spacing.xl * 2;
   const desktop = useDesktop();
+  const { session } = useAuth();
 
+  // Opened by its address while signed out (the request is never loaded for guests).
+  if (!session) return <SparePartsSignIn />;
   if (request.isPending) return <Loader />;
   if (!request.data)
     return (

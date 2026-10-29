@@ -1,0 +1,6 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    { "source": "/canvaskit.wasm", "headers": [{ "key": "Content-Type", "value": "application/wasm" }] }
+  ]
+}

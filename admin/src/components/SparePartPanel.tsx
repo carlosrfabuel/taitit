@@ -9,11 +9,12 @@ import { partSummary, type SparePartRow } from '../lib/spareParts';
  */
 export function SparePartPanel({
   request: r,
-  photoUrls,
+  photos,
   onClose,
 }: {
   request: SparePartRow;
-  photoUrls: Map<string, string> | undefined;
+  /** The photo links: loading, ready, or failed to load (with a retry). */
+  photos: { urls: Map<string, string> | undefined; loading: boolean; failed: boolean; retry: () => void };
   onClose: () => void;
 }) {
   const address = addressLine(r.address, r.postal_code, r.city, r.province);
@@ -55,7 +56,7 @@ export function SparePartPanel({
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-bold text-ink">Photos</h3>
         {r.photo_paths.map((path, i) => {
-          const url = photoUrls?.get(path);
+          const url = photos.urls?.get(path);
           return url ? (
             <a
               key={path}
@@ -76,9 +77,22 @@ export function SparePartPanel({
               key={path}
               className="flex h-24 items-center justify-center rounded-lg border border-line bg-bg"
             >
-              <span className="text-xs text-muted">
-                {photoUrls ? `Photo ${i + 1} not available` : 'Loading…'}
-              </span>
+              {photos.loading ? (
+                <span className="text-xs text-muted">Loading…</span>
+              ) : photos.failed ? (
+                <span className="flex items-center gap-2 text-xs text-muted">
+                  Couldn&apos;t load photo {i + 1}.
+                  <button
+                    type="button"
+                    onClick={photos.retry}
+                    className="font-semibold text-ink underline hover:no-underline"
+                  >
+                    Try again
+                  </button>
+                </span>
+              ) : (
+                <span className="text-xs text-muted">Photo {i + 1} not available</span>
+              )}
             </div>
           );
         })}

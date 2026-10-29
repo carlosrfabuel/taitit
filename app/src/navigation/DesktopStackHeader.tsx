@@ -13,7 +13,11 @@ type Props = {
   back?: { title: string | undefined };
   route: { name: string };
   options: { title?: string; headerBackVisible?: boolean };
-  navigation: { goBack: () => void };
+  navigation: {
+    goBack: () => void;
+    isFocused: () => boolean;
+    addListener: (event: 'focus', callback: () => void) => () => void;
+  };
 };
 
 /** The section an inner page belongs to (underlined in the top bar). */
@@ -34,7 +38,11 @@ const WIDE = new Set(['customize/[modelId]']);
  * (nothing to go back to), the arrow leads to the catalog. The browser tab shows the title.
  */
 export function DesktopStackHeader({ back, route, options, navigation }: Props) {
-  useEffect(() => setPageTitle(options.title), [options.title]);
+  // Also when this page is shown again (back from a page above it, which had its own title).
+  useEffect(() => {
+    if (navigation.isFocused()) setPageTitle(options.title);
+    return navigation.addListener('focus', () => setPageTitle(options.title));
+  }, [navigation, options.title]);
   const showBack = options.headerBackVisible !== false;
   const open = (key: Section) =>
     router.navigate(key === 'account' ? ACCOUNT_HREF : SECTIONS.find((s) => s.key === key)!.href);
