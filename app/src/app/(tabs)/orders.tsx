@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
+import { SignedOutPage } from '@/auth/SignedOutPage';
 import { useOrders } from '@/orders/useOrders';
 import { formatOrderDate, type Order } from '@/orders/orders';
 import { AppText, Card, EmptyState, Icon, Screen, Skeleton, readingColumn, useDesktop } from '@/ui';
@@ -20,17 +21,13 @@ export default function OrdersScreen() {
 
   if (!session)
     return (
-      <Screen>
-        <Card>
-          <EmptyState
-            icon="receipt-outline"
-            title="Your orders"
-            message="Sign in to place orders and see the ones you have sent."
-            actionLabel="Sign in"
-            onAction={() => router.push('/sign-in')}
-          />
-        </Card>
-      </Screen>
+      <SignedOutPage
+        icon="receipt-outline"
+        title="Your orders"
+        message="Sign in to place orders and see the ones you have sent."
+        heading="My orders"
+        intro="Sign in to place orders and follow the ones you have sent."
+      />
     );
 
   if (orders.isPending)

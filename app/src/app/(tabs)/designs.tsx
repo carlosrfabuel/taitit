@@ -3,6 +3,7 @@ import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View 
 import { router } from 'expo-router';
 import { buildRenderPlan, tokens } from '@taitit/shared';
 import { useAuth } from '@/auth/AuthProvider';
+import { SignedOutPage } from '@/auth/SignedOutPage';
 import { useCatalog, useSwatches } from '@/catalog/useCatalog';
 import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { copyName, restorePicks, type Design } from '@/designs/designs';
@@ -56,17 +57,13 @@ export default function DesignsScreen() {
 
   if (!session)
     return (
-      <Screen>
-        <Card>
-          <EmptyState
-            icon="heart-outline"
-            title="Save your designs"
-            message="Sign in to keep the designs you create and open them on any device."
-            actionLabel="Sign in"
-            onAction={() => router.push('/sign-in')}
-          />
-        </Card>
-      </Screen>
+      <SignedOutPage
+        icon="heart-outline"
+        title="Save your designs"
+        message="Sign in to keep the designs you create and open them on any device."
+        heading="My designs"
+        intro="Sign in to keep the designs you create and open them on any device."
+      />
     );
 
   if (designs.isPending || catalog.isPending || swatches.isPending)

@@ -5,9 +5,10 @@ import { StyleSheet, View } from 'react-native';
 import { tokens } from '@taitit/shared';
 import { canOrder, useAuth } from '@/auth/AuthProvider';
 import { businessComplete } from '@/auth/business';
+import { SignedOutPage } from '@/auth/SignedOutPage';
 import { openPrivacyPolicy } from '@/lib/links';
 import { useWelcome } from '@/lib/welcome';
-import { AppText, Badge, BrandLogo, Button, Card, EmptyState, Screen, useDesktop, useToast } from '@/ui';
+import { AppText, Badge, BrandLogo, Button, Card, Screen, useDesktop, useToast } from '@/ui';
 
 export default function AccountScreen() {
   const { session, profile, signOut } = useAuth();
@@ -38,19 +39,16 @@ export default function AccountScreen() {
 
   if (!session) {
     return (
-      <Screen>
-        <Card>
-          <EmptyState
-            icon="person-circle-outline"
-            title="You are not signed in"
-            message="Sign in to save your designs and place orders."
-            actionLabel="Sign in"
-            onAction={() => router.push('/sign-in')}
-          />
-        </Card>
+      <SignedOutPage
+        icon="person-circle-outline"
+        title="You are not signed in"
+        message="Sign in to save your designs and place orders."
+        heading="Account"
+        intro="Sign in to save your designs, place orders and request spare parts."
+      >
         {devKit}
         {version}
-      </Screen>
+      </SignedOutPage>
     );
   }
 
