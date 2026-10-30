@@ -74,8 +74,13 @@ export function SignedOutPage({ icon, title, message, heading, intro, steps, chi
           </View>
         ) : null}
         <View style={styles.actions}>
-          <Button title="Sign in" onPress={() => router.push('/sign-in')} />
-          <Button title="Create account" variant="secondary" onPress={() => router.push('/sign-up')} />
+          <Button title="Sign in" onPress={() => router.push('/sign-in')} style={styles.action} />
+          <Button
+            title="Create account"
+            variant="secondary"
+            onPress={() => router.push('/sign-up')}
+            style={styles.action}
+          />
         </View>
       </View>
       {children}
@@ -122,4 +127,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+  // One width for both (not each its own text's): an even pair, sized for the page.
+  action: { width: 200 },
 });
