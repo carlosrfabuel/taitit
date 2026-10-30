@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { addressLine } from '../lib/customers';
 import { formatOrderDate } from '../lib/orders';
 import { partSummary, type SparePartRow } from '../lib/spareParts';
+import { PhotoViewer } from './PhotoViewer';
 
 /**
- * One spare part request beside the list: the 3 photos large (each opens full size), the part, the
- * note and everything needed to contact the optician and send the part.
+ * One spare part request beside the list: the 3 photos in a row (each opens whole, over the page), the
+ * part, the note and everything needed to contact the optician and send the part.
  */
 export function SparePartPanel({
   request: r,
@@ -17,6 +19,13 @@ export function SparePartPanel({
   photos: { urls: Map<string, string> | undefined; loading: boolean; failed: boolean; retry: () => void };
   onClose: () => void;
 }) {
+  // The photo shown over the page (an index into the loaded ones), or none.
+  const [viewing, setViewing] = useState<number | null>(null);
+  const photoAlt = (i: number) => `Photo ${i + 1} of request ${r.number}`;
+  const shown = r.photo_paths.flatMap((path, i) => {
+    const url = photos.urls?.get(path);
+    return url ? [{ path, url, alt: photoAlt(i) }] : [];
+  });
   const address = addressLine(r.address, r.postal_code, r.city, r.province);
   const delivery = addressLine(
     r.delivery_address,
@@ -55,47 +64,43 @@ export function SparePartPanel({
 
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-bold text-ink">Photos</h3>
-        {r.photo_paths.map((path, i) => {
-          const url = photos.urls?.get(path);
-          return url ? (
-            <a
-              key={path}
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              className="block overflow-hidden rounded-lg border border-line bg-bg"
-              title="Open full size"
+        {/* Three tiles in a row, cropped to fill (any photo shape); a click shows the photo whole. */}
+        <div className="grid grid-cols-3 gap-2">
+          {r.photo_paths.map((path, i) => {
+            const url = photos.urls?.get(path);
+            return url ? (
+              <button
+                key={path}
+                type="button"
+                onClick={() => setViewing(shown.findIndex((p) => p.path === path))}
+                className="block aspect-[3/4] overflow-hidden rounded-lg border border-line bg-bg hover:opacity-90"
+                title="View larger"
+              >
+                <img src={url} alt={photoAlt(i)} className="size-full object-cover" />
+              </button>
+            ) : (
+              <div
+                key={path}
+                className="flex aspect-[3/4] items-center justify-center rounded-lg border border-line bg-bg p-2 text-center text-xs text-muted"
+              >
+                {photos.loading ? 'Loading…' : photos.failed ? '—' : `Photo ${i + 1} not available`}
+              </div>
+            );
+          })}
+        </div>
+        {photos.failed && shown.length < r.photo_paths.length && (
+          <p className="flex items-center gap-2 text-xs text-muted">
+            Couldn&apos;t load the photos.
+            <button
+              type="button"
+              onClick={photos.retry}
+              className="font-semibold text-ink underline hover:no-underline"
             >
-              <img
-                src={url}
-                alt={`Photo ${i + 1} of request ${r.number}`}
-                className="max-h-80 w-full object-contain"
-              />
-            </a>
-          ) : (
-            <div
-              key={path}
-              className="flex h-24 items-center justify-center rounded-lg border border-line bg-bg"
-            >
-              {photos.loading ? (
-                <span className="text-xs text-muted">Loading…</span>
-              ) : photos.failed ? (
-                <span className="flex items-center gap-2 text-xs text-muted">
-                  Couldn&apos;t load photo {i + 1}.
-                  <button
-                    type="button"
-                    onClick={photos.retry}
-                    className="font-semibold text-ink underline hover:no-underline"
-                  >
-                    Try again
-                  </button>
-                </span>
-              ) : (
-                <span className="text-xs text-muted">Photo {i + 1} not available</span>
-              )}
-            </div>
-          );
-        })}
+              Try again
+            </button>
+          </p>
+        )}
+        <PhotoViewer photos={shown} index={viewing} onChange={setViewing} onClose={() => setViewing(null)} />
       </section>
 
       <section>
