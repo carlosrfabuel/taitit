@@ -9,7 +9,7 @@ import type { CatalogModel, CatalogSwatch } from '@/catalog/catalog';
 import { copyName, restorePicks, type Design } from '@/designs/designs';
 import { useDesignMutations, useDesigns } from '@/designs/useDesigns';
 import { NameSheet } from '@/designs/NameSheet';
-import { SiteFooter } from '@/navigation/SiteFooter';
+import { SiteFooter, siteFooterPage, siteFooterSpot } from '@/navigation/SiteFooter';
 import { RecolorView } from '@/render/RecolorView';
 import {
   AppText,
@@ -174,7 +174,12 @@ export default function DesignsScreen() {
         }
         data={list}
         keyExtractor={(d) => d.id}
-        contentContainerStyle={[styles.list, list.length === 0 && styles.grow, desktop && styles.pageColumn]}
+        contentContainerStyle={[
+          styles.list,
+          list.length === 0 && styles.grow,
+          desktop && styles.pageColumn,
+          desktop && siteFooterPage,
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         windowSize={5}
         ListEmptyComponent={
@@ -189,6 +194,7 @@ export default function DesignsScreen() {
           </View>
         }
         ListFooterComponent={desktop ? <SiteFooter /> : null}
+        ListFooterComponentStyle={siteFooterSpot}
         renderItem={({ item }) => (
           <DesignCard
             design={item}

@@ -9,7 +9,7 @@ import { SearchBox } from '@/catalog/SearchBox';
 import { matchesSearch, type CatalogModel } from '@/catalog/catalog';
 import { useSparePartRequests } from '@/spareParts/useSpareParts';
 import { SparePartsSignIn } from '@/spareParts/SparePartsSignIn';
-import { SiteFooter } from '@/navigation/SiteFooter';
+import { SiteFooter, siteFooterPage } from '@/navigation/SiteFooter';
 import { AppText, Card, EmptyState, Icon, Skeleton, readingColumn, useDesktop, useReadingWidth } from '@/ui';
 
 const { spacing, colors, radius, touch } = tokens;
@@ -140,7 +140,7 @@ export default function SparePartsScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, desktop && readingColumn]}
+      contentContainerStyle={[styles.content, desktop && readingColumn, desktop && siteFooterPage]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >

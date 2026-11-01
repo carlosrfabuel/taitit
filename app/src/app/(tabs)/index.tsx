@@ -35,7 +35,7 @@ import {
 } from '@/catalog/catalog';
 import { ModelImage } from '@/catalog/ModelImage';
 import { SearchBox } from '@/catalog/SearchBox';
-import { SiteFooter } from '@/navigation/SiteFooter';
+import { SiteFooter, siteFooterPage } from '@/navigation/SiteFooter';
 import { fonts } from '@/ui/fonts';
 
 const { spacing, colors, radius, touch } = tokens;
@@ -331,6 +331,7 @@ export default function CatalogScreen() {
           styles.content,
           { paddingTop: insets.top + spacing.sm },
           desktop && styles.pageColumn,
+          desktop && siteFooterPage,
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

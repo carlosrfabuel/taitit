@@ -3,7 +3,7 @@ import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@taitit/shared';
 import { readingColumn, useDesktop } from './layout';
-import { SiteFooter } from '@/navigation/SiteFooter';
+import { SiteFooter, siteFooterPage } from '@/navigation/SiteFooter';
 
 type Props = {
   children: ReactNode;
@@ -36,15 +36,19 @@ export function Screen({ children, scroll = true, footer, contentStyle, fill = f
   // (the app draws behind them), unless the tab bar already does.
   const end = !footer && !inTabs ? { paddingBottom: tokens.spacing.xl + insets.bottom } : null;
   const reading = desktop ? readingColumn : null;
+  // A computer: the page reaches the window's bottom (its footer there), and a short form is centered
+  // in the room above the footer.
+  const page = desktop ? siteFooterPage : null;
+  const body = fill && desktop ? <View style={styles.fillBody}>{children}</View> : children;
   const inlineFooter = desktop && footer ? <View style={styles.inlineFooter}>{footer}</View> : null;
   return (
     <View style={styles.root}>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={[styles.content, end, fill && styles.fill, contentStyle, reading]}
+          contentContainerStyle={[styles.content, end, fill && styles.fill, page, contentStyle, reading]}
           keyboardShouldPersistTaps="handled"
         >
-          {children}
+          {body}
           {inlineFooter}
           <SiteFooter />
         </ScrollView>
@@ -68,6 +72,7 @@ const styles = StyleSheet.create({
   fixed: { flex: 1 },
   // Top block, then the rest centered in the remaining height (no big empty band between them).
   fill: { flexGrow: 1, justifyContent: 'center' },
+  fillBody: { flexGrow: 1, justifyContent: 'center', gap: tokens.spacing.lg },
   inlineFooter: { marginTop: tokens.spacing.sm },
   footer: {
     padding: tokens.spacing.lg,

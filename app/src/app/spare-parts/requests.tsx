@@ -9,7 +9,7 @@ import { useSparePartRequests } from '@/spareParts/useSpareParts';
 import { SparePartsSignIn } from '@/spareParts/SparePartsSignIn';
 import { useAuth } from '@/auth/AuthProvider';
 import { AppText, Card, EmptyState, Icon, Screen, Skeleton, readingColumn, useDesktop } from '@/ui';
-import { SiteFooter } from '@/navigation/SiteFooter';
+import { SiteFooter, siteFooterPage, siteFooterSpot } from '@/navigation/SiteFooter';
 
 const { spacing, colors, radius } = tokens;
 const THUMB = 56;
@@ -56,7 +56,12 @@ export default function SparePartRequestsScreen() {
       style={styles.root}
       data={list}
       keyExtractor={(r) => r.id}
-      contentContainerStyle={[styles.list, list.length === 0 && styles.grow, desktop && readingColumn]}
+      contentContainerStyle={[
+        styles.list,
+        list.length === 0 && styles.grow,
+        desktop && readingColumn,
+        desktop && siteFooterPage,
+      ]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.center}>
@@ -71,6 +76,7 @@ export default function SparePartRequestsScreen() {
       }
       renderItem={({ item }) => <RequestRow request={item} />}
       ListFooterComponent={desktop ? <SiteFooter /> : null}
+      ListFooterComponentStyle={siteFooterSpot}
     />
   );
 }
